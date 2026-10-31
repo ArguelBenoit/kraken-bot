@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken Bot</title>
+<style>
+:root{--bg:#050505;--card:#0b0b0b;--bd:#262626;--tx:#d4d0c0;--mu:#7d7a6c;--ok:#3ddc84;--ko:#ff4d4d;--ac:#ffb000;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px ui-monospace,"DejaVu Sans Mono","Courier New",monospace;padding:16px}
+header{max-width:1600px;margin:0 auto 10px;padding:0 2px;display:flex;justify-content:space-between;align-items:center;gap:8px 24px;flex-wrap:wrap}
+.hk{display:flex;gap:6px 26px;flex-wrap:wrap;align-items:center}.hk .k{display:flex;align-items:center;gap:6px;white-space:nowrap}.hk .k small{display:inline;margin:0}.hk .k small::after{content:":";margin-left:4px}.hk .k b{font-size:14px}.hk .tip:hover::after,.hk .tip:focus::after{left:auto;right:0}.hk .k:first-child .tip:hover::after{left:0;right:auto}
+h1{font-size:15px;margin:0;text-transform:uppercase;letter-spacing:.12em;color:var(--ac)}main{max-width:1600px;margin:auto;display:grid;gap:14px;grid-template-columns:minmax(0,440px) minmax(0,1fr);align-items:start}.col{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+#mkwrap{overflow-y:auto}.mk th{position:sticky;top:0;z-index:5;background:var(--card)}.mk th:nth-last-child(-n+3) .tip:hover::after,.mk th:nth-last-child(-n+3) .tip:focus::after{left:auto;right:0}
+@media(max-width:1350px){.mk th:nth-child(4),.mk td:nth-child(4){display:none}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:2px;padding:14px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--ac);margin:0 0 12px;padding-bottom:6px;border-bottom:1px dashed var(--bd)}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;color:var(--mu)}
+input,select{width:120px;font:inherit;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:2px;padding:6px}
+[hidden]{display:none!important}button{background:var(--ac);color:#000;border:1px solid var(--ac);border-radius:2px;padding:7px 12px;cursor:pointer;font:700 12px ui-monospace,"DejaVu Sans Mono",monospace;text-transform:uppercase;letter-spacing:.06em}button:hover{filter:brightness(1.15)}
+button.sec{background:transparent;color:var(--tx);border-color:#444}button.ko{background:transparent;color:var(--ko);border-color:var(--ko)}.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}@media(max-width:600px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.k small{color:var(--mu);display:block;margin-bottom:3px}.k b{font-size:20px}.ok{color:var(--ok)}.ko-t{color:var(--ko)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:5px 6px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mu);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.05em}tbody tr:hover{background:#111}.mk tr.sel td,.mk tr.sel:hover td{background:#2b2000}.mk tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--ac)}
+pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
+#pwrap{position:relative}
+#ptoggle{padding:2px 9px;font-size:11px;line-height:16px}
+#plist{position:absolute;right:0;top:calc(100% + 6px);z-index:30;width:min(412px,86vw);max-height:70vh;overflow:auto;background:#080808;border:1px solid var(--ac);padding:4px 10px 8px;box-shadow:0 8px 24px #000c;text-transform:none;letter-spacing:0;font-weight:400;color:var(--tx);text-align:left}
+.pg{margin-top:8px}.pg>small{display:block;color:var(--mu);font-size:11px;margin-bottom:4px}
+.chip{display:inline-block;background:transparent;color:var(--tx);border:1px solid #444;padding:3px 8px;margin:0 4px 4px 0;font:12px ui-monospace,"DejaVu Sans Mono",monospace;text-transform:none;letter-spacing:0;font-weight:400}
+.chip:hover{border-color:var(--ac);color:var(--ac);filter:none}
+.chipw{display:inline-flex;margin:0 4px 4px 0}.chipw .chip{margin:0}.chipw .x{border-left:0;color:var(--mu);padding:3px 6px}.chipw .x:hover{color:var(--ko);border-color:var(--ko)}
+.duo{display:flex;gap:14px}.duo label{flex:1;min-width:0}.duo select,.duo input{width:auto;flex:1;min-width:0}
+.ic{width:1.15em;height:1.15em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em;flex:none}
+.ic.f{fill:currentColor;stroke-width:1}.card h2 .ic,h1 .ic{margin-right:7px}button .ic{margin-right:6px}.ic.m0{margin:0!important}
+.badge .ic{width:.75em;height:.75em;margin-right:5px;vertical-align:-.05em}.ic.dot{width:.7em;height:.7em;margin-right:6px;vertical-align:0}
+.open{border:0;padding:0;margin:0}
+.open .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.open .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin:10px 0 14px}
+.open .grid small{display:block;color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+@media(min-width:1001px){.open .grid{grid-template-columns:repeat(3,1fr)}}
+.gauge{position:relative;height:14px;background:linear-gradient(90deg,#3a1414,#1a1a1a 50%,#133a22);border:1px solid var(--bd)}
+.gauge .fill{position:absolute;top:0;bottom:0}.gauge .entry{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--tx)}
+.gauge .now{position:absolute;top:-6px;bottom:-6px;width:4px;margin-left:-2px;background:var(--ac);box-shadow:0 0 0 1px #000}
+.gl{display:flex;justify-content:space-between;font-size:11px;margin-top:8px;color:var(--mu)}
+#run.on{background:var(--ok);color:#000;border-color:var(--ok);animation:blink 1.1s ease-in-out infinite}
+#run.off{background:var(--ko);color:#000;border-color:var(--ko)}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 8px var(--ok)}50%{opacity:.35;box-shadow:none}}
+@media(prefers-reduced-motion:reduce){ #run.on{animation:none}}
+.badge{padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.08em;border:1px solid var(--bd)}.badge.sec{color:var(--mu)}.live{background:var(--ko);color:#000;border-color:var(--ko)}.paper{background:var(--ac);color:#000;border-color:var(--ac)}
+.tip{display:inline-block;position:relative;width:15px;height:15px;line-height:13px;text-align:center;border:1px solid #444;font:700 10px ui-monospace,monospace;font-style:normal;border-radius:2px;background:var(--bd);color:var(--tx);margin-left:6px;cursor:help;vertical-align:middle}
+.tip:hover::after,.tip:focus::after{content:attr(data-tip);position:absolute;left:0;top:20px;z-index:20;width:250px;padding:8px 10px;border-radius:2px;background:#000;color:var(--tx);border:1px solid var(--bd);font:400 12px/1.4 ui-monospace,"DejaVu Sans Mono",monospace;text-align:left;white-space:normal;box-shadow:none;border-color:var(--ac)}
+#msg{color:var(--ko);min-height:18px;margin-top:6px}.right{display:grid;gap:14px;align-content:start}
+</style></head><body>
+<header><h1><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Kraken Bot — RSI</h1><div class="hk"><div class="k"><small>Mode</small><span id="mode" class="badge"></span></div><div class="k"><small>Statut</small><span id="run" class="badge off"></span></div><div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>Équité (paper)</small><b id="eq">–</b></div></div></header>
+<main>
+<div class="col">
+<section class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><svg class="ic"><use href="/static/icons.svg#settings"/></svg>Réglages</span><div id="pwrap"><button type="button" id="ptoggle" class="sec" aria-expanded="false"><svg class="ic"><use href="/static/icons.svg#sliders-horizontal"/></svg>Presets<svg class="ic m0" style="margin-left:4px!important"><use href="/static/icons.svg#chevron-down"/></svg></button>
+<div id="plist" hidden><div id="pbuiltin"></div><div id="pcustom"></div></div></div></h2><form id="f">
+
+<div class="duo"><label>Paire<select name="pair">
+ <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label><label>Mode<select name="mode"><option value="paper">Paper</option><option value="live">LIVE</option></select></label></div>
+<div class="duo"><label>Timeframe (min)<select name="timeframe"><option>1</option><option>5</option><option>15</option><option>30</option><option>60</option><option>240</option><option value="1440">1440 (1 jour)</option></select></label><label>Période RSI<input name="rsi_period" type="number"></label></div>
+<label>Taille d'ordre (stable)<input name="order_size" type="number" step="any"></label>
+<div class="duo"><label>Achat si RSI ≤<input name="rsi_buy" type="number"></label><label>Vente si RSI ≥<input name="rsi_sell" type="number"></label></div>
+<div class="duo"><label>Take profit %<input name="take_profit_pct" type="number" step="any"></label><label>Stop loss %<input name="stop_loss_pct" type="number" step="any"></label></div>
+<label>Frais %<input name="fee_pct" type="number" step="any"></label>
+<label>Analyse toutes les (s)<input name="check_every" type="number"></label>
+<label>Capital paper<input name="paper_balance" type="number" step="any"></label>
+<div class="row"><button type="submit">Enregistrer</button><button type="button" id="restore" class="sec" title="Annule les modifications non enregistrées : remet le formulaire comme la configuration enregistrée"><svg class="ic"><use href="/static/icons.svg#rotate-ccw"/></svg>Restaurer</button><button type="button" id="pin" class="sec" title="Épingle la configuration actuellement ENREGISTRÉE (pas les modifications non enregistrées)"><svg class="ic"><use href="/static/icons.svg#pin"/></svg>Épingler</button></div><div id="msg"></div><div id="note" style="color:var(--ok);min-height:0"></div></form>
+<div class="row"><button id="go"><svg class="ic f"><use href="/static/icons.svg#play"/></svg>Démarrer</button><button id="stop" class="ko"><svg class="ic f"><use href="/static/icons.svg#square"/></svg>Stop</button><button id="reset" class="sec">Reset paper</button></div>
+</section>
+<section class="card"><h2><svg class="ic"><use href="/static/icons.svg#arrow-left-right"/></svg>Trades</h2><div style="overflow-x:auto"><table><thead><tr><th>Heure</th><th>Mode</th><th>Type</th><th>Prix</th><th>Qté</th><th>Valeur</th><th>PnL</th><th>Raison</th></tr></thead><tbody id="tr"></tbody></table></div></section>
+<section class="card"><h2><svg class="ic"><use href="/static/icons.svg#scroll-text"/></svg>Journal</h2><pre id="logs"></pre></section>
+</div>
+<div class="col">
+<section class="card" id="opencard" hidden><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><svg class="ic"><use href="/static/icons.svg#zap"/></svg>Trade en cours</span><button id="liq" class="ko" type="button" style="padding:2px 9px;font-size:11px;line-height:16px"><svg class="ic"><use href="/static/icons.svg#log-out"/></svg>Liquider la position</button></h2><div id="open"></div></section>
+<section class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span><svg class="ic"><use href="/static/icons.svg#chart-column"/></svg>Marché — où trader ?</span>
+<span style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-weight:400"><small id="sinfo" style="color:var(--mu)"></small>
+<span style="color:var(--mu)">Bougie <i class="tip" data-tip="Durée d'une bougie, pour le tableau (RSI, volatilité) ET pour le graphique affiché. Changer la durée met les deux à jour."></i></span>
+<select id="stf" style="width:90px"><option value="15">15 min</option><option value="60">1 h</option><option value="240" selected>4 h</option><option value="1440">1 jour</option></select>
+<button class="sec" id="srefresh" type="button" style="padding:4px 9px"><svg class="ic m0"><use href="/static/icons.svg#refresh-cw"/></svg></button></span></h2>
+<div id="mkwrap"><table class="mk"><thead><tr><th>Paire</th><th>Prix</th><th>24h</th><th>Volume 24h</th><th>Volatilité <i class="tip" data-tip="Amplitude moyenne (plus haut − plus bas) des 30 dernières bougies, en %. Plus c'est élevé, plus ça bouge — donc plus de gains et de pertes possibles. Doit dépasser nettement les frais (≈0,5 % l'aller-retour)."></i></th><th>RSI <i class="tip" data-tip="RSI de la dernière bougie close. Vert = zone d'achat (≤ seuil d'achat), rouge = zone de vente (≥ seuil de vente)."></i></th><th>Signal</th><th></th></tr></thead><tbody id="scan"><tr><td colspan="7" style="color:var(--mu)">Chargement…</td></tr></tbody></table></div>
+<h2 style="margin-top:18px;display:flex;justify-content:space-between;align-items:center"><span><svg class="ic"><use href="/static/icons.svg#chart-candlestick"/></svg>Graphique <span id="ctitle" style="text-transform:none"></span></span></h2>
+<div id="chart" style="height:440px"></div><div id="rchart" style="height:170px;margin-top:4px"></div></section>
+</div></main>
+<script src="/static/lightweight-charts.js"></script>
+<script>
+const ic=(n,c='')=>`<svg class="ic ${c}"><use href="/static/icons.svg#${n}"/></svg>`;
+const $=s=>document.querySelector(s),f=$('#f');let filled=false;
+const TIPS={"preset": "Réglages tout prêts, classés par risque (prudent, modéré, risqué). Ils remplissent le formulaire : clique ensuite sur Enregistrer.", "pair": "La crypto tradée contre un stablecoin (USDC/USDT, ≈ 1 $). Le bot n'en gère qu'une à la fois.", "mode": "Paper = simulation avec les vrais prix, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (clés API requises).", "timeframe": "Durée d'une bougie en minutes (60 = 1 h, 240 = 4 h). Plus c'est long, moins il y a de trades et de bruit. Les tests ont donné les meilleurs résultats en 240.", "order_size": "Montant en stablecoin investi à chaque achat (ex : 100 = 100 USDC). Une seule position à la fois.", "rsi_period": "Nombre de bougies utilisées pour calculer le RSI. Court (7) = réactif, plus de trades ; long (14) = plus lisse, moins de signaux.", "rsi_buy": "Le bot achète quand le RSI descend à cette valeur ou en dessous (prix « survendu »). Plus bas = achats plus rares mais après de plus fortes baisses.", "rsi_sell": "Le bot vend quand le RSI monte à cette valeur ou au-dessus (prix « suracheté »). Doit rester supérieur au seuil d'achat.", "take_profit_pct": "Vente automatique quand le gain atteint ce pourcentage depuis l'achat (ex : 4 = +4 %).", "stop_loss_pct": "Vente automatique quand la perte atteint ce pourcentage depuis l'achat (ex : 2 = -2 %). Limite les dégâts, mais un stop trop serré sort sur du bruit.", "fee_pct": "Frais Kraken estimés par ordre (0,26 % en taker). Un aller-retour achat+vente coûte donc ≈ 0,5 %. Sert au calcul du PnL.", "check_every": "Fréquence (en secondes) à laquelle le bot vérifie le marché. Le RSI ne change qu'à la clôture d'une bougie, mais take profit et stop loss sont vérifiés à chaque analyse.", "paper_balance": "Capital fictif de départ en mode Paper. Pris en compte au « Reset paper »."},KPI_TIPS={"Mode":"Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken.","Statut":"EN COURS = le bot surveille le marché et passe les ordres. ARRÊTÉ = rien n'est surveillé, une position ouverte reste telle quelle.","Prix": "Dernier prix de la paire sur Kraken.", "RSI": "Valeur actuelle du RSI (0-100) : bas = prix a beaucoup baissé, haut = a beaucoup monté.", "Position": "Quantité de crypto détenue et prix d'achat. « aucune » = le bot attend un signal d'achat.", "PnL réalisé": "Gains/pertes cumulés des trades déjà vendus, frais inclus.", "Équité (paper)": "Valeur totale du portefeuille simulé : stablecoin restant + position au prix actuel."};
+const mk=t=>{const i=document.createElement('i');i.className='tip';i.tabIndex=0;i.textContent='?';i.dataset.tip=t;return i};
+document.querySelectorAll('#f label').forEach(l=>{
+ const c=l.querySelector('select,input'),t=TIPS[c.name||c.id];if(!t)return;
+ const w=document.createElement('span');w.append(l.firstChild,mk(t));l.prepend(w)});
+document.querySelectorAll('.k small').forEach(e=>{const t=KPI_TIPS[e.textContent];if(t)e.append(mk(t))});
+
+const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());
+const n=(x,d=2)=>x==null?'–':Number(x).toLocaleString('fr-FR',{maximumFractionDigits:d});
+function renderOpen(d){
+ const st=d.state,c=d.config,el=$('#open');
+ $('#opencard').hidden=!st.qty;
+ if(!st.qty){el.innerHTML='';return}
+ const px=st.pos_price,fee=c.fee_pct/100,pair=(LABELS[st.pair]||st.pair||c.pair);
+ const cost=st.cost??st.qty*st.entry/(1-fee),dp=st.entry<1?6:2;
+ if(px==null){el.innerHTML='<div class="open">Prix indisponible pour '+pair+'</div>';return}
+ const chg=(px/st.entry-1)*100,val=st.qty*px,net=val*(1-fee)-cost;
+ const tp=c.take_profit_pct,sl=c.stop_loss_pct,tot=tp+sl;
+ const pos=Math.max(0,Math.min(100,(chg+sl)/tot*100)),ent=sl/tot*100;
+ const cls=chg>=0?'ok':'ko-t',zone=chg>=tp?ic('target')+'zone de vente atteinte':chg<=-sl?ic('ban')+'zone de stop atteinte':'';
+ const fill=chg>=0?`left:${ent}%;width:${Math.max(0,pos-ent)}%;background:#3ddc8466`:`left:${pos}%;width:${Math.max(0,ent-pos)}%;background:#ff4d4d66`;
+ const pr=v=>fm(v,dp);
+ el.innerHTML=`<div class="open">
+ <div class="top"><b>${pair}</b><b class="${cls}" style="font-size:20px">${chg>=0?'+':''}${fm(chg)}%</b></div>
+ <div class="grid">
+  <div><small>Acheté</small>${fm(st.qty,6)} @ ${pr(st.entry)}</div>
+  <div><small>Détenu maintenant</small>${fm(st.qty,6)} @ ${pr(px)}</div>
+  <div><small>Valeur d'achat</small>${fm(cost)}</div>
+  <div><small>Valeur actuelle</small>${fm(val)}</div>
+  <div><small>Gain brut</small><span class="${cls}">${val-st.qty*st.entry>=0?'+':''}${fm(val-st.qty*st.entry)}</span></div>
+  <div><small>Gain net estimé (frais de vente)</small><span class="${net>=0?'ok':'ko-t'}">${net>=0?'+':''}${fm(net)}</span></div>
+ </div>
+ <div class="gauge"><div class="fill" style="${fill}"></div><div class="entry" style="left:${ent}%"></div><div class="now" style="left:${pos}%"></div></div>
+ <div class="gl"><span class="ko-t">${ic('chevron-left')}STOP −${sl}% · ${pr(st.entry*(1-sl/100))}</span><span>│ achat ${pr(st.entry)}</span><span class="ok">VENTE +${tp}% · ${pr(st.entry*(1+tp/100))}${ic('chevron-right','m0')}</span></div>
+ ${zone?`<div style="margin-top:8px;color:var(--ac)">${zone}</div>`:''}
+ <div style="margin-top:6px;color:var(--mu);font-size:11px">RSI actuel <b style="color:var(--tx)">${st.pos_rsi==null?'–':fm(st.pos_rsi,1)}</b> · vente automatique si RSI ≥ ${c.rsi_sell}</div></div>`;
+}
+async function refresh(){
+ const d=await (await fetch('/api/status')).json();
+ if(!filled){for(const [k,v] of Object.entries(d.config)) if(f.elements[k]) f.elements[k].value=v; filled=true}
+ window._mode=d.config.mode;
+ $('#mode').textContent=d.config.mode.toUpperCase();$('#mode').className='badge '+d.config.mode;
+ savedCfg=d.config;renderCustom(d.state.presets||[]);
+ $('#go').hidden=d.running;$('#stop').hidden=!d.running;
+ $('#run').innerHTML=d.running?ic('circle','f')+'EN COURS':ic('square','f')+'ARRÊTÉ';$('#run').className='badge '+(d.running?'on':'off');
+ const p=$('#pnl');p.textContent=n(d.state.pnl);p.className=d.state.pnl>=0?'ok':'ko-t';
+ renderOpen(d);
+ $('#eq').textContent=d.config.mode==='paper'?n(d.state.equity):'n/a';
+ $('#tr').innerHTML=d.state.trades.map(t=>`<tr><td>${t.time}</td><td>${t.mode}</td><td class="${t.side=='BUY'?'ok':'ko-t'}">${t.side}</td><td>${n(t.price)}</td><td>${n(t.qty,6)}</td><td>${n(t.qty*t.price)}</td><td>${t.side=='SELL'?n(t.pnl):''}</td><td>${t.why}</td></tr>`).join('');
+ $('#logs').textContent=d.logs.join('\n');
+}
+const PRESETS={a:{pair:'ETHUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:30,rsi_sell:70,take_profit_pct:4,stop_loss_pct:2,order_size:100},
+b:{pair:'ETHUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:30,rsi_sell:70,take_profit_pct:4,stop_loss_pct:8,order_size:100},
+xrp:{pair:'XRPUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:25,rsi_sell:65,take_profit_pct:2,stop_loss_pct:8,order_size:50},
+shib:{pair:'SHIBUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:30,rsi_sell:65,take_profit_pct:2,stop_loss_pct:8,order_size:50},
+sol:{pair:'SOLUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:14,rsi_buy:35,rsi_sell:55,take_profit_pct:2,stop_loss_pct:2,order_size:100},
+avax:{pair:'AVAXUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:65,take_profit_pct:4,stop_loss_pct:8,order_size:100},
+link:{pair:'LINKUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:70,take_profit_pct:8,stop_loss_pct:4,order_size:200},
+avaxr:{pair:'AVAXUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:65,take_profit_pct:4,stop_loss_pct:2,order_size:200}};
+let CUSTOM={},customSig='',savedCfg=null;
+const BUILTIN=[['Prudent',[['a','ETH/USDC 4h équilibré'],['b','ETH/USDC 4h patient'],['xrp','XRP/USDC 4h prudent'],['shib','SHIB/USDC 4h prudent']]],
+ ['Modéré',[['sol','SOL/USDC 4h modéré'],['avax','AVAX/USDC 4h modéré']]],['Risqué',[['link','LINK/USDC 4h risqué'],['avaxr','AVAX/USDC 4h agressif']]]];
+const GC={'Prudent':'var(--ok)','Modéré':'var(--ac)','Risqué':'var(--ko)'};
+const PNAMES=Object.fromEntries(BUILTIN.flatMap(g=>g[1]));
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const plab=v=>{const o=f.pair.querySelector('option[value="'+v+'"]');return o?o.text:v};
+const sumP=c=>plab(c.pair)+' · '+c.timeframe+' min · RSI '+c.rsi_period+' ('+c.rsi_buy+'/'+c.rsi_sell+') · TP '+c.take_profit_pct+'% · SL '+c.stop_loss_pct+'% · ordre '+c.order_size;
+$('#pbuiltin').innerHTML=BUILTIN.map(([g,items])=>`<div class="pg"><small><span style="color:${GC[g]}">${ic('circle','f dot')}</span>${g}</small>${items.map(([k,n])=>`<button type="button" class="chip" data-p="${k}" title="${esc(sumP(PRESETS[k]))}">${n}</button>`).join('')}</div>`).join('');
+function renderCustom(list){
+ const sig=JSON.stringify(list);if(sig===customSig)return;customSig=sig;CUSTOM={};
+ list.forEach(p=>CUSTOM['c:'+p.id]=p.config);
+ $('#pcustom').innerHTML='<div class="pg"><small>'+ic('pin')+' Mes configs</small>'+(list.length?list.map(p=>`<span class="chipw"><button type="button" class="chip" data-p="c:${p.id}" data-name="${esc(p.name)}" title="${esc(sumP(p.config)+' — épinglée le '+p.created)}">${esc(p.name)}</button><button type="button" class="chip x" data-del="${p.id}" data-name="${esc(p.name)}" title="Supprimer cette config épinglée">${ic('x','m0')}</button></span>`).join(''):'<span style="color:var(--mu);font-size:12px">Aucune. Règle, Enregistre, puis clique « Épingler ».</span>')+'</div>';
+}
+function applyPreset(p,name){
+ closeP();
+ for(const [k,val] of Object.entries(p)){if(f.elements[k])f.elements[k].value=val}
+ $('#note').textContent='';
+ $('#msg').textContent='« '+name+' » chargé : vérifie puis clique Enregistrer';
+}
+const closeP=()=>{$('#plist').hidden=true;$('#ptoggle').setAttribute('aria-expanded','false')};
+$('#ptoggle').onclick=()=>{const h=$('#plist').hidden;$('#plist').hidden=!h;$('#ptoggle').setAttribute('aria-expanded',h)};
+document.addEventListener('click',e=>{if(!$('#pwrap').contains(e.target))closeP()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeP()});
+$('#plist').onclick=async e=>{
+ const d=e.target.closest('[data-del]');
+ if(d){if(!confirm('Supprimer la config épinglée « '+d.dataset.name+' » ?'))return;
+  const r=await fetch('/api/presets/'+d.dataset.del,{method:'DELETE'}).then(r=>r.json());
+  if(r.ok)note('Config « '+d.dataset.name+' » supprimée');else $('#msg').textContent=r.error;refresh();return}
+ const c=e.target.closest('[data-p]');if(!c)return;
+ const k=c.dataset.p;applyPreset(PRESETS[k]||CUSTOM[k],c.dataset.name||PNAMES[k]||k)};
+$('#restore').onclick=async()=>{
+ const d=await (await fetch('/api/status')).json();
+ for(const [k,v] of Object.entries(d.config)){if(f.elements[k])f.elements[k].value=v}
+ note('Formulaire remis à la configuration enregistrée')};
+const note=t=>{$('#note').textContent=t;$('#msg').textContent=''};
+$('#pin').onclick=async()=>{
+ const c=savedCfg;if(!c)return;
+ const def=(LABELS[c.pair]||c.pair)+' '+c.timeframe+'m RSI'+c.rsi_period+' '+c.rsi_buy+'/'+c.rsi_sell+' TP'+c.take_profit_pct+' SL'+c.stop_loss_pct;
+ const name=prompt('Nom de la config à épingler (configuration actuellement enregistrée) :',def);if(!name)return;
+ const r=await post('/api/presets',{name});
+ if(r.ok)note('« '+name+' » épinglée');else{$('#note').textContent='';$('#msg').textContent=r.error}refresh()};
+f.onsubmit=async e=>{e.preventDefault();
+ if(f.mode.value==='live'&&!confirm('Mode LIVE : des ordres réels seront passés sur Kraken. Confirmer ?'))return;
+ const r=await post('/api/config',Object.fromEntries(new FormData(f)));$('#msg').textContent=r.ok?'':r.error;refresh()};
+$('#go').onclick=async()=>{const r=await post('/api/start');$('#msg').textContent=r.ok?'':r.error;refresh()};
+$('#stop').onclick=async()=>{await post('/api/stop');refresh()};
+$('#liq').onclick=async()=>{
+ if(!confirm('Vendre toute la position au prix du marché maintenant ?'+(window._mode==='live'?'\nMODE LIVE : ordre réel sur Kraken.':'')))return;
+ const r=await post('/api/liquidate');$('#msg').textContent=r.ok?'':r.error;refresh()};
+$('#reset').onclick=async()=>{
+ if(!confirm('Réinitialiser le portefeuille paper ?\n\nLa position ouverte, l\'historique des trades et le PnL seront effacés, et le solde reviendra au capital de départ. Le bot sera arrêté s\'il tourne. Cette action est irréversible.'))return;
+const r=await post('/api/reset');$('#msg').textContent=r.ok?'':r.error;refresh()};
+const opt={layout:{background:{color:'#0b0b0b'},textColor:'#7d7a6c',fontFamily:'ui-monospace,DejaVu Sans Mono,monospace'},grid:{vertLines:{color:'#161616'},horzLines:{color:'#161616'}},timeScale:{timeVisible:true,borderColor:'#262626'},rightPriceScale:{borderColor:'#262626'},autoSize:true};
+let synced=false,pc,rc,cs,rl,lines=[],view={pair:null,tf:null},curView=null;
+const LABELS=Object.fromEntries([...f.pair.options].map(o=>[o.value,o.text]));
+function initCharts(){
+ if(typeof LightweightCharts==='undefined')return;
+ pc=LightweightCharts.createChart($('#chart'),opt);rc=LightweightCharts.createChart($('#rchart'),opt);
+ cs=pc.addCandlestickSeries({upColor:'#3ddc84',downColor:'#ff4d4d',borderVisible:false,wickUpColor:'#3ddc84',wickDownColor:'#ff4d4d'});
+ rl=rc.addLineSeries({color:'#ffb000',lineWidth:2});
+ pc.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&rc.timeScale().setVisibleLogicalRange(r));
+ rc.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&pc.timeScale().setVisibleLogicalRange(r));
+}
+async function drawChart(){
+ if(!cs)return;
+ const q=view.pair?'?pair='+view.pair+'&tf='+view.tf:'';
+ const d=await (await fetch('/api/chart'+q)).json();if(d.error)return;
+ curView={pair:d.pair,tf:d.tf};markSel();
+ if(!synced){synced=true;const o=$('#stf');if([...o.options].some(x=>x.value==d.tf)&&o.value!=d.tf){o.value=d.tf;loadScan()}}
+ cs.setData(d.candles);rl.setData(d.rsi);
+ const tf=d.candles.map(c=>c.time),snap=t=>tf.filter(x=>x<=t).pop();
+ cs.setMarkers(d.marks.map(m=>({time:snap(m.time),position:m.side=='BUY'?'belowBar':'aboveBar',color:m.side=='BUY'?'#3ddc84':'#ff4d4d',shape:m.side=='BUY'?'arrowUp':'arrowDown',text:m.side})).filter(m=>m.time).sort((a,b)=>a.time-b.time));
+ lines.forEach(l=>rl.removePriceLine(l));
+ lines=[[d.rsi_buy,'#3ddc84'],[d.rsi_sell,'#ff4d4d']].map(([p,c])=>rl.createPriceLine({price:p,color:c,lineStyle:2,lineWidth:1}));
+ $('#ctitle').textContent='— '+(LABELS[d.pair]||d.pair)+' · '+d.tf+' min · RSI en bas';
+}
+const fm=(v,d=2)=>v==null?'–':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:d});
+function markSel(){document.querySelectorAll('#scan tr[data-pair]').forEach(tr=>tr.classList.toggle('sel',!!curView&&tr.dataset.pair===curView.pair))}
+async function loadScan(){
+ $('#sinfo').textContent=' chargement…';
+ const r=await fetch('/api/scan?tf='+$('#stf').value),d=await r.json();
+ if(d.error){$('#sinfo').textContent=' '+d.error;return}
+ const cfg=(await (await fetch('/api/status')).json()).config;
+ d.sort((a,b)=>(a.error?1:0)-(b.error?1:0)||(a.rsi??999)-(b.rsi??999));
+ $('#scan').innerHTML=d.map(x=>{
+  if(x.error)return `<tr><td>${x.label}</td><td colspan="7" style="color:var(--mu)">indisponible</td></tr>`;
+  const sig=x.rsi==null?'–':x.rsi<=cfg.rsi_buy?'<b class="ok">Survendu · achat</b>':x.rsi>=cfg.rsi_sell?'<b class="ko-t">Suracheté</b>':'<span style="color:var(--mu)">Neutre</span>';
+  const rc=x.rsi==null?'':x.rsi<=cfg.rsi_buy?'ok':x.rsi>=cfg.rsi_sell?'ko-t':'';
+  return `<tr data-pair="${x.pair}" style="cursor:pointer"><td><b>${x.label}</b></td><td>${fm(x.price,x.price<1?6:2)}</td><td class="${x.chg24>=0?'ok':'ko-t'}">${x.chg24>=0?'+':''}${fm(x.chg24)}%</td><td>${fm(x.vol24,0)}</td><td>${fm(x.volat)}%</td><td class="${rc}">${fm(x.rsi,1)}</td><td>${sig}</td><td><button type="button" class="sec" data-trade="${x.pair}" style="padding:3px 8px">Trader</button></td></tr>`}).join('');
+ markSel();
+ const w=$('#mkwrap'),rows=[...w.querySelectorAll('tbody tr')];
+ w.style.maxHeight=rows.length>8?(w.querySelector('thead').offsetHeight+rows.slice(0,8).reduce((a,r)=>a+r.offsetHeight,0)+1)+'px':'';
+ $('#sinfo').textContent=' mis à jour '+new Date().toLocaleTimeString('fr-FR');
+}
+const tradeThis=(pair,tf)=>{
+ const ids=Object.keys(PRESETS).filter(k=>PRESETS[k].pair===pair),pk=ids.find(k=>PRESETS[k].stop_loss_pct<=4)||ids[0];
+ f.pair.value=pair;f.timeframe.value=tf;
+ if(pk){for(const [k,v] of Object.entries(PRESETS[pk]))f.elements[k].value=v;
+  $('#msg').textContent='Preset « '+PNAMES[pk]+' » chargé : vérifie puis clique Enregistrer'}
+ else{$('#msg').textContent='Aucun preset testé pour '+(LABELS[pair]||pair)+' : seule la paire et la bougie sont changées, règle le reste puis Enregistrer'}};
+$('#scan').onclick=e=>{
+ const tb=e.target.closest('[data-trade]');if(tb)return tradeThis(tb.dataset.trade,$('#stf').value);
+ const tr=e.target.closest('tr[data-pair]');if(!tr)return;
+ view={pair:tr.dataset.pair,tf:$('#stf').value};drawChart();
+ document.getElementById('chart').scrollIntoView({behavior:'smooth',block:'center'})};
+$('#stf').onchange=()=>{loadScan();if(curView){view={pair:curView.pair,tf:$('#stf').value};drawChart()}};$('#srefresh').onclick=()=>{loadScan()};
+document.querySelectorAll('.tip:not([data-tip=""])').forEach(i=>{i.textContent='?';i.tabIndex=0});
+initCharts();loadScan();refresh().then(drawChart);setInterval(refresh,3000);setInterval(drawChart,60000);
+$('#f').addEventListener('submit',()=>setTimeout(()=>{view={pair:null,tf:null};synced=false;drawChart()},800));
+</script></body></html>
