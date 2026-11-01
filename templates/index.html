@@ -32,6 +32,13 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 .ic.f{fill:currentColor;stroke-width:1}.card h2 .ic,h1 .ic{margin-right:7px}button .ic{margin-right:6px}.ic.m0{margin:0!important}
 .badge .ic{width:.75em;height:.75em;margin-right:5px;vertical-align:-.05em}.ic.dot{width:.7em;height:.7em;margin-right:6px;vertical-align:0}
 .open{border:0;padding:0;margin:0}
+#opencard{border:2px solid var(--ac);background:linear-gradient(180deg,#1a1300,var(--card) 140px);box-shadow:0 0 18px #ffb00033;padding:18px}
+#opencard.up{border-color:var(--ok);background:linear-gradient(180deg,#07210f,var(--card) 140px);box-shadow:0 0 22px #3ddc8444}
+#opencard.dn{border-color:var(--ko);background:linear-gradient(180deg,#260909,var(--card) 140px);box-shadow:0 0 22px #ff4d4d44}
+#opencard h2{font-size:14px;color:var(--tx)}
+.open .top b:first-child{font-size:22px;letter-spacing:.04em}.open .top b:last-child{font-size:34px!important;line-height:1}
+.open .grid{font-size:15px}.open .grid small{font-size:11px}
+.gauge{height:22px}.gl{font-size:12px}
 .open .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
 .open .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 14px;margin:10px 0 14px}
 .open .grid small{display:block;color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.05em}
@@ -44,30 +51,31 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 #run.off{background:var(--ko);color:#000;border-color:var(--ko)}
 @keyframes blink{0%,100%{opacity:1;box-shadow:0 0 8px var(--ok)}50%{opacity:.35;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){ #run.on{animation:none}}
+.sw{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;color:var(--mu);font:700 11px ui-monospace,monospace;letter-spacing:.08em}.sw:hover{filter:none}.sw .t{position:relative;width:38px;height:18px;border:1px solid var(--ac);background:#000;border-radius:2px}.sw .t::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;background:var(--ac);transition:left .15s}.sw[aria-checked=true] .t{border-color:var(--ko)}.sw[aria-checked=true] .t::after{left:22px;background:var(--ko)}.sw[aria-checked=false] .lp{color:var(--ac)}.sw[aria-checked=true] .ll{color:var(--ko)}
 .badge{padding:2px 8px;border-radius:2px;font-size:11px;font-weight:700;letter-spacing:.08em;border:1px solid var(--bd)}.badge.sec{color:var(--mu)}.live{background:var(--ko);color:#000;border-color:var(--ko)}.paper{background:var(--ac);color:#000;border-color:var(--ac)}
 .tip{display:inline-block;position:relative;width:15px;height:15px;line-height:13px;text-align:center;border:1px solid #444;font:700 10px ui-monospace,monospace;font-style:normal;border-radius:2px;background:var(--bd);color:var(--tx);margin-left:6px;cursor:help;vertical-align:middle}
 .tip:hover::after,.tip:focus::after{content:attr(data-tip);position:absolute;left:0;top:20px;z-index:20;width:250px;padding:8px 10px;border-radius:2px;background:#000;color:var(--tx);border:1px solid var(--bd);font:400 12px/1.4 ui-monospace,"DejaVu Sans Mono",monospace;text-align:left;white-space:normal;box-shadow:none;border-color:var(--ac)}
 #msg{color:var(--ko);min-height:18px;margin-top:6px}.right{display:grid;gap:14px;align-content:start}
 </style></head><body>
-<header><h1><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Kraken Bot — RSI</h1><div class="hk"><div class="k"><small>Mode</small><span id="mode" class="badge"></span></div><div class="k"><small>Statut</small><span id="run" class="badge off"></span></div><div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>Équité (paper)</small><b id="eq">–</b></div></div></header>
+<header><h1><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Kraken Bot — RSI</h1><div class="hk"><div class="k"><small>Mode</small><button type="button" id="mode" class="sw" role="switch" aria-checked="false"><span class="lp">PAPER</span><span class="t"></span><span class="ll">LIVE</span></button></div><div class="k"><small>Statut</small><span id="run" class="badge off"></span></div><div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>Équité (paper)</small><b id="eq">–</b></div></div></header>
 <main>
 <div class="col">
 <section class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><svg class="ic"><use href="/static/icons.svg#settings"/></svg>Réglages</span><div id="pwrap"><button type="button" id="ptoggle" class="sec" aria-expanded="false"><svg class="ic"><use href="/static/icons.svg#sliders-horizontal"/></svg>Presets<svg class="ic m0" style="margin-left:4px!important"><use href="/static/icons.svg#chevron-down"/></svg></button>
 <div id="plist" hidden><div id="pbuiltin"></div><div id="pcustom"></div></div></div></h2><form id="f">
 
 <div class="duo"><label>Paire<select name="pair">
- <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label><label>Mode<select name="mode"><option value="paper">Paper</option><option value="live">LIVE</option></select></label></div>
+ <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label></div>
 <div class="duo"><label>Timeframe (min)<select name="timeframe"><option>1</option><option>5</option><option>15</option><option>30</option><option>60</option><option>240</option><option value="1440">1440 (1 jour)</option></select></label><label>Période RSI<input name="rsi_period" type="number"></label></div>
 <label>Taille d'ordre (stable)<input name="order_size" type="number" step="any"></label>
 <div class="duo"><label>Achat si RSI ≤<input name="rsi_buy" type="number"></label><label>Vente si RSI ≥<input name="rsi_sell" type="number"></label></div>
 <div class="duo"><label>Take profit %<input name="take_profit_pct" type="number" step="any"></label><label>Stop loss %<input name="stop_loss_pct" type="number" step="any"></label></div>
 <label>Frais %<input name="fee_pct" type="number" step="any"></label>
 <label>Analyse toutes les (s)<input name="check_every" type="number"></label>
-<label>Capital paper<input name="paper_balance" type="number" step="any"></label>
+<label class="po">Capital paper<input name="paper_balance" type="number" step="any"></label>
 <div class="row"><button type="submit">Enregistrer</button><button type="button" id="restore" class="sec" title="Annule les modifications non enregistrées : remet le formulaire comme la configuration enregistrée"><svg class="ic"><use href="/static/icons.svg#rotate-ccw"/></svg>Restaurer</button><button type="button" id="pin" class="sec" title="Épingle la configuration actuellement ENREGISTRÉE (pas les modifications non enregistrées)"><svg class="ic"><use href="/static/icons.svg#pin"/></svg>Épingler</button></div><div id="msg"></div><div id="note" style="color:var(--ok);min-height:0"></div></form>
-<div class="row"><button id="go"><svg class="ic f"><use href="/static/icons.svg#play"/></svg>Démarrer</button><button id="stop" class="ko"><svg class="ic f"><use href="/static/icons.svg#square"/></svg>Stop</button><button id="reset" class="sec">Reset paper</button></div>
+<div class="row"><button id="go"><svg class="ic f"><use href="/static/icons.svg#play"/></svg>Démarrer</button><button id="stop" class="ko"><svg class="ic f"><use href="/static/icons.svg#square"/></svg>Stop</button><button id="reset" class="sec po">Reset paper</button></div>
 </section>
-<section class="card"><h2><svg class="ic"><use href="/static/icons.svg#arrow-left-right"/></svg>Trades</h2><div style="overflow-x:auto"><table><thead><tr><th>Heure</th><th>Mode</th><th>Type</th><th>Prix</th><th>Qté</th><th>Valeur</th><th>PnL</th><th>Raison</th></tr></thead><tbody id="tr"></tbody></table></div></section>
+<section class="card"><h2><svg class="ic"><use href="/static/icons.svg#arrow-left-right"/></svg>Trades</h2><div id="notr" style="color:var(--mu)">Aucun trade pour le moment.</div><div id="trw" style="overflow-x:auto"><table><thead><tr><th>Heure</th><th>Type</th><th>Prix</th><th>Qté</th><th>Valeur</th><th>PnL</th><th>Raison</th></tr></thead><tbody id="tr"></tbody></table></div></section>
 <section class="card"><h2><svg class="ic"><use href="/static/icons.svg#scroll-text"/></svg>Journal</h2><pre id="logs"></pre></section>
 </div>
 <div class="col">
@@ -96,7 +104,7 @@ const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/js
 const n=(x,d=2)=>x==null?'–':Number(x).toLocaleString('fr-FR',{maximumFractionDigits:d});
 function renderOpen(d){
  const st=d.state,c=d.config,el=$('#open');
- $('#opencard').hidden=!st.qty;
+ $('#opencard').hidden=!st.qty;$('#opencard').className='card '+(st.pos_price==null?'':st.pos_price>=st.entry?'up':'dn');
  if(!st.qty){el.innerHTML='';return}
  const px=st.pos_price,fee=c.fee_pct/100,pair=(LABELS[st.pair]||st.pair||c.pair);
  const cost=st.cost??st.qty*st.entry/(1-fee),dp=st.entry<1?6:2;
@@ -126,15 +134,17 @@ async function refresh(){
  const d=await (await fetch('/api/status')).json();
  if(!filled){for(const [k,v] of Object.entries(d.config)) if(f.elements[k]) f.elements[k].value=v; filled=true}
  window._mode=d.config.mode;
- $('#mode').textContent=d.config.mode.toUpperCase();$('#mode').className='badge '+d.config.mode;
+ $('#mode').setAttribute('aria-checked',d.config.mode==='live');document.querySelectorAll('.po').forEach(e=>e.hidden=d.config.mode!=='paper');document.querySelectorAll('.lo').forEach(e=>e.hidden=d.config.mode!=='live');
+ document.querySelector('.hk .k:nth-child(4)').hidden=d.config.mode!=='paper';
  savedCfg=d.config;renderCustom(d.state.presets||[]);
  $('#go').hidden=d.running;$('#stop').hidden=!d.running;
  $('#run').innerHTML=d.running?ic('circle','f')+'EN COURS':ic('square','f')+'ARRÊTÉ';$('#run').className='badge '+(d.running?'on':'off');
  const p=$('#pnl');p.textContent=n(d.state.pnl);p.className=d.state.pnl>=0?'ok':'ko-t';
  renderOpen(d);
  $('#eq').textContent=d.config.mode==='paper'?n(d.state.equity):'n/a';
- $('#tr').innerHTML=d.state.trades.map(t=>`<tr><td>${t.time}</td><td>${t.mode}</td><td class="${t.side=='BUY'?'ok':'ko-t'}">${t.side}</td><td>${n(t.price)}</td><td>${n(t.qty,6)}</td><td>${n(t.qty*t.price)}</td><td>${t.side=='SELL'?n(t.pnl):''}</td><td>${t.why}</td></tr>`).join('');
- $('#logs').textContent=d.logs.join('\n');
+ $('#notr').hidden=d.state.trades.length>0;$('#trw').hidden=!d.state.trades.length;
+ $('#tr').innerHTML=d.state.trades.map(t=>`<tr><td>${t.time}</td><td class="${t.side=='BUY'?'ok':'ko-t'}">${t.side}</td><td>${n(t.price)}</td><td>${n(t.qty,6)}</td><td>${n(t.qty*t.price)}</td><td>${t.side=='SELL'?n(t.pnl):''}</td><td>${t.why}</td></tr>`).join('');
+ $('#logs').textContent=d.logs.length?d.logs.join('\n'):'Aucun événement pour le moment.';
 }
 const PRESETS={a:{pair:'ETHUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:30,rsi_sell:70,take_profit_pct:4,stop_loss_pct:2,order_size:100},
 b:{pair:'ETHUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:30,rsi_sell:70,take_profit_pct:4,stop_loss_pct:8,order_size:100},
@@ -186,9 +196,12 @@ $('#pin').onclick=async()=>{
  const name=prompt('Nom de la config à épingler (configuration actuellement enregistrée) :',def);if(!name)return;
  const r=await post('/api/presets',{name});
  if(r.ok)note('« '+name+' » épinglée');else{$('#note').textContent='';$('#msg').textContent=r.error}refresh()};
+$('#mode').onclick=async()=>{
+ const to=window._mode==='live'?'paper':'live';
+ if(to==='live'&&!confirm('Passer en mode LIVE : des ordres réels seront passés sur Kraken avec ton argent. Confirmer ?'))return;
+ const r=await post('/api/config',{mode:to});$('#msg').textContent=r.ok?'':r.error;if(!r.ok)alert(r.error);refresh()};
 f.onsubmit=async e=>{e.preventDefault();
- if(f.mode.value==='live'&&!confirm('Mode LIVE : des ordres réels seront passés sur Kraken. Confirmer ?'))return;
- const r=await post('/api/config',Object.fromEntries(new FormData(f)));$('#msg').textContent=r.ok?'':r.error;refresh()};
+  const r=await post('/api/config',Object.fromEntries(new FormData(f)));$('#msg').textContent=r.ok?'':r.error;refresh()};
 $('#go').onclick=async()=>{const r=await post('/api/start');$('#msg').textContent=r.ok?'':r.error;refresh()};
 $('#stop').onclick=async()=>{await post('/api/stop');refresh()};
 $('#liq').onclick=async()=>{

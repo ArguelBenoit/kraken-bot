@@ -136,6 +136,8 @@ class Bot:
                 cfg[k] = str(v).strip().upper() if k == "pair" else (v if k == "mode" else type(default)(v))
         if cfg["mode"] not in ("paper", "live"):
             raise ValueError("mode invalide")
+        if cfg["mode"] != self.config["mode"] and (self.running or self.state.get("qty")):
+            raise ValueError("Impossible de changer de mode : arrête le bot et ferme la position ouverte d'abord")
         for k, (lo, hi) in LIMITS.items():
             if not lo <= cfg[k] <= hi:
                 raise ValueError(f"{k} doit être entre {lo} et {hi}")
@@ -325,5 +327,5 @@ class Bot:
         pos_price = self._position_price()
         value = s["qty"] * (pos_price or 0)
         return {"running": self.running, "config": c, "last": self.last,
-                "state": {**s, "trades": s["trades"][::-1][:30], "equity": s["cash"] + value, "pos_price": pos_price, "pos_rsi": self._position_rsi()},
+                "state": {**s, "trades": [t for t in s["trades"] if t.get("mode") == c["mode"]][::-1][:30], "equity": s["cash"] + value, "pos_price": pos_price, "pos_rsi": self._position_rsi()},
                 "logs": self.logs[::-1][:40]}

@@ -47,7 +47,7 @@ Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST 
 - Thème sombre « oldschool » : monospace, rayon 2 px, accent ambre `--ac`, vert/rouge pour gains/pertes.
 - Disposition 2 colonnes (max 1600 px). **Gauche = trading** : Réglages, Trades, Journal. **Droite = observation** :
   Trade en cours (masqué sans position, avec le bouton Liquider dans son titre), puis Marché + Graphique dans une seule carte.
-  Header : titre + Mode / Statut / PnL réalisé / Équité sur une ligne. Statut : vert clignotant (EN COURS) / rouge (ARRÊTÉ).
+  Header : titre + Mode (switch PAPER/LIVE, confirmation vers LIVE, refusé si bot en marche ou position ouverte) / Statut / PnL réalisé / Équité (paper seulement). Éléments `.po` = paper seulement (Capital paper, Reset paper), Trades filtrés sur le mode courant (côté `snapshot`). Statut : vert clignotant (EN COURS) / rouge (ARRÊTÉ).
 - Tableau Marché : 8 lignes visibles (le reste défile), **trié par RSI croissant**, la ligne du graphique affiché est surlignée.
   Le sélecteur « Bougie » pilote tableau **et** graphique. Le bouton **Trader** d'une ligne pré-remplit le formulaire
   (sans enregistrer, sans scroller) avec le preset de la paire s'il existe.
@@ -75,8 +75,7 @@ Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST 
   le volume minimum Kraken (`ordermin`) est ignoré.
 - **Aucun stop chez Kraken** : TP/SL n'existent que dans le programme. Si `app.py` s'arrête (terminal fermé, veille, coupure),
   rien ne vend. Le bot **ne redémarre pas tout seul** : il faut cliquer sur Démarrer.
-- Paper et live **partagent `state.json`** ; changer de mode avec une position ouverte n'est **pas bloqué** (une position paper
-  pourrait déclencher une vente live). Changer de paire est autorisé (voir plus haut).
+- Paper et live **partagent `state.json`** ; le changement de mode est bloqué si le bot tourne ou si une position est ouverte. Changer de paire est autorisé (voir plus haut).
 - Les presets épinglés vivent dans `state.json` : supprimer ce fichier les efface (un fichier séparé serait plus robuste).
 - Écriture de `state.json` non atomique ; une seule instance du programme à la fois sur un compte.
 
