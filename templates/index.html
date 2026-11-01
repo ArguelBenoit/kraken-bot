@@ -61,7 +61,9 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 <main>
 <div class="col">
 <section class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><svg class="ic"><use href="/static/icons.svg#settings"/></svg>Réglages</span><div id="pwrap"><button type="button" id="ptoggle" class="sec" aria-expanded="false"><svg class="ic"><use href="/static/icons.svg#sliders-horizontal"/></svg>Presets<svg class="ic m0" style="margin-left:4px!important"><use href="/static/icons.svg#chevron-down"/></svg></button>
-<div id="plist" hidden><div id="pbuiltin"></div><div id="pcustom"></div></div></div></h2><form id="f">
+<div id="plist" hidden><div id="pbuiltin"></div><div id="pcustom"></div>
+<div class="pg"><small><svg class="ic"><use href="/static/icons.svg#sliders-horizontal"/></svg> Copier / coller une config</small><button type="button" class="chip" id="pcopy">Copier le formulaire</button><button type="button" class="chip" id="ppaste">Coller…</button>
+<div id="pbox" hidden><textarea id="ptxt" rows="5" placeholder='Colle ici une config JSON, ex : {"pair":"AVAXUSDC","timeframe":240,"rsi_period":7,"rsi_buy":35,"rsi_sell":65,"take_profit_pct":4,"stop_loss_pct":2,"order_size":100}' style="width:100%;font:12px ui-monospace,monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);padding:6px"></textarea><button type="button" class="chip" id="papply">Appliquer au formulaire</button></div></div></div></div></h2><form id="f">
 
 <div class="duo"><label>Paire<select name="pair">
  <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label></div>
@@ -185,6 +187,25 @@ $('#plist').onclick=async e=>{
   if(r.ok)note('Config « '+d.dataset.name+' » supprimée');else $('#msg').textContent=r.error;refresh();return}
  const c=e.target.closest('[data-p]');if(!c)return;
  const k=c.dataset.p;applyPreset(PRESETS[k]||CUSTOM[k],c.dataset.name||PNAMES[k]||k)};
+const CFG_KEYS=['pair','timeframe','rsi_period','rsi_buy','rsi_sell','take_profit_pct','stop_loss_pct','order_size','fee_pct','check_every'];
+$('#pcopy').onclick=async()=>{
+ const o={};CFG_KEYS.forEach(k=>{const v=f.elements[k].value;o[k]=k==='pair'?v:Number(v)});
+ const t=JSON.stringify(o);
+ try{await navigator.clipboard.writeText(t);$('#pcopy').textContent='Copié ✓'}catch(e){$('#pbox').hidden=false;$('#ptxt').value=t;$('#ptxt').select()}
+ setTimeout(()=>$('#pcopy').textContent='Copier le formulaire',1500)};
+$('#ppaste').onclick=()=>{$('#pbox').hidden=!$('#pbox').hidden;$('#ptxt').focus()};
+$('#papply').onclick=()=>{
+ let txt=$('#ptxt').value.trim().replace(/^```(?:json)?/i,'').replace(/```$/,'').trim(),c;
+ try{c=JSON.parse(txt)}catch(e){const m=txt.match(/\{[\s\S]*\}/);try{c=JSON.parse(m&&m[0])}catch(e2){$('#msg').textContent='Config illisible : JSON attendu';closeP();return}}
+ const bad=[],ok=[];
+ for(const [k,v] of Object.entries(c)){
+  if(!CFG_KEYS.includes(k)){if(k!=='mode')bad.push(k);continue}
+  if(k==='pair'&&![...f.pair.options].some(o=>o.value===String(v).toUpperCase())){bad.push('pair '+v);continue}
+  if(k==='timeframe'&&![...f.timeframe.options].some(o=>o.value===String(v))){bad.push('timeframe '+v);continue}
+  f.elements[k].value=k==='pair'?String(v).toUpperCase():v;ok.push(k)}
+ closeP();$('#ptxt').value='';$('#pbox').hidden=true;
+ if(!ok.length){$('#msg').textContent='Aucun champ reconnu dans cette config';return}
+ $('#note').textContent='';$('#msg').textContent='Config collée ('+ok.length+' champs)'+(bad.length?' — ignoré : '+bad.join(', '):'')+' : vérifie puis clique Enregistrer (le mode n\'est jamais modifié par un collage)'};
 $('#restore').onclick=async()=>{
  const d=await (await fetch('/api/status')).json();
  for(const [k,v] of Object.entries(d.config)){if(f.elements[k])f.elements[k].value=v}
