@@ -1,6 +1,6 @@
 import hmac, os
 from pathlib import Path
-from flask import Flask, Response, jsonify, render_template, request
+from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
 env = Path(__file__).parent / ".env"
 if env.exists():
@@ -12,7 +12,8 @@ if env.exists():
 from bot import Bot, scan
 from ai_bot import AIBot
 
-app = Flask(__name__)
+DIST = Path(__file__).parent / "web" / "dist"      # build de l'interface React (npm run build)
+app = Flask(__name__, static_folder=None)
 bot = Bot()
 ai = AIBot()
 
@@ -25,11 +26,6 @@ def _auth():
         a = request.authorization
         if not a or not hmac.compare_digest(a.password or "", pw):
             return Response("Mot de passe requis", 401, {"WWW-Authenticate": 'Basic realm="Kraken Bot"'})
-
-
-@app.get("/")
-def index():
-    return render_template("index.html")
 
 
 @app.get("/api/status")
@@ -81,11 +77,6 @@ def unpin(pid):
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 400
-
-
-@app.get("/ai")
-def ai_page():
-    return render_template("ai.html")
 
 
 @app.get("/api/ai/status")
@@ -150,6 +141,19 @@ def action(action):
     else:
         return jsonify(ok=False), 404
     return jsonify(ok=True)
+
+
+@app.get("/", defaults={"path": ""})
+@app.get("/<path:path>")
+def spa(path):
+    """Interface React : fichiers du build, sinon index.html (routage côté client : /, /ai)."""
+    if path.startswith("api/"):
+        abort(404)
+    if not (DIST / "index.html").exists():
+        return Response("Interface non construite. Lance ./run.sh (développement) ou ./run.sh prod.", 503)
+    if path and (DIST / path).is_file():
+        return send_from_directory(DIST, path)
+    return send_from_directory(DIST, "index.html")
 
 
 if __name__ == "__main__":

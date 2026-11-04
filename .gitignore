@@ -6,3 +6,5 @@ state.json
 config.json
 ai_state.json
 ai_config.json
+web/node_modules/
+web/dist/

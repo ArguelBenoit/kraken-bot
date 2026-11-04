@@ -1,0 +1,18 @@
+.card { border: 2px solid var(--ac); background: linear-gradient(180deg, #1a1300, var(--card) 140px); box-shadow: 0 0 18px #ffb00033; padding: 18px; }
+.card.up { border-color: var(--ok); background: linear-gradient(180deg, #07210f, var(--card) 140px); box-shadow: 0 0 22px #3ddc8444; }
+.card.dn { border-color: var(--ko); background: linear-gradient(180deg, #260909, var(--card) 140px); box-shadow: 0 0 22px #ff4d4d44; }
+.card :global(.card-title) { font-size: 14px; color: var(--tx); }
+.top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.top b:first-child { font-size: 22px; letter-spacing: 0.04em; }
+.top b:last-child { font-size: 34px; line-height: 1; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px; margin: 10px 0 14px; font-size: 15px; }
+@media (min-width: 1001px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+.grid small { display: block; color: var(--mu); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.gauge { position: relative; height: 22px; background: linear-gradient(90deg, #3a1414, #1a1a1a 50%, #133a22); border: 1px solid var(--bd); }
+.fill { position: absolute; top: 0; bottom: 0; }
+.entry { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--tx); }
+.now { position: absolute; top: -6px; bottom: -6px; width: 4px; margin-left: -2px; background: var(--ac); box-shadow: 0 0 0 1px #000; }
+.labels { display: flex; justify-content: space-between; font-size: 12px; margin-top: 8px; color: var(--mu); }
+.zone { margin-top: 8px; color: var(--ac); }
+.rule { margin-top: 6px; color: var(--mu); font-size: 11px; }
+.rule b { color: var(--tx); }

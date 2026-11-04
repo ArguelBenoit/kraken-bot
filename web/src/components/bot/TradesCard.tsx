@@ -1,0 +1,35 @@
+import { ArrowLeftRight } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
+import { fm } from '@/lib/format'
+import type { Trade } from '@/lib/types'
+
+export function TradesCard({ trades }: { trades: Trade[] }) {
+  return (
+    <Card title="Trades" icon={ArrowLeftRight}>
+      {trades.length === 0 ? (
+        <div className="t-mu">Aucun trade pour le moment.</div>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table>
+            <thead>
+              <tr><th>Heure</th><th>Type</th><th>Prix</th><th>Qté</th><th>Valeur</th><th>PnL</th><th>Raison</th></tr>
+            </thead>
+            <tbody>
+              {trades.map((t, i) => (
+                <tr key={`${t.ts ?? t.time}-${i}`}>
+                  <td>{t.time}</td>
+                  <td className={t.side === 'BUY' ? 't-ok' : 't-ko'}>{t.side}</td>
+                  <td>{fm(t.price)}</td>
+                  <td>{fm(t.qty, 6)}</td>
+                  <td>{fm(t.qty * t.price)}</td>
+                  <td>{t.side === 'SELL' ? fm(t.pnl) : ''}</td>
+                  <td>{t.why}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Card>
+  )
+}

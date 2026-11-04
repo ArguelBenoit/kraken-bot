@@ -1,0 +1,4 @@
+.decision { border-bottom: 1px solid var(--bd); padding: 8px 0; }
+.decision:last-child { border: 0; }
+.time { color: var(--mu); font-size: 11px; }
+.actions { margin: 4px 0 0; padding-left: 18px; }

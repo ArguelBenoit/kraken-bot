@@ -6,13 +6,15 @@ réponds en français, reste concis, et valide avant toute action touchant à de
 
 ## Lancer
 
-    python3 -m venv .venv && . .venv/bin/activate
-    pip install -r requirements.txt
-    python app.py            # http://127.0.0.1:5000
+    ./run.sh          # développement : API Flask + UI React (Vite, rechargement à chaud) -> http://127.0.0.1:5173
+    ./run.sh prod     # build de l'UI puis un seul serveur Flask -> http://127.0.0.1:5000
+
+`run.sh` installe tout au premier lancement (venv Python + `requirements.txt`, `npm install` dans `web/`). Prérequis : Python 3, Node ≥ 20.
+`python app.py` seul sert l'API et le build `web/dist` s'il existe (sinon une page « Interface non construite »).
 
 Mode **paper** par défaut (vrais prix Kraken, ordres simulés, aucune clé). Le mode **live** exige `.env`
 (`KRAKEN_API_KEY`, `KRAKEN_API_SECRET`, droits Query Funds + Create Orders, jamais de retrait). Voir `.env.example`.
-Après une modif du code : relancer le serveur (Ctrl+C puis `python app.py`) puis Ctrl+Maj+R dans le navigateur.
+Après une modif **Python** : relancer (Ctrl+C puis `./run.sh`). Les modifs de l'UI (`web/src`) se rechargent seules en dev ; en prod, refaire `./run.sh prod`.
 
 ## Architecture
 
@@ -22,12 +24,11 @@ Après une modif du code : relancer le serveur (Ctrl+C puis `python app.py`) pui
 | `bot.py` | Classe `Bot` : boucle (thread), stratégie, ordres, état, presets épinglés, scan du marché, données du graphique. |
 | `kraken.py` | Client Kraken : public (OHLC, Ticker) et privé signé HMAC (`AddOrder` au marché). |
 | `ai_bot.py` | Classe `AIBot` (page `/ai`) : Claude analyse le marché toutes les N min et ouvre/ferme jusqu'à 5 positions. Garde-fous appliqués par le code. |
-| `templates/ai.html` | UI du bot IA (menu « Bot simple / Bot IA » dans les 2 pages). |
 | `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`), `trend`, et les 4 nouvelles méthodes. |
 | `strategies.py` | Signaux purs des méthodes Bollinger / Donchian / MACD / Momentum (`signal()`), ATR, filtre de tendance : partagés par le bot, le scan et le backtest. |
 | `indicators.py` | `ema_series`, `rsi_series` (ré-exportés par `bot.py`). |
-| `templates/index.html` | Toute l'UI (HTML + CSS + JS dans un seul fichier). |
-| `static/` | `lightweight-charts.js` (TradingView 4.1.3, local) et `icons.svg` (sprite Lucide 0.468.0, ISC). |
+| `web/` | Interface **React + TypeScript** (Vite, zustand, lightweight-charts, lucide-react) : voir section « Interface ». |
+| `run.sh` | Lance tout en une commande (dev ou `prod`). |
 | `config.json` | Réglages enregistrés (créé au 1er « Enregistrer »). Ignoré par git. |
 | `state.json` | État runtime : `cash, qty, entry, pair, cost, pnl, trades[≤200], presets[]`. Ignoré par git. |
 
@@ -79,24 +80,28 @@ Non implémentées : grille et DCA (incompatibles avec « une seule position »,
 - Paires = **altname Kraken** (`XBTUSDC`, pas BTC ; `XDGUSDC` pour DOGE). Liste surveillée : `WATCH` dans `bot.py`.
   SUI, PEPE, NEAR, INJ, ARB, APT n'ont pas de paire USDC/USDT chez Kraken.
 
-## Interface (templates/index.html)
+## Interface (web/)
 
-- Thème sombre « oldschool » : monospace, rayon 2 px, accent ambre `--ac`, vert/rouge pour gains/pertes.
-- Disposition 2 colonnes (max 1600 px). **Gauche = trading** : Réglages, Trades, Journal. **Droite = observation** :
-  Trade en cours (masqué sans position, avec le bouton Liquider dans son titre), puis Marché + Graphique dans une seule carte.
-  Header : titre + Mode (switch PAPER/LIVE, confirmation vers LIVE, refusé si bot en marche ou position ouverte) / Statut / PnL réalisé / Équité (paper seulement). Éléments `.po` = paper seulement (Capital paper, Reset paper), Trades filtrés sur le mode courant (côté `snapshot`). Statut : vert clignotant (EN COURS) / rouge (ARRÊTÉ).
-- Tableau Marché : 8 lignes visibles (le reste défile), **trié par RSI croissant**, la ligne du graphique affiché est surlignée.
-  Le sélecteur « Bougie » pilote tableau **et** graphique. Le bouton **Trader** d'une ligne pré-remplit le formulaire
-  (sans enregistrer, sans scroller) avec le preset de la paire s'il existe.
-- Presets : popover (bouton dans le titre de Réglages), boutons qui pré-remplissent seulement, rien n'est « sélectionné ».
-  Presets fournis = `PRESETS` + `BUILTIN` dans le JS. **Configs épinglées** (📌 Épingler = config *enregistrée*) stockées dans
-  `state.json["presets"]`, supprimables avec ✕ ; le reset paper les conserve. Bouton « Restaurer » = remet le formulaire sur `config.json`.
-- Pastilles `?` (tooltips) générées par `TIPS` / `KPI_TIPS` dans le JS. Icônes : `ic('nom')` en JS ou
-  `<svg class="ic"><use href="/static/icons.svg#nom"/></svg>` ; pour en ajouter : télécharger le SVG depuis
-  `cdn.jsdelivr.net/npm/lucide-static@0.468.0/icons/<nom>.svg` et l'ajouter comme `<symbol>` dans `static/icons.svg`.
-- **Piège Jinja** : le fichier est un template Flask. N'écris jamais `{#`, `{{` ou `{%` dans le CSS/JS (ex. `{#run{…}` fait planter
-  la page en erreur 500) : mettre un espace (`{ #run`).
-- Piège JS : `LABELS` est défini plus bas dans le script — ne pas l'utiliser à l'initialisation avant sa définition.
+React 19 + TypeScript + Vite ; **l'API Flask n'a pas changé** (toutes les routes `/api/*` sont identiques). Vite proxifie `/api` vers Flask (`PORT`, 5000 par défaut).
+Deux pages (react-router) : `/` Bot simple, `/ai` Bot IA, menu en haut à droite, même bandeau (`components/layout/Header.tsx`).
+
+    web/src/
+      lib/        types, api (fetch typé), format, constants, fields (formulaire piloté par données), presets, tips,
+                  scan / trade / markers / configIO = logique pure testée (lib.test.ts, `npm test`)
+      stores/     zustand : botStore (statut + brouillon du formulaire + actions), marketStore (tableau, graphique, bougie), aiStore
+      hooks/      usePolling, useBotSync (orchestration : sondage 3 s, graphique 60 s, recharge si méthode/trade change), useDismiss, useMaxRowsHeight
+      components/ ui/ (Card, Field, Button, Tip, ModeSwitch, StatusBadge, Notice, LogCard) · layout/ · bot/ · ai/ · chart/PriceChart
+      pages/      BotPage, AiPage          styles/theme.css  (jetons + primitives), CSS modules pour les composants complexes
+
+- Thème sombre « oldschool » inchangé : monospace, rayon 2 px, accent ambre `--ac`, vert/rouge gains/pertes (variables dans `styles/theme.css`).
+- Formulaire des réglages : défini par `FORM_ROWS` (`lib/fields.ts`) ; un champ n'apparaît que pour les méthodes de `only`. Ajouter un réglage =
+  `DEFAULT_CONFIG`/`LIMITS` côté Python + une entrée dans `fields.ts` + son type dans `types.ts` + (option) son infobulle dans `tips.ts`.
+- Le brouillon du formulaire vit dans le store : il n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
+  « Restaurer » le remet sur la config enregistrée. Presets / Trader / collage JSON ne font que **pré-remplir** (rien n'est enregistré).
+- Marché : 8 lignes visibles, trié selon la méthode, le sélecteur « Bougie » pilote tableau **et** graphique, **Trader** pré-remplit le formulaire.
+- Presets : intégrés (`lib/presets.ts`, issus de backtests : biais de sélection) + **configs épinglées** dans `state.json["presets"]`.
+- Icônes : `lucide-react` (`<Settings className="ic" />`, `ic f` pour les pleines). Aucun asset à copier.
+- Commandes (dans `web/`) : `npm run dev`, `npm run build` (typecheck + build), `npm test`, `npm run typecheck`.
 
 ## Résultats de backtest et décisions (31/10/2026)
 
@@ -128,6 +133,8 @@ Non implémentées : grille et DCA (incompatibles avec « une seule position »,
 ## Conventions de travail avec l'utilisateur
 
 - Il demande des ajustements d'interface un par un et vérifie à l'œil : tester le rendu réel (Chrome headless `--screenshot` ou
-  `--dump-dom`) sur une **copie isolée** du projet (copier `app.py bot.py kraken.py templates static` dans un dossier temporaire),
+  `--dump-dom`) sur une **copie isolée** du projet (copier les `.py` et `web/dist` dans un dossier temporaire, lancer avec un autre `PORT`),
   **jamais** en écrivant dans le vrai `state.json` / `config.json` (son serveur tourne en parallèle et garde l'état en mémoire).
+- **Ne jamais `pkill -f app.py`** : le serveur réel de l'utilisateur est aussi `app.py` (port 5000). Arrêter ses propres serveurs de test par PID (port + cwd).
+  Chromium (snap) ne peut écrire ses captures que sous `~/snap/chromium/common/`.
 - Ne jamais committer `.env`. Ne pas lancer d'ordres live ni faire de commit/push sans demande explicite.
