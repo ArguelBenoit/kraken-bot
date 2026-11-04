@@ -1,6 +1,6 @@
-import os
+import hmac, os
 from pathlib import Path
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, Response, jsonify, render_template, request
 
 env = Path(__file__).parent / ".env"
 if env.exists():
@@ -13,6 +13,16 @@ from bot import Bot, scan
 
 app = Flask(__name__)
 bot = Bot()
+
+
+@app.before_request
+def _auth():
+    """Mot de passe optionnel (APP_PASSWORD dans .env) : HTTP Basic, n'importe quel identifiant. Exigé sauf en localhost."""
+    pw = os.getenv("APP_PASSWORD")
+    if pw and request.remote_addr not in ("127.0.0.1", "::1"):     # pas de mot de passe en localhost
+        a = request.authorization
+        if not a or not hmac.compare_digest(a.password or "", pw):
+            return Response("Mot de passe requis", 401, {"WWW-Authenticate": 'Basic realm="Kraken Bot"'})
 
 
 @app.get("/")
@@ -39,7 +49,7 @@ def scan_route():
         tf = int(request.args.get("tf", 240))
         if tf not in (15, 60, 240, 1440):
             raise ValueError("timeframe invalide")
-        return jsonify(scan(tf, bot.config["rsi_period"]))
+        return jsonify(scan(tf, bot.config["rsi_period"], bot.config["ma_fast"], bot.config["ma_slow"]))
     except Exception as e:
         return jsonify(error=str(e)), 502
 
@@ -93,4 +103,7 @@ def action(action):
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000)
+    host = os.getenv("HOST", "127.0.0.1")      # 0.0.0.0 = accessible depuis le réseau local
+    if host not in ("127.0.0.1", "localhost") and not os.getenv("APP_PASSWORD"):
+        print("ATTENTION : accessible sur le réseau SANS mot de passe (définis APP_PASSWORD dans .env)")
+    app.run(host=host, port=int(os.getenv("PORT", "5000")))

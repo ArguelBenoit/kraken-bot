@@ -27,10 +27,23 @@ Après une modif du code : relancer le serveur (Ctrl+C puis `python app.py`) pui
 | `config.json` | Réglages enregistrés (créé au 1er « Enregistrer »). Ignoré par git. |
 | `state.json` | État runtime : `cash, qty, entry, pair, cost, pnl, trades[≤200], presets[]`. Ignoré par git. |
 
+Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `PIN_FIELDS`, donc épinglés / copiés-collés).
+
 Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST /api/config`, `POST /api/presets`,
 `DELETE /api/presets/<id>`, `POST /api/{start|stop|liquidate|reset}`.
 
 ## Stratégie (bot.py)
+
+Deux méthodes, choix dans Réglages > Méthode (`config["strategy"]` = `rsi` | `trend`). Les champs de l'autre méthode sont masqués
+(classes `.m-rsi` / `.m-trend`, `syncStrat()` dans le JS). La position ouverte garde ses règles de sortie selon la méthode **active**.
+
+**Tendance (`_tick_trend`)** : EMA rapide/lente (`ma_fast`/`ma_slow`) sur les bougies closes. Achat sur **croisement haussier** de la
+dernière bougie close ; sortie sur croisement baissier, `stop_loss_pct` fixe ou stop suiveur `trailing_pct` depuis `state["peak"]`
+(0 = off). Pas de take profit. `state["trend_block"]` empêche de racheter sur la bougie de la sortie. Backtest : `python backtest.py ETHUSDC trend [frais]`
+(résultats non concluants : trop peu de trades sur 720 bougies, aucun preset tendance fourni). Le graphique trace les 2 EMA, le tableau Marché
+affiche Haussier/Baissier/Croisement et se trie par croisement puis écart EMA, la jauge du trade en cours va du stop effectif au pic.
+
+**RSI** (méthode d'origine) :
 
 - Long-only, **une seule position à la fois**, ordres **au marché**.
 - Achat si RSI ≤ `rsi_buy` (sur la dernière bougie **close**). Sorties testées dans cet ordre : take profit, stop loss, RSI ≥ `rsi_sell`.
@@ -67,7 +80,8 @@ Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST 
 - **1 h : presque rien de rentable**. **1 j : perd comme le prix.** **4 h, RSI 7, achat 30-35, vente 65-70** : seule zone un peu positive.
 - Les presets viennent de configs positives à l'entraînement **et** au test avec assez de trades, mais choisies parmi 200+ combinaisons
   par crypto → **biais de sélection, résultats optimistes**. Aucune rentabilité garantie ; recommandé : plusieurs semaines en paper avant le live.
-- Presets : ETH 4h équilibré/patient, XRP et SHIB prudents, SOL et AVAX modérés, LINK risqué, AVAX agressif (tous 4 h, paper).
+- Presets (tous 4 h, paper, préfixés RSI · / EMA · dans le popover) : RSI = ETH équilibré/patient, XRP, SHIB, BTC, SOL x2, AVAX x2, LINK ; EMA = BTC, SOL, LINK, ADA.
+  Les presets EMA viennent d'un grid (train>0 et test>0) mais avec 3 à 5 trades de test : très fragiles, à observer en paper. « Trader » (tableau) choisit un preset de la méthode active.
 
 ## Limites et risques connus
 

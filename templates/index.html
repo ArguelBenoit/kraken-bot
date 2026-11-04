@@ -32,6 +32,7 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 .ic.f{fill:currentColor;stroke-width:1}.card h2 .ic,h1 .ic{margin-right:7px}button .ic{margin-right:6px}.ic.m0{margin:0!important}
 .badge .ic{width:.75em;height:.75em;margin-right:5px;vertical-align:-.05em}.ic.dot{width:.7em;height:.7em;margin-right:6px;vertical-align:0}
 .open{border:0;padding:0;margin:0}
+label.m-rsi[hidden],label.m-trend[hidden],.duo.m-rsi[hidden],.duo.m-trend[hidden]{display:none!important}
 #opencard{border:2px solid var(--ac);background:linear-gradient(180deg,#1a1300,var(--card) 140px);box-shadow:0 0 18px #ffb00033;padding:18px}
 #opencard.up{border-color:var(--ok);background:linear-gradient(180deg,#07210f,var(--card) 140px);box-shadow:0 0 22px #3ddc8444}
 #opencard.dn{border-color:var(--ko);background:linear-gradient(180deg,#260909,var(--card) 140px);box-shadow:0 0 22px #ff4d4d44}
@@ -57,7 +58,7 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 .tip:hover::after,.tip:focus::after{content:attr(data-tip);position:absolute;left:0;top:20px;z-index:20;width:250px;padding:8px 10px;border-radius:2px;background:#000;color:var(--tx);border:1px solid var(--bd);font:400 12px/1.4 ui-monospace,"DejaVu Sans Mono",monospace;text-align:left;white-space:normal;box-shadow:none;border-color:var(--ac)}
 #msg{color:var(--ko);min-height:18px;margin-top:6px}.right{display:grid;gap:14px;align-content:start}
 </style></head><body>
-<header><h1><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Kraken Bot — RSI</h1><div class="hk"><div class="k"><small>Mode</small><button type="button" id="mode" class="sw" role="switch" aria-checked="false"><span class="lp">PAPER</span><span class="t"></span><span class="ll">LIVE</span></button></div><div class="k"><small>Statut</small><span id="run" class="badge off"></span></div><div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>Équité (paper)</small><b id="eq">–</b></div></div></header>
+<header><h1><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Kraken Bot</h1><div class="hk"><div class="k"><small>Mode</small><button type="button" id="mode" class="sw" role="switch" aria-checked="false"><span class="lp">PAPER</span><span class="t"></span><span class="ll">LIVE</span></button></div><div class="k"><small>Statut</small><span id="run" class="badge off"></span></div><div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>Équité (paper)</small><b id="eq">–</b></div></div></header>
 <main>
 <div class="col">
 <section class="card"><h2 style="display:flex;justify-content:space-between;align-items:center;gap:10px"><span><svg class="ic"><use href="/static/icons.svg#settings"/></svg>Réglages</span><div id="pwrap"><button type="button" id="ptoggle" class="sec" aria-expanded="false"><svg class="ic"><use href="/static/icons.svg#sliders-horizontal"/></svg>Presets<svg class="ic m0" style="margin-left:4px!important"><use href="/static/icons.svg#chevron-down"/></svg></button>
@@ -66,11 +67,12 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 <div id="pbox" hidden><textarea id="ptxt" rows="5" placeholder='Colle ici une config JSON, ex : {"pair":"AVAXUSDC","timeframe":240,"rsi_period":7,"rsi_buy":35,"rsi_sell":65,"take_profit_pct":4,"stop_loss_pct":2,"order_size":100}' style="width:100%;font:12px ui-monospace,monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);padding:6px"></textarea><button type="button" class="chip" id="papply">Appliquer au formulaire</button></div></div></div></div></h2><form id="f">
 
 <div class="duo"><label>Paire<select name="pair">
- <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label></div>
-<div class="duo"><label>Timeframe (min)<select name="timeframe"><option>1</option><option>5</option><option>15</option><option>30</option><option>60</option><option>240</option><option value="1440">1440 (1 jour)</option></select></label><label>Période RSI<input name="rsi_period" type="number"></label></div>
+ <option value="XBTUSDC">BTC/USDC</option><option value="ETHUSDC">ETH/USDC</option><option value="SOLUSDC">SOL/USDC</option><option value="XBTUSDT">BTC/USDT</option><option value="ETHUSDT">ETH/USDT</option><option value="SOLUSDT">SOL/USDT</option><option value="XRPUSDC">XRP/USDC</option><option value="SHIBUSDC">SHIB/USDC</option><option value="AVAXUSDC">AVAX/USDC</option><option value="LINKUSDC">LINK/USDC</option><option value="ADAUSDC">ADA/USDC</option><option value="DOTUSDC">DOT/USDC</option><option value="XDGUSDC">DOGE/USDC</option><option value="TONUSDC">TON/USDC</option><option value="LTCUSDC">LTC/USDC</option></select></label><label>Méthode<select name="strategy"><option value="rsi">RSI</option><option value="trend">Tendance</option></select></label></div>
+<div class="duo"><label>Timeframe (min)<select name="timeframe"><option>1</option><option>5</option><option>15</option><option>30</option><option>60</option><option>240</option><option value="1440">1440 (1 jour)</option></select></label><label class="m-rsi">Période RSI<input name="rsi_period" type="number"></label><label class="m-trend">EMA rapide<input name="ma_fast" type="number"></label></div>
 <label>Taille d'ordre (stable)<input name="order_size" type="number" step="any"></label>
-<div class="duo"><label>Achat si RSI ≤<input name="rsi_buy" type="number"></label><label>Vente si RSI ≥<input name="rsi_sell" type="number"></label></div>
-<div class="duo"><label>Take profit %<input name="take_profit_pct" type="number" step="any"></label><label>Stop loss %<input name="stop_loss_pct" type="number" step="any"></label></div>
+<div class="duo m-rsi"><label>Achat si RSI ≤<input name="rsi_buy" type="number"></label><label>Vente si RSI ≥<input name="rsi_sell" type="number"></label></div>
+<div class="duo m-trend"><label>EMA lente<input name="ma_slow" type="number"></label><label>Stop suiveur %<input name="trailing_pct" type="number" step="any"></label></div>
+<div class="duo"><label class="m-rsi">Take profit %<input name="take_profit_pct" type="number" step="any"></label><label>Stop loss %<input name="stop_loss_pct" type="number" step="any"></label></div>
 <label>Frais %<input name="fee_pct" type="number" step="any"></label>
 <label>Analyse toutes les (s)<input name="check_every" type="number"></label>
 <label class="po">Capital paper<input name="paper_balance" type="number" step="any"></label>
@@ -95,13 +97,15 @@ pre{margin:0;max-height:180px;overflow:auto;font-size:12px;color:var(--mu)}
 <script>
 const ic=(n,c='')=>`<svg class="ic ${c}"><use href="/static/icons.svg#${n}"/></svg>`;
 const $=s=>document.querySelector(s),f=$('#f');let filled=false;
-const TIPS={"preset": "Réglages tout prêts, classés par risque (prudent, modéré, risqué). Ils remplissent le formulaire : clique ensuite sur Enregistrer.", "pair": "La crypto tradée contre un stablecoin (USDC/USDT, ≈ 1 $). Le bot n'en gère qu'une à la fois.", "mode": "Paper = simulation avec les vrais prix, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (clés API requises).", "timeframe": "Durée d'une bougie en minutes (60 = 1 h, 240 = 4 h). Plus c'est long, moins il y a de trades et de bruit. Les tests ont donné les meilleurs résultats en 240.", "order_size": "Montant en stablecoin investi à chaque achat (ex : 100 = 100 USDC). Une seule position à la fois.", "rsi_period": "Nombre de bougies utilisées pour calculer le RSI. Court (7) = réactif, plus de trades ; long (14) = plus lisse, moins de signaux.", "rsi_buy": "Le bot achète quand le RSI descend à cette valeur ou en dessous (prix « survendu »). Plus bas = achats plus rares mais après de plus fortes baisses.", "rsi_sell": "Le bot vend quand le RSI monte à cette valeur ou au-dessus (prix « suracheté »). Doit rester supérieur au seuil d'achat.", "take_profit_pct": "Vente automatique quand le gain atteint ce pourcentage depuis l'achat (ex : 4 = +4 %).", "stop_loss_pct": "Vente automatique quand la perte atteint ce pourcentage depuis l'achat (ex : 2 = -2 %). Limite les dégâts, mais un stop trop serré sort sur du bruit.", "fee_pct": "Frais Kraken estimés par ordre (0,26 % en taker). Un aller-retour achat+vente coûte donc ≈ 0,5 %. Sert au calcul du PnL.", "check_every": "Fréquence (en secondes) à laquelle le bot vérifie le marché. Le RSI ne change qu'à la clôture d'une bougie, mais take profit et stop loss sont vérifiés à chaque analyse.", "paper_balance": "Capital fictif de départ en mode Paper. Pris en compte au « Reset paper »."},KPI_TIPS={"Mode":"Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken.","Statut":"EN COURS = le bot surveille le marché et passe les ordres. ARRÊTÉ = rien n'est surveillé, une position ouverte reste telle quelle.","Prix": "Dernier prix de la paire sur Kraken.", "RSI": "Valeur actuelle du RSI (0-100) : bas = prix a beaucoup baissé, haut = a beaucoup monté.", "Position": "Quantité de crypto détenue et prix d'achat. « aucune » = le bot attend un signal d'achat.", "PnL réalisé": "Gains/pertes cumulés des trades déjà vendus, frais inclus.", "Équité (paper)": "Valeur totale du portefeuille simulé : stablecoin restant + position au prix actuel."};
+const TIPS={"strategy": "RSI = achète les creux, revend les rebonds (retour à la moyenne). Tendance = achète quand la moyenne rapide passe au-dessus de la lente (tendance qui démarre) et sort quand elle repasse dessous : peu de trades, des pertes fréquentes mais petites, de rares gros gains.", "ma_fast": "EMA rapide : moyenne mobile exponentielle sur ce nombre de bougies. Réagit vite. Achat quand elle passe au-dessus de l'EMA lente.", "ma_slow": "EMA lente : même calcul sur plus de bougies, elle donne la direction de fond. Doit être supérieure à l'EMA rapide. Plus l'écart est grand, moins il y a de trades.", "trailing_pct": "Stop suiveur : vente si le prix retombe de ce pourcentage depuis son plus haut atteint pendant la position. Protège les gains en tendance. 0 = désactivé.", "preset": "Réglages tout prêts, classés par risque (prudent, modéré, risqué). Ils remplissent le formulaire : clique ensuite sur Enregistrer.", "pair": "La crypto tradée contre un stablecoin (USDC/USDT, ≈ 1 $). Le bot n'en gère qu'une à la fois.", "mode": "Paper = simulation avec les vrais prix, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (clés API requises).", "timeframe": "Durée d'une bougie en minutes (60 = 1 h, 240 = 4 h). Plus c'est long, moins il y a de trades et de bruit. Les tests ont donné les meilleurs résultats en 240.", "order_size": "Montant en stablecoin investi à chaque achat (ex : 100 = 100 USDC). Une seule position à la fois.", "rsi_period": "Nombre de bougies utilisées pour calculer le RSI. Court (7) = réactif, plus de trades ; long (14) = plus lisse, moins de signaux.", "rsi_buy": "Le bot achète quand le RSI descend à cette valeur ou en dessous (prix « survendu »). Plus bas = achats plus rares mais après de plus fortes baisses.", "rsi_sell": "Le bot vend quand le RSI monte à cette valeur ou au-dessus (prix « suracheté »). Doit rester supérieur au seuil d'achat.", "take_profit_pct": "Vente automatique quand le gain atteint ce pourcentage depuis l'achat (ex : 4 = +4 %).", "stop_loss_pct": "Vente automatique quand la perte atteint ce pourcentage depuis l'achat (ex : 2 = -2 %). Limite les dégâts, mais un stop trop serré sort sur du bruit.", "fee_pct": "Frais Kraken estimés par ordre (0,26 % en taker). Un aller-retour achat+vente coûte donc ≈ 0,5 %. Sert au calcul du PnL.", "check_every": "Fréquence (en secondes) à laquelle le bot vérifie le marché. Le RSI ne change qu'à la clôture d'une bougie, mais take profit et stop loss sont vérifiés à chaque analyse.", "paper_balance": "Capital fictif de départ en mode Paper. Pris en compte au « Reset paper »."},KPI_TIPS={"Mode":"Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken.","Statut":"EN COURS = le bot surveille le marché et passe les ordres. ARRÊTÉ = rien n'est surveillé, une position ouverte reste telle quelle.","Prix": "Dernier prix de la paire sur Kraken.", "RSI": "Valeur actuelle du RSI (0-100) : bas = prix a beaucoup baissé, haut = a beaucoup monté.", "Position": "Quantité de crypto détenue et prix d'achat. « aucune » = le bot attend un signal d'achat.", "PnL réalisé": "Gains/pertes cumulés des trades déjà vendus, frais inclus.", "Équité (paper)": "Valeur totale du portefeuille simulé : stablecoin restant + position au prix actuel."};
 const mk=t=>{const i=document.createElement('i');i.className='tip';i.tabIndex=0;i.textContent='?';i.dataset.tip=t;return i};
 document.querySelectorAll('#f label').forEach(l=>{
  const c=l.querySelector('select,input'),t=TIPS[c.name||c.id];if(!t)return;
  const w=document.createElement('span');w.append(l.firstChild,mk(t));l.prepend(w)});
 document.querySelectorAll('.k small').forEach(e=>{const t=KPI_TIPS[e.textContent];if(t)e.append(mk(t))});
 
+const syncStrat=()=>{const t=f.strategy.value==='trend';document.querySelectorAll('.m-rsi').forEach(e=>e.hidden=t);document.querySelectorAll('.m-trend').forEach(e=>e.hidden=!t)};
+f.strategy.addEventListener('change',syncStrat);
 const post=(u,b)=>fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(r=>r.json());
 const n=(x,d=2)=>x==null?'–':Number(x).toLocaleString('fr-FR',{maximumFractionDigits:d});
 function renderOpen(d){
@@ -112,9 +116,11 @@ function renderOpen(d){
  const cost=st.cost??st.qty*st.entry/(1-fee),dp=st.entry<1?6:2;
  if(px==null){el.innerHTML='<div class="open">Prix indisponible pour '+pair+'</div>';return}
  const chg=(px/st.entry-1)*100,val=st.qty*px,net=val*(1-fee)-cost;
- const tp=c.take_profit_pct,sl=c.stop_loss_pct,tot=tp+sl;
- const pos=Math.max(0,Math.min(100,(chg+sl)/tot*100)),ent=sl/tot*100;
- const cls=chg>=0?'ok':'ko-t',zone=chg>=tp?ic('target')+'zone de vente atteinte':chg<=-sl?ic('ban')+'zone de stop atteinte':'';
+ const trend=c.strategy==='trend',sl=c.stop_loss_pct,peak=Math.max(st.peak||st.entry,px),pkc=(peak/st.entry-1)*100;
+ let tp=c.take_profit_pct,lo=-sl,hi=tp,effStop=st.entry*(1-sl/100);
+ if(trend){if(c.trailing_pct>0&&peak*(1-c.trailing_pct/100)>effStop)effStop=peak*(1-c.trailing_pct/100);lo=(effStop/st.entry-1)*100;hi=Math.max(pkc,0)+Math.max(sl,1);tp=hi}
+ const tot=hi-lo,pos=Math.max(0,Math.min(100,(chg-lo)/tot*100)),ent=Math.max(0,Math.min(100,(0-lo)/tot*100));
+ const cls=chg>=0?'ok':'ko-t',zone=trend?(chg<=lo?ic('ban')+'stop atteint':''):chg>=tp?ic('target')+'zone de vente atteinte':chg<=-sl?ic('ban')+'zone de stop atteinte':'';
  const fill=chg>=0?`left:${ent}%;width:${Math.max(0,pos-ent)}%;background:#3ddc8466`:`left:${pos}%;width:${Math.max(0,ent-pos)}%;background:#ff4d4d66`;
  const pr=v=>fm(v,dp);
  el.innerHTML=`<div class="open">
@@ -128,13 +134,15 @@ function renderOpen(d){
   <div><small>Gain net estimé (frais de vente)</small><span class="${net>=0?'ok':'ko-t'}">${net>=0?'+':''}${fm(net)}</span></div>
  </div>
  <div class="gauge"><div class="fill" style="${fill}"></div><div class="entry" style="left:${ent}%"></div><div class="now" style="left:${pos}%"></div></div>
- <div class="gl"><span class="ko-t">${ic('chevron-left')}STOP −${sl}% · ${pr(st.entry*(1-sl/100))}</span><span>│ achat ${pr(st.entry)}</span><span class="ok">VENTE +${tp}% · ${pr(st.entry*(1+tp/100))}${ic('chevron-right','m0')}</span></div>
+ <div class="gl">${trend?`<span class="ko-t">${ic('chevron-left')}STOP ${fm(lo)}% · ${pr(effStop)}</span><span>│ achat ${pr(st.entry)}</span><span class="ok">pic ${pkc>=0?'+':''}${fm(pkc)}% · ${pr(peak)}${ic('chevron-right','m0')}</span>`:`<span class="ko-t">${ic('chevron-left')}STOP −${sl}% · ${pr(st.entry*(1-sl/100))}</span><span>│ achat ${pr(st.entry)}</span><span class="ok">VENTE +${tp}% · ${pr(st.entry*(1+tp/100))}${ic('chevron-right','m0')}</span>`}</div>
  ${zone?`<div style="margin-top:8px;color:var(--ac)">${zone}</div>`:''}
- <div style="margin-top:6px;color:var(--mu);font-size:11px">RSI actuel <b style="color:var(--tx)">${st.pos_rsi==null?'–':fm(st.pos_rsi,1)}</b> · vente automatique si RSI ≥ ${c.rsi_sell}</div></div>`;
+ <div style="margin-top:6px;color:var(--mu);font-size:11px">${trend?`EMA${c.ma_fast} <b style="color:var(--tx)">${st.pos_ma?pr(st.pos_ma.fast):'–'}</b> / EMA${c.ma_slow} <b style="color:var(--tx)">${st.pos_ma?pr(st.pos_ma.slow):'–'}</b> · vente automatique si EMA${c.ma_fast} passe sous EMA${c.ma_slow}${c.trailing_pct>0?' ou stop suiveur −'+c.trailing_pct+'%':''}`:`RSI actuel <b style="color:var(--tx)">${st.pos_rsi==null?'–':fm(st.pos_rsi,1)}</b> · vente automatique si RSI ≥ ${c.rsi_sell}`}</div></div>`;
 }
 async function refresh(){
  const d=await (await fetch('/api/status')).json();
- if(!filled){for(const [k,v] of Object.entries(d.config)) if(f.elements[k]) f.elements[k].value=v; filled=true}
+ if(!filled){for(const [k,v] of Object.entries(d.config)) if(f.elements[k]) f.elements[k].value=v; filled=true;syncStrat()}
+ if(window._sp!==undefined&&window._sp!==d.config.strategy){loadScan();if(curView){view={pair:curView.pair,tf:curView.tf};drawChart()}}
+ window._sp=d.config.strategy;
  window._mode=d.config.mode;
  $('#mode').setAttribute('aria-checked',d.config.mode==='live');document.querySelectorAll('.po').forEach(e=>e.hidden=d.config.mode!=='paper');document.querySelectorAll('.lo').forEach(e=>e.hidden=d.config.mode!=='live');
  document.querySelector('.hk .k:nth-child(4)').hidden=d.config.mode!=='paper';
@@ -143,6 +151,9 @@ async function refresh(){
  $('#run').innerHTML=d.running?ic('circle','f')+'EN COURS':ic('square','f')+'ARRÊTÉ';$('#run').className='badge '+(d.running?'on':'off');
  const p=$('#pnl');p.textContent=n(d.state.pnl);p.className=d.state.pnl>=0?'ok':'ko-t';
  renderOpen(d);
+ const tsig=d.state.trades.length+'|'+(d.state.trades[0]?d.state.trades[0].ts:'')+'|'+d.state.qty;
+ if(window._tsig!==undefined&&window._tsig!==tsig){drawChart();loadScan()}
+ window._tsig=tsig;
  $('#eq').textContent=d.config.mode==='paper'?n(d.state.equity):'n/a';
  $('#notr').hidden=d.state.trades.length>0;$('#trw').hidden=!d.state.trades.length;
  $('#tr').innerHTML=d.state.trades.map(t=>`<tr><td>${t.time}</td><td class="${t.side=='BUY'?'ok':'ko-t'}">${t.side}</td><td>${n(t.price)}</td><td>${n(t.qty,6)}</td><td>${n(t.qty*t.price)}</td><td>${t.side=='SELL'?n(t.pnl):''}</td><td>${t.why}</td></tr>`).join('');
@@ -155,15 +166,22 @@ shib:{pair:'SHIBUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rs
 sol:{pair:'SOLUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:14,rsi_buy:35,rsi_sell:55,take_profit_pct:2,stop_loss_pct:2,order_size:100},
 avax:{pair:'AVAXUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:65,take_profit_pct:4,stop_loss_pct:8,order_size:100},
 link:{pair:'LINKUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:70,take_profit_pct:8,stop_loss_pct:4,order_size:200},
-avaxr:{pair:'AVAXUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:65,take_profit_pct:4,stop_loss_pct:2,order_size:200}};
+avaxr:{pair:'AVAXUSDC',mode:'paper',timeframe:240,check_every:300,rsi_period:7,rsi_buy:35,rsi_sell:65,take_profit_pct:4,stop_loss_pct:2,order_size:200},
+btcr:{pair:'XBTUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'rsi',rsi_period:7,rsi_buy:25,rsi_sell:70,take_profit_pct:4,stop_loss_pct:4,order_size:100},
+solr:{pair:'SOLUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'rsi',rsi_period:7,rsi_buy:25,rsi_sell:65,take_profit_pct:2,stop_loss_pct:2,order_size:100},
+btce:{pair:'XBTUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'trend',ma_fast:8,ma_slow:50,stop_loss_pct:3,trailing_pct:3,order_size:100},
+sole:{pair:'SOLUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'trend',ma_fast:5,ma_slow:50,stop_loss_pct:5,trailing_pct:0,order_size:100},
+linke:{pair:'LINKUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'trend',ma_fast:8,ma_slow:50,stop_loss_pct:3,trailing_pct:8,order_size:100},
+adae:{pair:'ADAUSDC',mode:'paper',timeframe:240,check_every:300,strategy:'trend',ma_fast:8,ma_slow:50,stop_loss_pct:3,trailing_pct:8,order_size:100}};
 let CUSTOM={},customSig='',savedCfg=null;
-const BUILTIN=[['Prudent',[['a','ETH/USDC 4h équilibré'],['b','ETH/USDC 4h patient'],['xrp','XRP/USDC 4h prudent'],['shib','SHIB/USDC 4h prudent']]],
- ['Modéré',[['sol','SOL/USDC 4h modéré'],['avax','AVAX/USDC 4h modéré']]],['Risqué',[['link','LINK/USDC 4h risqué'],['avaxr','AVAX/USDC 4h agressif']]]];
+const BUILTIN=[['Prudent',[['btcr','RSI · BTC/USDC 4h'],['a','RSI · ETH/USDC 4h équilibré'],['b','RSI · ETH/USDC 4h patient'],['xrp','RSI · XRP/USDC 4h prudent'],['shib','RSI · SHIB/USDC 4h prudent'],['btce','EMA · BTC/USDC 4h']]],
+ ['Modéré',[['solr','RSI · SOL/USDC 4h'],['sol','RSI · SOL/USDC 4h modéré'],['avax','RSI · AVAX/USDC 4h modéré'],['sole','EMA · SOL/USDC 4h'],['linke','EMA · LINK/USDC 4h']]],
+ ['Risqué',[['link','RSI · LINK/USDC 4h risqué'],['avaxr','RSI · AVAX/USDC 4h agressif'],['adae','EMA · ADA/USDC 4h (volume faible)']]]];
 const GC={'Prudent':'var(--ok)','Modéré':'var(--ac)','Risqué':'var(--ko)'};
 const PNAMES=Object.fromEntries(BUILTIN.flatMap(g=>g[1]));
 const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const plab=v=>{const o=f.pair.querySelector('option[value="'+v+'"]');return o?o.text:v};
-const sumP=c=>plab(c.pair)+' · '+c.timeframe+' min · RSI '+c.rsi_period+' ('+c.rsi_buy+'/'+c.rsi_sell+') · TP '+c.take_profit_pct+'% · SL '+c.stop_loss_pct+'% · ordre '+c.order_size;
+const sumP=c=>plab(c.pair)+' · '+c.timeframe+' min · '+(c.strategy==='trend'?'EMA '+c.ma_fast+'/'+c.ma_slow+' · SL '+c.stop_loss_pct+'% · suiveur '+c.trailing_pct+'%':'RSI '+c.rsi_period+' ('+c.rsi_buy+'/'+c.rsi_sell+') · TP '+c.take_profit_pct+'% · SL '+c.stop_loss_pct+'%')+' · ordre '+c.order_size;
 $('#pbuiltin').innerHTML=BUILTIN.map(([g,items])=>`<div class="pg"><small><span style="color:${GC[g]}">${ic('circle','f dot')}</span>${g}</small>${items.map(([k,n])=>`<button type="button" class="chip" data-p="${k}" title="${esc(sumP(PRESETS[k]))}">${n}</button>`).join('')}</div>`).join('');
 function renderCustom(list){
  const sig=JSON.stringify(list);if(sig===customSig)return;customSig=sig;CUSTOM={};
@@ -172,7 +190,9 @@ function renderCustom(list){
 }
 function applyPreset(p,name){
  closeP();
+ if(!p.strategy)f.strategy.value='rsi';
  for(const [k,val] of Object.entries(p)){if(f.elements[k])f.elements[k].value=val}
+ syncStrat();
  $('#note').textContent='';
  $('#msg').textContent='« '+name+' » chargé : vérifie puis clique Enregistrer';
 }
@@ -187,9 +207,9 @@ $('#plist').onclick=async e=>{
   if(r.ok)note('Config « '+d.dataset.name+' » supprimée');else $('#msg').textContent=r.error;refresh();return}
  const c=e.target.closest('[data-p]');if(!c)return;
  const k=c.dataset.p;applyPreset(PRESETS[k]||CUSTOM[k],c.dataset.name||PNAMES[k]||k)};
-const CFG_KEYS=['pair','timeframe','rsi_period','rsi_buy','rsi_sell','take_profit_pct','stop_loss_pct','order_size','fee_pct','check_every'];
+const CFG_KEYS=['pair','timeframe','strategy','rsi_period','rsi_buy','rsi_sell','take_profit_pct','stop_loss_pct','ma_fast','ma_slow','trailing_pct','order_size','fee_pct','check_every'];
 $('#pcopy').onclick=async()=>{
- const o={};CFG_KEYS.forEach(k=>{const v=f.elements[k].value;o[k]=k==='pair'?v:Number(v)});
+ const o={};CFG_KEYS.forEach(k=>{const v=f.elements[k].value;o[k]=(k==='pair'||k==='strategy')?v:Number(v)});
  const t=JSON.stringify(o);
  try{await navigator.clipboard.writeText(t);$('#pcopy').textContent='Copié ✓'}catch(e){$('#pbox').hidden=false;$('#ptxt').value=t;$('#ptxt').select()}
  setTimeout(()=>$('#pcopy').textContent='Copier le formulaire',1500)};
@@ -202,14 +222,16 @@ $('#papply').onclick=()=>{
   if(!CFG_KEYS.includes(k)){if(k!=='mode')bad.push(k);continue}
   if(k==='pair'&&![...f.pair.options].some(o=>o.value===String(v).toUpperCase())){bad.push('pair '+v);continue}
   if(k==='timeframe'&&![...f.timeframe.options].some(o=>o.value===String(v))){bad.push('timeframe '+v);continue}
-  f.elements[k].value=k==='pair'?String(v).toUpperCase():v;ok.push(k)}
+  if(k==='strategy'&&!['rsi','trend'].includes(String(v).toLowerCase())){bad.push('strategy '+v);continue}
+  f.elements[k].value=k==='pair'?String(v).toUpperCase():k==='strategy'?String(v).toLowerCase():v;ok.push(k)}
+ syncStrat();
  closeP();$('#ptxt').value='';$('#pbox').hidden=true;
  if(!ok.length){$('#msg').textContent='Aucun champ reconnu dans cette config';return}
  $('#note').textContent='';$('#msg').textContent='Config collée ('+ok.length+' champs)'+(bad.length?' — ignoré : '+bad.join(', '):'')+' : vérifie puis clique Enregistrer (le mode n\'est jamais modifié par un collage)'};
 $('#restore').onclick=async()=>{
  const d=await (await fetch('/api/status')).json();
  for(const [k,v] of Object.entries(d.config)){if(f.elements[k])f.elements[k].value=v}
- note('Formulaire remis à la configuration enregistrée')};
+ syncStrat();note('Formulaire remis à la configuration enregistrée')};
 const note=t=>{$('#note').textContent=t;$('#msg').textContent=''};
 $('#pin').onclick=async()=>{
  const c=savedCfg;if(!c)return;
@@ -222,7 +244,8 @@ $('#mode').onclick=async()=>{
  if(to==='live'&&!confirm('Passer en mode LIVE : des ordres réels seront passés sur Kraken avec ton argent. Confirmer ?'))return;
  const r=await post('/api/config',{mode:to});$('#msg').textContent=r.ok?'':r.error;if(!r.ok)alert(r.error);refresh()};
 f.onsubmit=async e=>{e.preventDefault();
-  const r=await post('/api/config',Object.fromEntries(new FormData(f)));$('#msg').textContent=r.ok?'':r.error;refresh()};
+  const r=await post('/api/config',Object.fromEntries(new FormData(f)));$('#msg').textContent=r.ok?'':r.error;window._sp=undefined;await refresh();
+ if(r.ok){const o=$('#stf'),tf=String(f.timeframe.value);if([...o.options].some(x=>x.value===tf))o.value=tf;view={pair:null,tf:null};synced=true;await drawChart();loadScan()}};
 $('#go').onclick=async()=>{const r=await post('/api/start');$('#msg').textContent=r.ok?'':r.error;refresh()};
 $('#stop').onclick=async()=>{await post('/api/stop');refresh()};
 $('#liq').onclick=async()=>{
@@ -232,13 +255,14 @@ $('#reset').onclick=async()=>{
  if(!confirm('Réinitialiser le portefeuille paper ?\n\nLa position ouverte, l\'historique des trades et le PnL seront effacés, et le solde reviendra au capital de départ. Le bot sera arrêté s\'il tourne. Cette action est irréversible.'))return;
 const r=await post('/api/reset');$('#msg').textContent=r.ok?'':r.error;refresh()};
 const opt={layout:{background:{color:'#0b0b0b'},textColor:'#7d7a6c',fontFamily:'ui-monospace,DejaVu Sans Mono,monospace'},grid:{vertLines:{color:'#161616'},horzLines:{color:'#161616'}},timeScale:{timeVisible:true,borderColor:'#262626'},rightPriceScale:{borderColor:'#262626'},autoSize:true};
-let synced=false,pc,rc,cs,rl,lines=[],view={pair:null,tf:null},curView=null;
+let synced=false,pc,rc,cs,rl,mf,ms,lines=[],view={pair:null,tf:null},curView=null;
 const LABELS=Object.fromEntries([...f.pair.options].map(o=>[o.value,o.text]));
 function initCharts(){
  if(typeof LightweightCharts==='undefined')return;
  pc=LightweightCharts.createChart($('#chart'),opt);rc=LightweightCharts.createChart($('#rchart'),opt);
  cs=pc.addCandlestickSeries({upColor:'#3ddc84',downColor:'#ff4d4d',borderVisible:false,wickUpColor:'#3ddc84',wickDownColor:'#ff4d4d'});
  rl=rc.addLineSeries({color:'#ffb000',lineWidth:2});
+ mf=pc.addLineSeries({color:'#4aa3ff',lineWidth:1,priceLineVisible:false,lastValueVisible:false});ms=pc.addLineSeries({color:'#d58bff',lineWidth:1,priceLineVisible:false,lastValueVisible:false});
  pc.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&rc.timeScale().setVisibleLogicalRange(r));
  rc.timeScale().subscribeVisibleLogicalRangeChange(r=>r&&pc.timeScale().setVisibleLogicalRange(r));
 }
@@ -248,12 +272,12 @@ async function drawChart(){
  const d=await (await fetch('/api/chart'+q)).json();if(d.error)return;
  curView={pair:d.pair,tf:d.tf};markSel();
  if(!synced){synced=true;const o=$('#stf');if([...o.options].some(x=>x.value==d.tf)&&o.value!=d.tf){o.value=d.tf;loadScan()}}
- cs.setData(d.candles);rl.setData(d.rsi);
+ cs.setData(d.candles);rl.setData(d.rsi);mf.setData(d.ma.fast||[]);ms.setData(d.ma.slow||[]);
  const tf=d.candles.map(c=>c.time),snap=t=>tf.filter(x=>x<=t).pop();
  cs.setMarkers(d.marks.map(m=>({time:snap(m.time),position:m.side=='BUY'?'belowBar':'aboveBar',color:m.side=='BUY'?'#3ddc84':'#ff4d4d',shape:m.side=='BUY'?'arrowUp':'arrowDown',text:m.side})).filter(m=>m.time).sort((a,b)=>a.time-b.time));
  lines.forEach(l=>rl.removePriceLine(l));
  lines=[[d.rsi_buy,'#3ddc84'],[d.rsi_sell,'#ff4d4d']].map(([p,c])=>rl.createPriceLine({price:p,color:c,lineStyle:2,lineWidth:1}));
- $('#ctitle').textContent='— '+(LABELS[d.pair]||d.pair)+' · '+d.tf+' min · RSI en bas';
+ $('#ctitle').textContent='— '+(LABELS[d.pair]||d.pair)+' · '+d.tf+' min · RSI en bas'+(d.strategy==='trend'?' · EMA'+d.ma_fast+' (bleu) / EMA'+d.ma_slow+' (violet)':'');
 }
 const fm=(v,d=2)=>v==null?'–':Number(v).toLocaleString('fr-FR',{maximumFractionDigits:d});
 function markSel(){document.querySelectorAll('#scan tr[data-pair]').forEach(tr=>tr.classList.toggle('sel',!!curView&&tr.dataset.pair===curView.pair))}
@@ -262,11 +286,12 @@ async function loadScan(){
  const r=await fetch('/api/scan?tf='+$('#stf').value),d=await r.json();
  if(d.error){$('#sinfo').textContent=' '+d.error;return}
  const cfg=(await (await fetch('/api/status')).json()).config;
- d.sort((a,b)=>(a.error?1:0)-(b.error?1:0)||(a.rsi??999)-(b.rsi??999));
+ const tr=cfg.strategy==='trend';
+ d.sort((a,b)=>(a.error?1:0)-(b.error?1:0)||(tr?((b.trend_cross?1:0)-(a.trend_cross?1:0)||(b.trend_gap??-999)-(a.trend_gap??-999)):(a.rsi??999)-(b.rsi??999)));
  $('#scan').innerHTML=d.map(x=>{
   if(x.error)return `<tr><td>${x.label}</td><td colspan="7" style="color:var(--mu)">indisponible</td></tr>`;
-  const sig=x.rsi==null?'–':x.rsi<=cfg.rsi_buy?'<b class="ok">Survendu · achat</b>':x.rsi>=cfg.rsi_sell?'<b class="ko-t">Suracheté</b>':'<span style="color:var(--mu)">Neutre</span>';
-  const rc=x.rsi==null?'':x.rsi<=cfg.rsi_buy?'ok':x.rsi>=cfg.rsi_sell?'ko-t':'';
+  const sig=tr?(x.trend_gap==null?'–':x.trend_cross?'<b class="ok">Croisement · achat</b>':x.trend_gap>0?'<span class="ok">Haussier ('+fm(x.trend_gap)+'%)</span>':'<span class="ko-t">Baissier ('+fm(x.trend_gap)+'%)</span>'):x.rsi==null?'–':x.rsi<=cfg.rsi_buy?'<b class="ok">Survendu · achat</b>':x.rsi>=cfg.rsi_sell?'<b class="ko-t">Suracheté</b>':'<span style="color:var(--mu)">Neutre</span>';
+  const rc=tr?'':x.rsi==null?'':x.rsi<=cfg.rsi_buy?'ok':x.rsi>=cfg.rsi_sell?'ko-t':'';
   return `<tr data-pair="${x.pair}" style="cursor:pointer"><td><b>${x.label}</b></td><td>${fm(x.price,x.price<1?6:2)}</td><td class="${x.chg24>=0?'ok':'ko-t'}">${x.chg24>=0?'+':''}${fm(x.chg24)}%</td><td>${fm(x.vol24,0)}</td><td>${fm(x.volat)}%</td><td class="${rc}">${fm(x.rsi,1)}</td><td>${sig}</td><td><button type="button" class="sec" data-trade="${x.pair}" style="padding:3px 8px">Trader</button></td></tr>`}).join('');
  markSel();
  const w=$('#mkwrap'),rows=[...w.querySelectorAll('tbody tr')];
@@ -274,11 +299,11 @@ async function loadScan(){
  $('#sinfo').textContent=' mis à jour '+new Date().toLocaleTimeString('fr-FR');
 }
 const tradeThis=(pair,tf)=>{
- const ids=Object.keys(PRESETS).filter(k=>PRESETS[k].pair===pair),pk=ids.find(k=>PRESETS[k].stop_loss_pct<=4)||ids[0];
+ const st=f.strategy.value,ids=Object.keys(PRESETS).filter(k=>PRESETS[k].pair===pair&&(PRESETS[k].strategy||'rsi')===st),pk=ids.find(k=>PRESETS[k].stop_loss_pct<=4)||ids[0];
  f.pair.value=pair;f.timeframe.value=tf;
- if(pk){for(const [k,v] of Object.entries(PRESETS[pk]))f.elements[k].value=v;
+ if(pk){for(const [k,v] of Object.entries(PRESETS[pk]))f.elements[k].value=v;syncStrat();
   $('#msg').textContent='Preset « '+PNAMES[pk]+' » chargé : vérifie puis clique Enregistrer'}
- else{$('#msg').textContent='Aucun preset testé pour '+(LABELS[pair]||pair)+' : seule la paire et la bougie sont changées, règle le reste puis Enregistrer'}};
+ else{$('#msg').textContent='Aucun preset '+(st==='trend'?'EMA':'RSI')+' pour '+(LABELS[pair]||pair)+' : seule la paire et la bougie sont changées, règle le reste puis Enregistrer'}};
 $('#scan').onclick=e=>{
  const tb=e.target.closest('[data-trade]');if(tb)return tradeThis(tb.dataset.trade,$('#stf').value);
  const tr=e.target.closest('tr[data-pair]');if(!tr)return;
@@ -287,5 +312,4 @@ $('#scan').onclick=e=>{
 $('#stf').onchange=()=>{loadScan();if(curView){view={pair:curView.pair,tf:$('#stf').value};drawChart()}};$('#srefresh').onclick=()=>{loadScan()};
 document.querySelectorAll('.tip:not([data-tip=""])').forEach(i=>{i.textContent='?';i.tabIndex=0});
 initCharts();loadScan();refresh().then(drawChart);setInterval(refresh,3000);setInterval(drawChart,60000);
-$('#f').addEventListener('submit',()=>setTimeout(()=>{view={pair:null,tf:null};synced=false;drawChart()},800));
 </script></body></html>
