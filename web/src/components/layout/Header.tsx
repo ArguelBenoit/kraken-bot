@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
 import { Tip } from '@/components/ui/Tip'
 import css from './Header.module.css'
 
@@ -11,13 +11,28 @@ interface HeaderProps {
 
 /** Bandeau de page : titre à gauche, indicateurs alignés à droite (la navigation est dans la barre latérale). */
 export function Header({ title, icon: Icon, children }: HeaderProps) {
+  const ref = useRef<HTMLElement>(null)
+
+  // le bandeau est collant : on publie sa hauteur réelle (qui varie si les indicateurs passent à la ligne) pour les autres éléments collants
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const publish = () => document.documentElement.style.setProperty('--header-h', `${el.offsetHeight}px`)
+    publish()
+    const ro = new ResizeObserver(publish)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   return (
-    <header className={css.header}>
-      <h1 className={css.title}>
-        <Icon className="ic" />
-        {title}
-      </h1>
-      <div className={css.kpis}>{children}</div>
+    <header ref={ref} className={css.header}>
+      <div className={css.inner}>
+        <h1 className={css.title}>
+          <Icon className="ic" />
+          {title}
+        </h1>
+        <div className={css.kpis}>{children}</div>
+      </div>
     </header>
   )
 }

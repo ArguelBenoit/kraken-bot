@@ -2,8 +2,7 @@ import { ChevronDown, Circle, Pin, SlidersHorizontal, X } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { useDismiss } from '@/hooks/useDismiss'
-import { parseJsonLoose, sanitizeConfig } from '@/lib/configIO'
-import { ALL_FIELDS, CFG_KEYS } from '@/lib/fields'
+import { ALL_FIELDS } from '@/lib/fields'
 import { BUILTIN, PRESET_NAMES, PRESETS, RISK_COLOR, summarize, type PresetConfig } from '@/lib/presets'
 import type { PinnedPreset } from '@/lib/types'
 import { useBotStore, type Draft } from '@/stores/botStore'
@@ -13,50 +12,18 @@ const FORM_NAMES = new Set<string>(ALL_FIELDS.map((f) => f.name))
 const formValues = (c: PresetConfig): Draft =>
   Object.fromEntries(Object.entries(c).filter(([k]) => FORM_NAMES.has(k))) as Draft
 
-/** Presets intégrés, configs épinglées, copier / coller. Ne fait que pré-remplir le formulaire (rien n'est enregistré). */
+/** Presets intégrés et configs épinglées. Ne fait que pré-remplir le formulaire (rien n'est enregistré). */
 export function PresetsPopover() {
   const [open, setOpen] = useState(false)
-  const [pasteOpen, setPasteOpen] = useState(false)
-  const [text, setText] = useState('')
-  const [copied, setCopied] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const pinned: PinnedPreset[] = useBotStore((s) => s.status?.state.presets) ?? []
-  const draft = useBotStore((s) => s.draft)
-  const { applyDraft, removePreset, notify } = useBotStore.getState()
+  const { applyDraft, removePreset } = useBotStore.getState()
   const close = () => setOpen(false)
   useDismiss(ref, close, open)
 
   const apply = (cfg: PresetConfig, name: string) => {
     close()
     applyDraft({ strategy: 'rsi', ...formValues(cfg) }, { kind: 'ok', text: `« ${name} » chargé : vérifie puis clique Enregistrer` })
-  }
-
-  const copy = async () => {
-    const out: Record<string, string | number> = {}
-    for (const k of CFG_KEYS) out[k] = k === 'pair' || k === 'strategy' ? String(draft[k]) : Number(draft[k])
-    const json = JSON.stringify(out)
-    try {
-      await navigator.clipboard.writeText(json)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      setPasteOpen(true)
-      setText(json)
-    }
-  }
-
-  const applyPasted = () => {
-    const raw = parseJsonLoose(text)
-    close()
-    setPasteOpen(false)
-    setText('')
-    if (!raw) return notify({ kind: 'error', text: 'Config illisible : JSON attendu' })
-    const { values, applied, ignored } = sanitizeConfig(raw)
-    if (!applied.length) return notify({ kind: 'error', text: 'Aucun champ reconnu dans cette config' })
-    applyDraft(values as Draft, {
-      kind: 'ok',
-      text: `Config collée (${applied.length} champs)${ignored.length ? ` — ignoré : ${ignored.join(', ')}` : ''} : vérifie puis clique Enregistrer (le mode n'est jamais modifié par un collage)`,
-    })
   }
 
   return (
@@ -106,33 +73,6 @@ export function PresetsPopover() {
                 </button>
               </span>
             ))}
-          </div>
-
-          <div className={css.group}>
-            <small>
-              <SlidersHorizontal className="ic" /> Copier / coller une config
-            </small>
-            <button type="button" className="chip" onClick={copy}>
-              {copied ? 'Copié ✓' : 'Copier le formulaire'}
-            </button>
-            <button type="button" className="chip" onClick={() => setPasteOpen((o) => !o)}>
-              Coller…
-            </button>
-            {pasteOpen && (
-              <div>
-                <textarea
-                  className={css.paste}
-                  rows={5}
-                  value={text}
-                  autoFocus
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder='Colle ici une config JSON, ex : {"pair":"AVAXUSDC","timeframe":240,"rsi_period":7,"rsi_buy":35,"rsi_sell":65,"take_profit_pct":4,"stop_loss_pct":2,"order_size":100}'
-                />
-                <button type="button" className="chip" onClick={applyPasted}>
-                  Appliquer au formulaire
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}

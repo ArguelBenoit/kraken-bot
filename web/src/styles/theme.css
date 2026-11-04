@@ -52,7 +52,7 @@ input, select, textarea {
   border: 1px solid var(--bd); border-radius: 2px; padding: 6px;
 }
 textarea { width: 100%; resize: vertical; }
-input[type='checkbox'] { width: auto; }
+input[type='checkbox'], input[type='radio'] { width: auto; }
 .check { display: flex; justify-content: flex-start; align-items: flex-start; gap: 8px; color: var(--tx); margin: 4px 0; }
 .check small { color: var(--mu); }
 .group { border: 1px solid var(--bd); padding: 6px 10px; margin: 8px 0; }
@@ -125,3 +125,19 @@ pre.log { margin: 0; max-height: 180px; overflow: auto; font-size: 12px; color: 
 .notice.ok { color: var(--ok); }
 .warn { border: 1px solid var(--ac); color: var(--ac); padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
 .warn.danger { border-color: var(--ko); color: var(--ko); }
+
+/* ----- trading manuel ----- */
+.btn.buy { background: var(--ok); border-color: var(--ok); }
+.btn.block { width: 100%; padding: 10px 12px; font-size: 13px; }
+.seg { display: inline-flex; }
+.seg button {
+  background: transparent; color: var(--mu); border: 1px solid var(--line); padding: 5px 14px; cursor: pointer;
+  font: 700 11px var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+}
+.seg button + button { border-left: 0; }
+.seg button.on { background: var(--ac); border-color: var(--ac); color: #000; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; margin: -2px 0 6px; }
+.chips .chip { margin: 0; padding: 2px 7px; font-size: 11px; }
+.summary { border: 1px dashed var(--bd); padding: 8px 10px; margin: 10px 0; display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; font-size: 12px; }
+.summary span:nth-child(odd) { color: var(--mu); }
+.summary span:nth-child(even) { text-align: right; }

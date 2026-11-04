@@ -1,5 +1,9 @@
 /** Client HTTP de l'API Flask. Toute réponse `ok:false` ou HTTP d'erreur devient une exception avec le message du serveur. */
-export class ApiError extends Error {}
+export class ApiError extends Error {
+  constructor(message: string, readonly status?: number) {
+    super(message)
+  }
+}
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -8,14 +12,18 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok || data?.ok === false || data?.error) throw new ApiError(data?.error ?? `Erreur ${res.status}`)
+  if (!res.ok || data?.ok === false || data?.error) throw new ApiError(data?.error ?? `Erreur ${res.status}`, res.status)
   return data as T
 }
 
 export const api = {
   get: <T>(url: string) => request<T>('GET', url),
+  put: <T>(url: string, body: unknown) => request<T>('PUT', url, body),
   post: <T = { ok: true }>(url: string, body?: unknown) => request<T>('POST', url, body ?? {}),
   del: <T = { ok: true }>(url: string) => request<T>('DELETE', url),
 }
+
+/** 404 sur une route /api : le serveur Python tourne encore avec une ancienne version du code. */
+export const isMissingRoute = (e: unknown) => e instanceof ApiError && e.status === 404
 
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))

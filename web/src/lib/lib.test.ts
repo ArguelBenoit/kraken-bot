@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { parseJsonLoose, sanitizeConfig } from './configIO'
 import { fm, signed } from './format'
 import { buildMarkers } from './markers'
 import { presetFor } from './presets'
 import { rowSignal, sortScan } from './scan'
-import { computeOpenTrade } from './trade'
-import type { BotConfig, BotState, ScanRow } from './types'
+import { zapTone } from './activity'
+import { aiTradeInput, botTradeInput, computeOpenTrade, manualTradeInput } from './trade'
+import type { AiPosition, BotConfig, BotState, ManualPosition, ScanRow } from './types'
 
 const cfg = {
   pair: 'ETHUSDC', mode: 'paper', strategy: 'rsi', timeframe: 240, rsi_period: 7, rsi_buy: 30, rsi_sell: 70,
@@ -25,31 +25,44 @@ describe('format', () => {
 
 describe('computeOpenTrade', () => {
   it('RSI : jauge entre stop loss et take profit', () => {
-    const v = computeOpenTrade(state(), cfg)!
-    expect(v.trailing).toBe(false)
-    expect([v.lo, v.hi]).toEqual([-2, 4])
+    const v = computeOpenTrade(botTradeInput(state(), cfg)!)!
+    expect(v.lo).toBeCloseTo(-2, 6)
+    expect(v.hi).toBeCloseTo(4, 6)
     expect(v.gauge.entry).toBeCloseTo(33.33, 1) // (0 - -2) / 6
     expect(v.gauge.pos).toBeCloseTo(50, 1) // (1 - -2) / 6
     expect(v.tone).toBe('up')
     expect(v.zone).toBeNull()
   })
   it('signale la zone de stop et de vente', () => {
-    expect(computeOpenTrade(state({ pos_price: 97 }), cfg)!.zone?.text).toBe('zone de stop atteinte')
-    expect(computeOpenTrade(state({ pos_price: 105 }), cfg)!.zone?.text).toBe('zone de vente atteinte')
+    expect(computeOpenTrade(botTradeInput(state({ pos_price: 97 }), cfg)!)!.zone?.text).toBe('zone de stop atteinte')
+    expect(computeOpenTrade(botTradeInput(state({ pos_price: 105 }), cfg)!)!.zone?.text).toBe('zone de vente atteinte')
   })
-  it('tendance : le stop suiveur remonte avec le pic', () => {
+  it('tendance : pas d’objectif, le stop suiveur remonte avec le pic', () => {
     const c = { ...cfg, strategy: 'trend', trailing_pct: 5 } as BotConfig
-    const v = computeOpenTrade(state({ peak: 120, pos_price: 118 }), c)!
-    expect(v.trailing).toBe(true)
+    const v = computeOpenTrade(botTradeInput(state({ peak: 120, pos_price: 118 }), c)!)!
+    expect(v.tpPrice).toBeNull()
     expect(v.stopPrice).toBeCloseTo(114, 5) // 120 * 0.95 > 98
   })
   it('stop ATR : utilise le prix de stop mémorisé', () => {
-    const v = computeOpenTrade(state({ stop_px: 95 }), { ...cfg, atr_stop: 2 })!
-    expect(v.stopPct).toBeCloseTo(5, 5)
+    const v = computeOpenTrade(botTradeInput(state({ stop_px: 95 }), { ...cfg, atr_stop: 2 })!)!
+    expect(v.stopChg).toBeCloseTo(-5, 5)
+  })
+  it('manuel : le stop effectif est le plus haut entre stop loss et suiveur ; sans stop, jauge symétrique', () => {
+    const p = { entry: 100, qty: 1, price: 110, cost: 100, peak: 120, sl_price: 98, tp_price: null, trail_price: 114 } as ManualPosition
+    expect(manualTradeInput(p, 0).stopPrice).toBe(114)
+    const v = computeOpenTrade({ entry: 100, qty: 1, price: 101, cost: 100, feePct: 0, stopPrice: null, tpPrice: null })!
+    expect(v.stopChg).toBeNull()
+    expect(v.lo).toBeLessThan(0)
+    expect(v.hi).toBeGreaterThan(0)
+  })
+  it('IA : stops en % de l’entrée', () => {
+    const i = aiTradeInput({ entry: 100, qty: 1, price: 101, cost: 100, sl: 3, tp: 6, trail: 0 } as AiPosition, 0)
+    expect(i.stopPrice).toBeCloseTo(97, 6)
+    expect(i.tpPrice).toBeCloseTo(106, 6)
   })
   it('null sans position ou sans prix', () => {
-    expect(computeOpenTrade(state({ qty: 0 }), cfg)).toBeNull()
-    expect(computeOpenTrade(state({ pos_price: null }), cfg)).toBeNull()
+    expect(botTradeInput(state({ qty: 0 }), cfg)).toBeNull()
+    expect(computeOpenTrade(botTradeInput(state({ pos_price: null }), cfg)!)).toBeNull()
   })
 })
 
@@ -85,24 +98,51 @@ describe('markers', () => {
   })
 })
 
-describe('configIO', () => {
-  it('lit du JSON entouré de texte ou de ```', () => {
-    expect(parseJsonLoose('```json\n{"pair":"ethusdc"}\n```')).toEqual({ pair: 'ethusdc' })
-    expect(parseJsonLoose('voici : {"a":1} merci')).toEqual({ a: 1 })
-    expect(parseJsonLoose('rien')).toBeNull()
-  })
-  it('ignore les champs inconnus et ne touche jamais au mode', () => {
-    const r = sanitizeConfig({ pair: 'ethusdc', timeframe: 7, mode: 'live', foo: 1, strategy: 'MACD', rsi_buy: 25 })
-    expect(r.values).toMatchObject({ pair: 'ETHUSDC', strategy: 'macd', rsi_buy: 25 })
-    expect(r.values).not.toHaveProperty('mode')
-    expect(r.ignored).toEqual(['timeframe 7', 'foo'])
-  })
-})
-
 describe('presets', () => {
   it('choisit le preset le plus prudent pour une paire et une méthode', () => {
     expect(presetFor('AVAXUSDC', 'rsi')?.[0]).toBe('avaxr') // seul AVAX avec stop <= 4
     expect(presetFor('ADAUSDC', 'rsi')).toBeNull()
     expect(presetFor('ADAUSDC', 'trend')?.[0]).toBe('adae')
+  })
+})
+
+import { previewTicket, quickSizes } from './ticket'
+
+describe('ticket', () => {
+  const base = { price: 100, size: 100, feePct: 0, slPct: 2, tpPct: 4, type: 'market' as const, limitPrice: 0 }
+  it('calcule quantité, prix des stops, risque et rapport gain/risque', () => {
+    const p = previewTicket(base)!
+    expect(p.qty).toBeCloseTo(1, 6)
+    expect(p.slPrice).toBeCloseTo(98, 6)
+    expect(p.tpPrice).toBeCloseTo(104, 6)
+    expect(p.lossAtSl).toBeCloseTo(-2, 6)
+    expect(p.gainAtTp).toBeCloseTo(4, 6)
+    expect(p.ratio).toBeCloseTo(2, 6)
+  })
+  it('intègre les frais et le prix limite', () => {
+    const p = previewTicket({ ...base, feePct: 0.5, type: 'limit', limitPrice: 50 })!
+    expect(p.entry).toBe(50)
+    expect(p.qty).toBeCloseTo((100 * 0.995) / 50, 6)
+    expect(p.lossAtSl!).toBeLessThan(-2) // les frais aggravent la perte
+    expect(p.fees).toBeCloseTo(1, 6)
+  })
+  it('sans stop : pas de risque ni de ratio ; sans prix : pas d’aperçu', () => {
+    expect(previewTicket({ ...base, slPct: 0 })!.ratio).toBeNull()
+    expect(previewTicket({ ...base, price: null })).toBeNull()
+    expect(previewTicket({ ...base, size: 0 })).toBeNull()
+  })
+  it('montants rapides plafonnés', () => {
+    expect(quickSizes(1000, 300).map((q) => q.value)).toEqual([250, 300, 300, 300])
+  })
+})
+
+describe('couleur de l’éclair du menu', () => {
+  it('vert si plus de gains, rouge si plus de pertes, orange si égalité', () => {
+    expect(zapTone(1, 0)).toBe('up')
+    expect(zapTone(3, 2)).toBe('up')
+    expect(zapTone(0, 1)).toBe('down')
+    expect(zapTone(1, 4)).toBe('down')
+    expect(zapTone(2, 2)).toBe('flat')
+    expect(zapTone(0, 0)).toBe('flat') // ex. seulement un ordre limite en attente
   })
 })

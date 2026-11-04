@@ -8,3 +8,6 @@ ai_state.json
 ai_config.json
 web/node_modules/
 web/dist/
+manual_state.json
+manual_config.json
+learn_state.json

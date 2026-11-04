@@ -1,7 +1,7 @@
 import { ChartCandlestick } from 'lucide-react'
 import { Header, Kpi } from '@/components/layout/Header'
 import { MarketCard } from '@/components/bot/MarketCard'
-import { OpenTradeCard } from '@/components/bot/OpenTradeCard'
+import { BotOpenTrade } from '@/components/bot/BotOpenTrade'
 import { SettingsCard } from '@/components/bot/SettingsCard'
 import { TradesCard } from '@/components/bot/TradesCard'
 import { LogCard } from '@/components/ui/LogCard'
@@ -40,7 +40,7 @@ export function BotPage() {
           <LogCard logs={status?.logs ?? []} />
         </div>
         <div className="col">
-          <OpenTradeCard />
+          <BotOpenTrade />
           <MarketCard />
         </div>
       </main>

@@ -1,9 +1,10 @@
 import { ArrowLeftRight } from 'lucide-react'
-import { Card } from '@/components/ui/Card'
 import { fm, signed } from '@/lib/format'
-import type { AiTrade } from '@/lib/types'
+import type { PairTrade } from '@/lib/types'
+import { Card } from './Card'
 
-export function AiTradesCard({ trades }: { trades: AiTrade[] }) {
+/** Historique des trades d'un bot qui gère plusieurs paires (Bot IA, Trading manuel). */
+export function PairTradesCard({ trades }: { trades: PairTrade[] }) {
   return (
     <Card title="Trades" icon={ArrowLeftRight}>
       {trades.length === 0 ? (
@@ -16,7 +17,7 @@ export function AiTradesCard({ trades }: { trades: AiTrade[] }) {
               <tr key={`${t.time}-${i}`}>
                 <td>{t.time}</td>
                 <td>{t.pair}</td>
-                <td>{t.side}</td>
+                <td className={t.side === 'BUY' ? 't-ok' : 't-ko'}>{t.side}</td>
                 <td>{fm(t.price, t.price < 1 ? 6 : 2)}</td>
                 <td>{t.side === 'SELL' && <span className={t.pnl >= 0 ? 't-ok' : 't-ko'}>{signed(t.pnl)}</span>}</td>
                 <td className="t-mu">{t.why}</td>

@@ -10,6 +10,9 @@ export interface RowSignal {
   detail?: string
 }
 
+/** Réglages neutres pour afficher le marché hors bot simple : tri par RSI, couleurs à 30 / 70. */
+export const NEUTRAL_VIEW = { strategy: 'rsi', rsi_buy: 30, rsi_sell: 70 } as BotConfig
+
 const isSignal = (c: Pick<BotConfig, 'strategy'>) => SIGNAL_STRATEGIES.includes(c.strategy)
 
 /** Libellé de la colonne « Signal » du tableau Marché selon la méthode active. */

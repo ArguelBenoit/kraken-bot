@@ -16,6 +16,12 @@ const OPTIONS = {
 const asTime = (t: number) => t as Time
 const lineOpts = (color: string) => ({ color, lineWidth: 1 as const, priceLineVisible: false, lastValueVisible: false })
 
+export interface ChartLevel {
+  price: number
+  color: string
+  title: string
+}
+
 interface Series {
   price: IChartApi
   rsi: IChartApi
@@ -24,10 +30,11 @@ interface Series {
   fast: ISeriesApi<'Line'>
   slow: ISeriesApi<'Line'>
   levels: IPriceLine[]
+  custom: IPriceLine[]
 }
 
 /** Graphique des prix (bougies, EMA, trades) + RSI en dessous, échelles de temps synchronisées. */
-export function PriceChart({ data }: { data: ChartData | null }) {
+export function PriceChart({ data, levels = [] }: { data: ChartData | null; levels?: ChartLevel[] }) {
   const priceEl = useRef<HTMLDivElement>(null)
   const rsiEl = useRef<HTMLDivElement>(null)
   const chart = useRef<Series | null>(null)
@@ -44,7 +51,7 @@ export function PriceChart({ data }: { data: ChartData | null }) {
     const slow = price.addLineSeries(lineOpts('#d58bff'))
     price.timeScale().subscribeVisibleLogicalRangeChange((r) => r && rsi.timeScale().setVisibleLogicalRange(r))
     rsi.timeScale().subscribeVisibleLogicalRangeChange((r) => r && price.timeScale().setVisibleLogicalRange(r))
-    chart.current = { price, rsi, candles, rsiLine, fast, slow, levels: [] }
+    chart.current = { price, rsi, candles, rsiLine, fast, slow, levels: [], custom: [] }
     return () => {
       price.remove()
       rsi.remove()
@@ -66,6 +73,16 @@ export function PriceChart({ data }: { data: ChartData | null }) {
       [data.rsi_sell, '#ff4d4d'],
     ].map(([price, color]) => c.rsiLine.createPriceLine({ price: price as number, color: color as string, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: '' }))
   }, [data])
+
+  // lignes horizontales sur le graphique des prix (positions ouvertes, aperçu d'un ordre…)
+  const levelsKey = JSON.stringify(levels)
+  useEffect(() => {
+    const c = chart.current
+    if (!c) return
+    c.custom.forEach((l) => c.candles.removePriceLine(l))
+    c.custom = levels.map((l) => c.candles.createPriceLine({ price: l.price, color: l.color, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: l.title }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [levelsKey, data])
 
   return (
     <>

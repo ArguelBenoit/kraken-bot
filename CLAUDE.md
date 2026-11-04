@@ -25,6 +25,8 @@ Après une modif **Python** : relancer (Ctrl+C puis `./run.sh`). Les modifs de l
 | `kraken.py` | Client Kraken : public (OHLC, Ticker) et privé signé HMAC (`AddOrder` au marché). |
 | `ai_bot.py` | Classe `AIBot` (page `/ai`) : Claude analyse le marché toutes les N min et ouvre/ferme jusqu'à 5 positions. Garde-fous appliqués par le code. |
 | `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`), `trend`, et les 4 nouvelles méthodes. |
+| `manual.py` | Classe `ManualTrader` (page `/trading`) : ordres passés à la main (marché ou limite) avec SL / TP / stop suiveur par position, plusieurs positions. |
+| `learn.py` | Progression du tutoriel (page `/learn`) dans `learn_state.json` : quiz réussis + épreuves validées. Aucun trading. |
 | `strategies.py` | Signaux purs des méthodes Bollinger / Donchian / MACD / Momentum (`signal()`), ATR, filtre de tendance : partagés par le bot, le scan et le backtest. |
 | `indicators.py` | `ema_series`, `rsi_series` (ré-exportés par `bot.py`). |
 | `web/` | Interface **React + TypeScript** (Vite, zustand, lightweight-charts, lucide-react) : voir section « Interface ». |
@@ -32,7 +34,7 @@ Après une modif **Python** : relancer (Ctrl+C puis `./run.sh`). Les modifs de l
 | `config.json` | Réglages enregistrés (créé au 1er « Enregistrer »). Ignoré par git. |
 | `state.json` | État runtime : `cash, qty, entry, pair, cost, pnl, trades[≤200], presets[]`. Ignoré par git. |
 
-Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `PIN_FIELDS`, donc épinglés / copiés-collés).
+Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `PIN_FIELDS`, donc épinglés).
 
 Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST /api/config`, `POST /api/presets`,
 `DELETE /api/presets/<id>`, `POST /api/{start|stop|liquidate|reset}`.
@@ -48,6 +50,29 @@ SL / TP / stop suiveur sont surveillés localement (`_monitor`, toutes les `chec
 Routes : `GET /ai`, `GET /api/ai/status`, `POST /api/ai/config`, `POST /api/ai/{start|stop|analyze|liquidate|reset|close-<id>}`.
 **Testé uniquement en paper avec Kraken/Claude simulés** ; live jamais testé, mêmes limites que le bot simple (pas de stop chez Kraken, `ordermin` ignoré).
 Ne pas faire tourner bot simple et bot IA en live sur le même compte sans y penser : ils ne se coordonnent pas.
+
+## Trading manuel (manual.py, page /trading)
+
+Indépendant des autres bots : `manual_config.json` / `manual_state.json` (ignorés par git), son propre cash paper (`paper_balance`).
+Achat **au marché** ou **limite** (achat quand le prix descend à `limit_price`, surveillé localement ; en paper le cash est réservé), plusieurs positions
+en parallèle, chacune avec `sl` / `tp` / `trail` en % ; stops modifiables après coup, vente partielle (25 / 50 % / tout).
+Un thread (`_loop`, toutes les `check_every` s) déclenche stops, objectifs et ordres limites — **rien n'est posé chez Kraken** : si `app.py` s'arrête,
+rien ne se déclenche. Garde-fous : montant min 5, `max_order` (500 par défaut), paire validée, **live : `confirm:true` exigé côté serveur** (+ confirmation dans l'UI).
+Routes : `GET /api/manual/status?pair=` (inclut `quote`), `POST /api/manual/{config|order|reset}`, `POST /api/manual/positions/<id>/{close|adjust}`, `DELETE /api/manual/pending/<id>`.
+**Testé en paper avec Kraken simulé et sur de vrais prix en paper ; live jamais testé.**
+
+## Tutoriel « Apprendre » (page /learn, 4ᵉ page, groupe à part dans la barre latérale)
+
+**100 % paper, 100 % navigateur** : aucun ordre n'est jamais envoyé. Pour un débutant complet : cours en leçons (`lib/learn/lessons.ts`, 11 leçons, tutoiement),
+**glossaire cliquable** (`glossary.ts`, ~45 termes ; dans les textes `[[id|texte]]` et `**gras**`, parsés par `RichText`), quiz par leçon, calculette de risque, explorateur de bougies.
+**Simulateur de replay** (`sim.ts`, `PracticeArena`) : un vrai moment passé (`/api/chart`, ≤ 720 bougies) révélé bougie par bougie, sans la suite ; 80 bougies par exercice,
+1 000 € fictifs, frais 0,26 %, stop testé avant l'objectif, gap exécuté à l'ouverture. Pour une méthode, le départ est choisi pour qu'un signal d'achat arrive
+après ≥ 4 bougies calmes (`pickStartWithSignal`) ; bouton « Aller au prochain signal ». Le coach (`coach.ts`) commente en direct.
+**Épreuves** (`trials.ts`) : une par méthode (rsi, bollinger, trend, donchian, macd, momentum) = todo-list de 4 cases : quiz réussi → achat **sur signal** → **stop loss posé** →
+trade **clôturé**. Validée = quiz + trade modèle ; objectif : valider les 6 (« passeport »).
+Les signaux enseignés (`methods.ts`, `indicators.ts`) sont **identiques à ceux du bot Python** : `learn.test.ts` compare, sur une série fixe, les indices de signaux
+avec ceux de `strategies.py` / `indicators.py` (listes générées par Python). Si tu changes une règle d'un côté, change l'autre et régénère les listes.
+Progression : `GET/PUT /api/learn/progress`, `POST /api/learn/reset` → `learn_state.json` (écriture atomique, entrée nettoyée côté serveur) ; store `learnStore` (zustand).
 
 ## Stratégie (bot.py)
 
@@ -83,11 +108,11 @@ Non implémentées : grille et DCA (incompatibles avec « une seule position »,
 ## Interface (web/)
 
 React 19 + TypeScript + Vite ; **l'API Flask n'a pas changé** (toutes les routes `/api/*` sont identiques). Vite proxifie `/api` vers Flask (`PORT`, 5000 par défaut).
-Deux pages (react-router) : `/` Bot simple, `/ai` Bot IA, menu en haut à droite, même bandeau (`components/layout/Header.tsx`).
+Trois pages (react-router) : `/` Bot simple, `/ai` Bot IA, `/trading` Trading manuel ; menu dans la barre latérale (`NAV_ITEMS` de `Sidebar.tsx`), bandeau de page = titre + indicateurs (`Header.tsx`).
 
     web/src/
       lib/        types, api (fetch typé), format, constants, fields (formulaire piloté par données), presets, tips,
-                  scan / trade / markers / configIO = logique pure testée (lib.test.ts, `npm test`)
+                  scan / trade / markers = logique pure testée (lib.test.ts, `npm test`)
       stores/     zustand : botStore (statut + brouillon du formulaire + actions), marketStore (tableau, graphique, bougie), aiStore
       hooks/      usePolling, useBotSync (orchestration : sondage 3 s, graphique 60 s, recharge si méthode/trade change), useDismiss, useMaxRowsHeight
       components/ ui/ (Card, Field, Button, Tip, ModeSwitch, StatusBadge, Notice, LogCard) · layout/ · bot/ · ai/ · chart/PriceChart
@@ -97,11 +122,15 @@ Deux pages (react-router) : `/` Bot simple, `/ai` Bot IA, menu en haut à droite
 - Formulaire des réglages : défini par `FORM_ROWS` (`lib/fields.ts`) ; un champ n'apparaît que pour les méthodes de `only`. Ajouter un réglage =
   `DEFAULT_CONFIG`/`LIMITS` côté Python + une entrée dans `fields.ts` + son type dans `types.ts` + (option) son infobulle dans `tips.ts`.
 - Le brouillon du formulaire vit dans le store : il n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
-  « Restaurer » le remet sur la config enregistrée. Presets / Trader / collage JSON ne font que **pré-remplir** (rien n'est enregistré).
+  « Restaurer » le remet sur la config enregistrée. Presets / Trader ne font que **pré-remplir** (rien n'est enregistré).
 - Largeur minimale 1600 px (`body{min-width}`), **aucun responsive** : en dessous, la page déborde du viewport sans se réorganiser.
+- **Trade en cours = un composant commun** (`components/trade/OpenTradeCard.tsx`) pour les 3 pages : une carte par position (PnL, jauge stop → objectif, zone atteinte).
+  Chaque page l'alimente via un adaptateur de `lib/trade.ts` (`botTradeInput`, `aiTradeInput`, `manualTradeInput` → `OpenTradeInput`) et ses propres boutons (`actions`).
 - Marché : 8 lignes visibles, trié selon la méthode, le sélecteur « Bougie » pilote tableau **et** graphique, **Trader** pré-remplit le formulaire.
 - Presets : intégrés (`lib/presets.ts`, issus de backtests : biais de sélection) + **configs épinglées** dans `state.json["presets"]`.
 - Icônes : `lucide-react` (`<Settings className="ic" />`, `ic f` pour les pleines). Aucun asset à copier.
+- Tester le vrai parcours dans un navigateur : Chromium headless + protocole DevTools (`--remote-debugging-port`) piloté par un script node jetable avec `ws` installé **hors du projet**
+  (dossier temporaire) ; cliquer les boutons par texte **exact** (un lien du menu contient souvent le même mot), apostrophes typographiques `’` dans l'UI.
 - Commandes (dans `web/`) : `npm run dev`, `npm run build` (typecheck + build), `npm test`, `npm run typecheck`.
 
 ## Résultats de backtest et décisions (31/10/2026)

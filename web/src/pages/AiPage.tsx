@@ -1,10 +1,10 @@
 import { Bot } from 'lucide-react'
 import { AiSettingsCard } from '@/components/ai/AiSettingsCard'
-import { AiTradesCard } from '@/components/ai/AiTradesCard'
 import { DecisionsCard } from '@/components/ai/DecisionsCard'
-import { PositionsCard } from '@/components/ai/PositionsCard'
+import { AiOpenTrades } from '@/components/ai/AiOpenTrades'
 import { Header, Kpi } from '@/components/layout/Header'
 import { LogCard } from '@/components/ui/LogCard'
+import { PairTradesCard } from '@/components/ui/PairTradesCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { usePolling } from '@/hooks/usePolling'
@@ -46,9 +46,9 @@ export function AiPage() {
           <AiSettingsCard />
         </div>
         <div className="col">
-          <PositionsCard positions={status?.positions ?? []} />
+          <AiOpenTrades positions={status?.positions ?? []} feePct={c?.fee_pct ?? 0.26} />
           <DecisionsCard decisions={status?.decisions ?? []} />
-          <AiTradesCard trades={status?.trades ?? []} />
+          <PairTradesCard trades={status?.trades ?? []} />
           <LogCard logs={status?.logs ?? []} />
         </div>
       </main>

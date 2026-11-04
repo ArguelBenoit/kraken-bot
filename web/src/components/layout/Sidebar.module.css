@@ -1,10 +1,11 @@
 .sidebar {
-  position: sticky; top: 0; align-self: start; height: 100vh; width: 190px; flex: none;
+  position: sticky; top: 0; z-index: 60; align-self: start; height: 100vh; width: 190px; flex: none;
   display: flex; flex-direction: column; gap: 18px; padding: 16px 0;
   background: var(--card); border-right: 1px solid var(--bd);
 }
 .brand { display: flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ac); white-space: nowrap; }
-.nav { display: flex; flex-direction: column; }
+.nav { display: flex; flex-direction: column; gap: 14px; }
+.group { display: flex; flex-direction: column; }
 .label { padding: 0 16px 6px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--mu); }
 .link {
   display: flex; align-items: center; gap: 10px; padding: 9px 16px; color: var(--mu); text-decoration: none;
@@ -14,3 +15,20 @@
 .link.active { color: var(--ac); background: #1a1300; border-left-color: var(--ac); }
 .footer { margin-top: auto; padding: 0 16px; font-size: 10px; color: var(--mu); letter-spacing: 0.06em; }
 
+
+/* infobulle : s'ouvre à droite de la barre latérale, au survol ou au focus clavier */
+.link[data-tip] { position: relative; }
+.link[data-tip]:hover::after, .link[data-tip]:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%); z-index: 50;
+  width: 280px; padding: 9px 11px; background: #000; border: 1px solid var(--ac); color: var(--tx);
+  font: 400 12px/1.5 var(--mono); text-transform: none; letter-spacing: 0; white-space: pre-line; box-shadow: 0 8px 24px #000c;
+}
+
+/* pastilles d'activité en bout de ligne */
+.badges { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.zap { filter: drop-shadow(0 0 4px currentColor); }
+.up { color: var(--ok); }
+.down { color: var(--ko); }
+.flat { color: #ff8a00; }
+.play { color: var(--ok); }
+.stopped { color: #5a5a50; }

@@ -1,4 +1,21 @@
-import type { BotConfig, BotState } from './types'
+import type { AiPosition, BotConfig, BotState, ManualPosition } from './types'
+
+/** Ce qu'il faut savoir d'une position pour l'afficher (indépendant du bot qui la gère). */
+export interface OpenTradeInput {
+  entry: number
+  qty: number
+  /** Prix actuel ; null = indisponible. */
+  price: number | null
+  /** Montant dépensé à l'achat (frais d'achat inclus). */
+  cost: number
+  feePct: number
+  /** Plus haut atteint depuis l'achat. */
+  peak?: number
+  /** Prix du stop effectif (stop loss ou stop suiveur, le plus haut des deux) ; null = aucun stop. */
+  stopPrice: number | null
+  /** Prix de l'objectif fixe (take profit) ; null = on laisse courir. */
+  tpPrice: number | null
+}
 
 export interface OpenTradeView {
   entry: number
@@ -11,15 +28,16 @@ export interface OpenTradeView {
   chg: number
   /** up/dn : couleur de la carte selon que le prix est au-dessus ou sous l'entrée. */
   tone: 'up' | 'dn'
-  /** Méthodes à jauge « stop -> pic » (tout sauf RSI / Bollinger, qui ont un take profit fixe). */
-  trailing: boolean
-  stopPct: number
-  stopPrice: number
-  tpPct: number
-  lo: number
-  hi: number
+  stopPrice: number | null
+  /** Variation (%) au niveau du stop, depuis l'entrée (négative, ou positive si un suiveur protège déjà un gain). */
+  stopChg: number | null
+  tpPrice: number | null
+  tpChg: number | null
   peak: number
   peakPct: number
+  /** Bornes de la jauge en % depuis l'entrée. */
+  lo: number
+  hi: number
   /** Positions de la jauge en % de sa largeur. */
   gauge: { pos: number; entry: number; fillLeft: number; fillWidth: number; positive: boolean }
   zone: { icon: 'ban' | 'target'; text: string } | null
@@ -27,44 +45,35 @@ export interface OpenTradeView {
 
 const clamp = (v: number, a = 0, b = 100) => Math.max(a, Math.min(b, v))
 
-/** Calcule tout ce que la carte « Trade en cours » affiche. Renvoie null sans position ou sans prix. */
-export function computeOpenTrade(st: BotState, c: BotConfig): OpenTradeView | null {
-  if (!st.qty || st.entry == null || st.pos_price == null) return null
-  const { entry, qty } = st
-  const px = st.pos_price
-  const fee = c.fee_pct / 100
-  const cost = st.cost ?? (qty * entry) / (1 - fee)
+/** Calcule tout ce que la carte « Trade en cours » affiche. Renvoie null sans prix. */
+export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
+  const px = i.price
+  if (px == null || !i.qty || i.entry <= 0) return null
+  const { entry, qty } = i
+  const fee = i.feePct / 100
   const chg = (px / entry - 1) * 100
   const value = qty * px
-  const trailing = c.strategy !== 'rsi' && c.strategy !== 'bollinger'
-  const stopPct = c.atr_stop > 0 && st.stop_px ? (1 - st.stop_px / entry) * 100 : c.stop_loss_pct
-  const peak = Math.max(st.peak ?? entry, px)
+  const peak = Math.max(i.peak ?? entry, px)
   const peakPct = (peak / entry - 1) * 100
+  const stopChg = i.stopPrice == null ? null : (i.stopPrice / entry - 1) * 100
+  const tpChg = i.tpPrice == null ? null : (i.tpPrice / entry - 1) * 100
 
-  let tpPct = c.take_profit_pct
-  let lo = -stopPct
-  let hi = tpPct
-  let stopPrice = entry * (1 - stopPct / 100)
-  if (trailing) {
-    if (c.trailing_pct > 0 && peak * (1 - c.trailing_pct / 100) > stopPrice) stopPrice = peak * (1 - c.trailing_pct / 100)
-    lo = (stopPrice / entry - 1) * 100
-    hi = Math.max(peakPct, 0) + Math.max(stopPct, 1)
-    tpPct = hi
-  }
-  const total = hi - lo
+  // bornes : du stop à l'objectif ; sans objectif, jusqu'au pic atteint (+ la distance du stop) ; sans stop, symétrique
+  const lo = stopChg ?? -Math.max(2, Math.abs(chg) + 1)
+  const hi = tpChg ?? Math.max(peakPct, 0) + Math.max(stopChg == null ? 1 : -stopChg, 1)
+  const total = Math.max(hi - lo, 0.01)
   const pos = clamp(((chg - lo) / total) * 100)
   const ent = clamp(((0 - lo) / total) * 100)
 
   let zone: OpenTradeView['zone'] = null
-  if (trailing) {
-    if (chg <= lo) zone = { icon: 'ban', text: 'stop atteint' }
-  } else if (chg >= tpPct) zone = { icon: 'target', text: 'zone de vente atteinte' }
-  else if (chg <= -stopPct) zone = { icon: 'ban', text: 'zone de stop atteinte' }
+  if (i.stopPrice != null && px <= i.stopPrice) zone = { icon: 'ban', text: 'zone de stop atteinte' }
+  else if (i.tpPrice != null && px >= i.tpPrice) zone = { icon: 'target', text: 'zone de vente atteinte' }
 
   return {
-    entry, px, qty, cost, value, chg, trailing, stopPct, stopPrice, tpPct, lo, hi, peak, peakPct, zone,
+    entry, px, qty, cost: i.cost, value, chg, peak, peakPct, lo, hi, zone,
+    stopPrice: i.stopPrice, stopChg, tpPrice: i.tpPrice, tpChg,
     grossGain: value - qty * entry,
-    netGain: value * (1 - fee) - cost,
+    netGain: value * (1 - fee) - i.cost,
     tone: px >= entry ? 'up' : 'dn',
     gauge: chg >= 0
       ? { pos, entry: ent, fillLeft: ent, fillWidth: Math.max(0, pos - ent), positive: true }
@@ -72,12 +81,50 @@ export function computeOpenTrade(st: BotState, c: BotConfig): OpenTradeView | nu
   }
 }
 
-/** Phrase décrivant comment la position sera vendue. */
-export function exitRule(c: BotConfig, tpPct: number, st: BotState): string {
+// ---------- adaptateurs : chaque bot décrit sa position avec ses propres champs ----------
+
+/** Bot simple : RSI / Bollinger ont un take profit fixe ; les autres méthodes laissent courir (stop suiveur). */
+export function botTradeInput(st: BotState, c: BotConfig): OpenTradeInput | null {
+  if (!st.qty || st.entry == null) return null
+  const entry = st.entry
+  const price = st.pos_price
+  const peak = Math.max(st.peak ?? entry, price ?? entry)
+  const fixedTarget = c.strategy === 'rsi' || c.strategy === 'bollinger'
+  let stopPrice = c.atr_stop > 0 && st.stop_px ? st.stop_px : entry * (1 - c.stop_loss_pct / 100)
+  if (!fixedTarget && c.trailing_pct > 0) stopPrice = Math.max(stopPrice, peak * (1 - c.trailing_pct / 100))
+  return {
+    entry, qty: st.qty, price, peak, feePct: c.fee_pct, stopPrice,
+    cost: st.cost ?? (st.qty * entry) / (1 - c.fee_pct / 100),
+    tpPrice: fixedTarget ? entry * (1 + c.take_profit_pct / 100) : null,
+  }
+}
+
+const maxOrNull = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
+
+/** Trading manuel : stop effectif = le plus haut entre stop loss et stop suiveur. */
+export function manualTradeInput(p: ManualPosition, feePct: number): OpenTradeInput {
+  return {
+    entry: p.entry, qty: p.qty, price: p.price, cost: p.cost, peak: p.peak, feePct,
+    stopPrice: maxOrNull(p.sl_price, p.trail_price), tpPrice: p.tp_price,
+  }
+}
+
+/** Bot IA : stops en % de l'entrée (suiveur depuis le pic). */
+export function aiTradeInput(p: AiPosition, feePct: number): OpenTradeInput {
+  const peak = Math.max(p.peak ?? p.entry, p.price)
+  const sl = p.sl > 0 ? p.entry * (1 - p.sl / 100) : null
+  const trail = p.trail > 0 ? peak * (1 - p.trail / 100) : null
+  return {
+    entry: p.entry, qty: p.qty, price: p.price, cost: p.cost, peak, feePct,
+    stopPrice: maxOrNull(sl, trail), tpPrice: p.tp > 0 ? p.entry * (1 + p.tp / 100) : null,
+  }
+}
+
+/** Phrase décrivant comment la position du bot simple sera vendue. */
+export function exitRule(c: BotConfig): string {
   const trail = c.trailing_pct > 0 ? ` ou stop suiveur −${c.trailing_pct}%` : ''
   if (c.strategy === 'trend') return `vente automatique si EMA${c.ma_fast} passe sous EMA${c.ma_slow}${trail}`
-  if (c.strategy === 'bollinger') return `vente automatique au retour à la moyenne de Bollinger ou à +${tpPct}%`
+  if (c.strategy === 'bollinger') return `vente automatique au retour à la moyenne de Bollinger ou à +${c.take_profit_pct}%`
   if (c.strategy === 'rsi') return `vente automatique si RSI ≥ ${c.rsi_sell}`
-  void st
   return `vente automatique sur signal ${c.strategy}${trail}`
 }

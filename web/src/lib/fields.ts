@@ -47,12 +47,6 @@ export const ALL_FIELDS: FieldDef[] = FORM_ROWS.flat()
 export const isVisible = (f: FieldDef, strategy: Strategy, mode: Mode) =>
   (!f.only || f.only.includes(strategy)) && (!f.mode || f.mode === mode)
 
-/** Champs échangés par « Copier / coller une config » (le mode n'en fait jamais partie). */
-export const CFG_KEYS: (keyof BotConfig)[] = [
-  'pair', 'timeframe', 'strategy', 'rsi_period', 'rsi_buy', 'rsi_sell', 'take_profit_pct', 'stop_loss_pct', 'ma_fast', 'ma_slow',
-  'trailing_pct', 'bb_period', 'bb_std', 'dc_entry', 'dc_exit', 'macd_fast', 'macd_slow', 'macd_signal', 'mom_period', 'mom_min_pct',
-  'filter_ema', 'filter_tf', 'atr_stop', 'order_size', 'fee_pct', 'check_every',
-]
 const TEXT_KEYS: (keyof BotConfig)[] = ['pair', 'strategy']
 
 /** Valeurs du formulaire (texte libre) -> corps JSON typé pour l'API. */

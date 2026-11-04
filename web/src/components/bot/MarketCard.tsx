@@ -1,6 +1,6 @@
 import { ChartCandlestick, ChartColumn, RefreshCw } from 'lucide-react'
 import { useMemo, useRef } from 'react'
-import { PriceChart } from '@/components/chart/PriceChart'
+import { PriceChart, type ChartLevel } from '@/components/chart/PriceChart'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Tip } from '@/components/ui/Tip'
@@ -25,18 +25,26 @@ function SignalCell({ row, cfg }: { row: ScanRow; cfg: BotConfig }) {
   )
 }
 
-function ScanTable({ cfg }: { cfg: BotConfig }) {
+interface TableProps {
+  cfg: BotConfig
+  showSignal: boolean
+  tradeLabel: string
+  onTrade: (pair: string, tf: number) => void
+  onSelect?: (pair: string) => void
+}
+
+function ScanTable({ cfg, showSignal, tradeLabel, onTrade, onSelect }: TableProps) {
   const rows = useMarketStore((s) => s.rows)
   const selected = useMarketStore((s) => s.chart?.pair)
   const tf = useMarketStore((s) => s.tf)
   const { selectPair } = useMarketStore.getState()
-  const tradeThis = useBotStore((s) => s.tradeThis)
   const sorted = useMemo(() => sortScan(rows, cfg), [rows, cfg])
   const wrap = useRef<HTMLDivElement>(null)
   const maxHeight = useMaxRowsHeight(wrap, MARKET_VISIBLE_ROWS, sorted)
 
   const pick = (pair: string) => {
     selectPair(pair)
+    onSelect?.(pair)
     document.getElementById('chart')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
@@ -48,16 +56,16 @@ function ScanTable({ cfg }: { cfg: BotConfig }) {
             <th>Paire</th><th>Prix</th><th>24h</th><th>Volume 24h</th>
             <th>Volatilité<Tip text={MARKET_TIPS['Volatilité']} /></th>
             <th>RSI<Tip text={MARKET_TIPS['RSI']} right /></th>
-            <th>Signal</th><th />
+            {showSignal && <th>Signal</th>}<th />
           </tr>
         </thead>
         <tbody>
           {sorted.length === 0 && (
-            <tr><td colSpan={8} className="t-mu">Chargement…</td></tr>
+            <tr><td colSpan={showSignal ? 8 : 7} className="t-mu">Chargement…</td></tr>
           )}
           {sorted.map((x) =>
             x.error ? (
-              <tr key={x.pair}><td>{x.label}</td><td colSpan={7} className="t-mu">indisponible</td></tr>
+              <tr key={x.pair}><td>{x.label}</td><td colSpan={showSignal ? 7 : 6} className="t-mu">indisponible</td></tr>
             ) : (
               <tr key={x.pair} className={selected === x.pair ? css.sel : ''} onClick={() => pick(x.pair)}>
                 <td><b>{x.label}</b></td>
@@ -66,10 +74,10 @@ function ScanTable({ cfg }: { cfg: BotConfig }) {
                 <td>{fm(x.vol24, 0)}</td>
                 <td>{fm(x.volat)}%</td>
                 <td className={rsiTone(x, cfg) === 'ok' ? 't-ok' : rsiTone(x, cfg) === 'ko' ? 't-ko' : ''}>{fm(x.rsi, 1)}</td>
-                <td><SignalCell row={x} cfg={cfg} /></td>
+                {showSignal && <td><SignalCell row={x} cfg={cfg} /></td>}
                 <td>
-                  <Button variant="sec" size="xs" onClick={(e) => { e.stopPropagation(); tradeThis(x.pair, tf) }}>
-                    Trader
+                  <Button variant="sec" size="xs" onClick={(e) => { e.stopPropagation(); onTrade(x.pair, tf) }}>
+                    {tradeLabel}
                   </Button>
                 </td>
               </tr>
@@ -82,8 +90,21 @@ function ScanTable({ cfg }: { cfg: BotConfig }) {
 }
 
 /** Tableau du marché + graphique de la paire sélectionnée. Le sélecteur « Bougie » pilote les deux. */
-export function MarketCard() {
-  const cfg = useBotStore((s) => s.status?.config)
+interface MarketCardProps {
+  /** Réglages utilisés pour trier et colorer le tableau (par défaut : ceux du bot simple). */
+  cfg?: BotConfig
+  /** Affiche la colonne « Signal » (propre à la méthode du bot simple). */
+  showSignal?: boolean
+  tradeLabel?: string
+  onTrade?: (pair: string, tf: number) => void
+  onSelect?: (pair: string) => void
+  levels?: ChartLevel[]
+}
+
+export function MarketCard({ cfg: cfgProp, showSignal = true, tradeLabel = 'Trader', onTrade, onSelect, levels }: MarketCardProps) {
+  const botCfg = useBotStore((s) => s.status?.config)
+  const tradeThis = useBotStore((s) => s.tradeThis)
+  const cfg = cfgProp ?? botCfg
   const tf = useMarketStore((s) => s.tf)
   const info = useMarketStore((s) => s.info)
   const chart = useMarketStore((s) => s.chart)
@@ -111,14 +132,14 @@ export function MarketCard() {
 
   return (
     <Card title="Marché — où trader ?" icon={ChartColumn} actions={actions}>
-      {cfg && <ScanTable cfg={cfg} />}
+      {cfg && <ScanTable cfg={cfg} showSignal={showSignal} tradeLabel={tradeLabel} onTrade={onTrade ?? tradeThis} onSelect={onSelect} />}
       <h2 className={`card-title ${css.chartTitle}`}>
         <span>
           <ChartCandlestick className="ic" />
           Graphique <span>{chartTitle}</span>
         </span>
       </h2>
-      <PriceChart data={chart} />
+      <PriceChart data={chart} levels={levels} />
     </Card>
   )
 }

@@ -6,4 +6,3 @@
 }
 .group { margin-top: 8px; }
 .group > small { display: block; color: var(--mu); font-size: 11px; margin-bottom: 4px; }
-.paste { width: 100%; font: 12px var(--mono); }

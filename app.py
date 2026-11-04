@@ -1,4 +1,4 @@
-import hmac, os
+import hmac, os, time
 from pathlib import Path
 from flask import Flask, Response, abort, jsonify, request, send_from_directory
 
@@ -9,13 +9,17 @@ if env.exists():
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
 
+import kraken
 from bot import Bot, scan
 from ai_bot import AIBot
+from manual import ManualTrader
+import learn
 
 DIST = Path(__file__).parent / "web" / "dist"      # build de l'interface React (npm run build)
 app = Flask(__name__, static_folder=None)
 bot = Bot()
 ai = AIBot()
+manual = ManualTrader()
 
 
 @app.before_request
@@ -26,6 +30,47 @@ def _auth():
         a = request.authorization
         if not a or not hmac.compare_digest(a.password or "", pw):
             return Response("Mot de passe requis", 401, {"WWW-Authenticate": 'Basic realm="Kraken Bot"'})
+
+
+_px_cache = {}
+
+
+def _px(pair, ttl=4.0):
+    """Dernier prix avec un petit cache (le menu interroge toutes les 4 s) ; None si Kraken est injoignable."""
+    hit = _px_cache.get(pair)
+    if hit and time.time() - hit[0] < ttl:
+        return hit[1]
+    try:
+        p = kraken.last_price(pair)
+    except Exception:
+        return hit[1] if hit else None
+    _px_cache[pair] = (time.time(), p)
+    return p
+
+
+def _tally(positions):
+    """(pair, prix d'entrée) -> nombre de positions en gain et en perte au prix actuel."""
+    gain = loss = 0
+    for pair, entry in positions:
+        p = _px(pair)
+        if p is None or not entry:
+            continue
+        gain += p > entry
+        loss += p < entry
+    return {"gain": int(gain), "loss": int(loss)}
+
+
+@app.get("/api/activity")
+def activity():
+    """État des trois bots pour le menu : tourne-t-il ? positions ouvertes, et combien sont en gain / en perte."""
+    bot_pos = [(bot.state.get("pair") or bot.config["pair"], bot.state.get("entry"))] if (bot.state.get("qty") or 0) > 0 else []
+    ai_pos = [(p["pair"], p["entry"]) for p in list(ai.state["positions"])]
+    man_pos = [(p["pair"], p["entry"]) for p in list(manual.state["positions"])]
+    return jsonify(
+        bot={"running": bot.running, "positions": len(bot_pos), **_tally(bot_pos)},
+        ai={"running": ai.running, "positions": len(ai_pos), **_tally(ai_pos)},
+        manual={"positions": len(man_pos), "pending": len(manual.state["pending"]), **_tally(man_pos)},
+    )
 
 
 @app.get("/api/status")
@@ -120,6 +165,71 @@ def ai_action(action):
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 400
+
+
+def _manual(fn):
+    """Exécute une action du trading manuel : 400 + message en cas d'erreur (validation, Kraken…)."""
+    try:
+        fn()
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 400
+
+
+@app.get("/api/manual/status")
+def manual_status():
+    return jsonify(manual.snapshot(request.args.get("pair")))
+
+
+@app.post("/api/manual/config")
+def manual_config():
+    return _manual(lambda: manual.update_config(request.get_json()))
+
+
+@app.post("/api/manual/order")
+def manual_order():
+    body = request.get_json() or {}
+    if manual.config["mode"] == "live" and body.get("confirm") is not True:      # filet de sécurité côté serveur
+        return jsonify(ok=False, error="Confirmation requise pour un ordre LIVE"), 400
+    return _manual(lambda: manual.place_order(body))
+
+
+@app.post("/api/manual/positions/<pid>/close")
+def manual_close(pid):
+    body = request.get_json(silent=True) or {}
+    if manual.config["mode"] == "live" and body.get("confirm") is not True:
+        return jsonify(ok=False, error="Confirmation requise pour une vente LIVE"), 400
+    return _manual(lambda: manual.close_position(pid, body.get("fraction", 1.0)))
+
+
+@app.post("/api/manual/positions/<pid>/adjust")
+def manual_adjust(pid):
+    return _manual(lambda: manual.adjust_position(pid, request.get_json() or {}))
+
+
+@app.delete("/api/manual/pending/<oid>")
+def manual_cancel(oid):
+    return _manual(lambda: manual.cancel_pending(oid))
+
+
+@app.post("/api/manual/reset")
+def manual_reset():
+    return _manual(manual.reset_paper)
+
+
+@app.get("/api/learn/progress")
+def learn_get():
+    return jsonify(learn.load())
+
+
+@app.put("/api/learn/progress")
+def learn_put():
+    return jsonify(learn.save(request.get_json(silent=True)))
+
+
+@app.post("/api/learn/reset")
+def learn_reset():
+    return jsonify(learn.reset())
 
 
 @app.post("/api/<action>")
