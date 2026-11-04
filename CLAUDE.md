@@ -21,6 +21,8 @@ Après une modif du code : relancer le serveur (Ctrl+C puis `python app.py`) pui
 | `app.py` | Flask : routes + chargement de `.env`. |
 | `bot.py` | Classe `Bot` : boucle (thread), stratégie, ordres, état, presets épinglés, scan du marché, données du graphique. |
 | `kraken.py` | Client Kraken : public (OHLC, Ticker) et privé signé HMAC (`AddOrder` au marché). |
+| `ai_bot.py` | Classe `AIBot` (page `/ai`) : Claude analyse le marché toutes les N min et ouvre/ferme jusqu'à 5 positions. Garde-fous appliqués par le code. |
+| `templates/ai.html` | UI du bot IA (menu « Bot simple / Bot IA » dans les 2 pages). |
 | `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`), `trend`, et les 4 nouvelles méthodes. |
 | `strategies.py` | Signaux purs des méthodes Bollinger / Donchian / MACD / Momentum (`signal()`), ATR, filtre de tendance : partagés par le bot, le scan et le backtest. |
 | `indicators.py` | `ema_series`, `rsi_series` (ré-exportés par `bot.py`). |
@@ -33,6 +35,18 @@ Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `PIN_FIELDS`,
 
 Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST /api/config`, `POST /api/presets`,
 `DELETE /api/presets/<id>`, `POST /api/{start|stop|liquidate|reset}`.
+
+## Bot IA (ai_bot.py, page /ai)
+
+Indépendant du bot simple : fichiers `ai_config.json` / `ai_state.json` (ignorés par git), son propre cash paper (`budget`).
+Appel direct à l'API Messages (`requests`, `ANTHROPIC_API_KEY` dans `.env`, modèle réglable) avec un outil forcé `decide`
+(actions `open` / `close` / `adjust`). Claude ne fait que **proposer** : `_apply` impose max 1-5 positions, une par paire, confiance minimale
+et taille max selon l'agressivité (`PROFILES`), stop loss obligatoire, exposition max, perte journalière max, plafond d'appels/jour.
+SL / TP / stop suiveur sont surveillés localement (`_monitor`, toutes les `check_every` s) ; Claude n'est appelé que toutes les `interval_min` min
+(ou via « Analyser maintenant »). Stratégies exposées à Claude : `STRATEGIES` (rsi_reversion, trend_follow, breakout, momentum, bollinger).
+Routes : `GET /ai`, `GET /api/ai/status`, `POST /api/ai/config`, `POST /api/ai/{start|stop|analyze|liquidate|reset|close-<id>}`.
+**Testé uniquement en paper avec Kraken/Claude simulés** ; live jamais testé, mêmes limites que le bot simple (pas de stop chez Kraken, `ordermin` ignoré).
+Ne pas faire tourner bot simple et bot IA en live sur le même compte sans y penser : ils ne se coordonnent pas.
 
 ## Stratégie (bot.py)
 

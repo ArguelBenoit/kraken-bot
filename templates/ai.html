@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kraken Bot IA</title>
+<style>
+:root{--bg:#050505;--card:#0b0b0b;--bd:#262626;--tx:#d4d0c0;--mu:#7d7a6c;--ok:#3ddc84;--ko:#ff4d4d;--ac:#ffb000;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px ui-monospace,"DejaVu Sans Mono","Courier New",monospace;padding:16px}
+header{max-width:1600px;margin:0 auto 10px;display:flex;justify-content:space-between;align-items:center;gap:8px 24px;flex-wrap:wrap}
+h1{font-size:15px;margin:0;text-transform:uppercase;letter-spacing:.12em;color:var(--ac)}
+nav.nav{display:flex;gap:4px}nav.nav a{color:var(--mu);text-decoration:none;border:1px solid var(--bd);padding:4px 10px;text-transform:uppercase;font-size:11px;letter-spacing:.08em}nav.nav a:hover{color:var(--tx);border-color:#444}nav.nav a.on{color:#000;background:var(--ac);border-color:var(--ac)}
+.hk{display:flex;gap:6px 26px;flex-wrap:wrap;align-items:center}.hk .k{display:flex;align-items:center;gap:6px;white-space:nowrap}.hk .k b{font-size:14px}.hk small{color:var(--mu)}.hk small::after{content:":";margin-left:2px}
+main{max-width:1600px;margin:auto;display:grid;gap:14px;grid-template-columns:minmax(0,440px) minmax(0,1fr);align-items:start}.col{display:grid;grid-template-columns:minmax(0,1fr);gap:14px;min-width:0}
+@media(max-width:1000px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:2px;padding:14px}
+.card h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--ac);margin:0 0 12px;padding-bottom:6px;border-bottom:1px dashed var(--bd);display:flex;justify-content:space-between;align-items:center;gap:10px}
+label{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0;color:var(--mu)}
+input,select,textarea{width:150px;font:inherit;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:2px;padding:6px}
+textarea{width:100%;resize:vertical}input[type=checkbox]{width:auto}
+button{background:var(--ac);color:#000;border:1px solid var(--ac);border-radius:2px;padding:7px 12px;cursor:pointer;font:700 12px ui-monospace,"DejaVu Sans Mono",monospace;text-transform:uppercase;letter-spacing:.06em}button:hover{filter:brightness(1.15)}button:disabled{opacity:.4;cursor:default}
+button.sec{background:transparent;color:var(--tx);border-color:#444}button.ko{background:transparent;color:var(--ko);border-color:var(--ko)}
+.row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.ok{color:var(--ok)}.ko-t{color:var(--ko)}.mu{color:var(--mu)}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:5px 6px;text-align:left;border-bottom:1px solid var(--bd)}th{color:var(--mu);font-weight:500;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+.badge{padding:2px 8px;border:1px solid;font-size:11px;letter-spacing:.08em}.badge.on{color:var(--ok);border-color:var(--ok)}.badge.off{color:var(--ko);border-color:var(--ko)}
+.grp{border:1px solid var(--bd);padding:6px 10px;margin:8px 0}.grp>summary{cursor:pointer;color:var(--mu)}
+.chk{display:flex;justify-content:flex-start;gap:8px;color:var(--tx);margin:4px 0}.chk small{color:var(--mu)}
+.warn{border:1px solid var(--ac);color:var(--ac);padding:8px 10px;margin-bottom:10px;font-size:12px}
+.dec{border-bottom:1px solid var(--bd);padding:8px 0}.dec:last-child{border:0}.dec .t{color:var(--mu);font-size:11px}.dec ul{margin:4px 0 0;padding-left:18px}
+pre{margin:0;max-height:160px;overflow:auto;font-size:12px;color:var(--mu)}
+.sw{display:inline-flex;gap:6px;align-items:center;background:transparent;color:var(--mu);border-color:#444;padding:4px 10px}.sw .on{color:var(--ac)}
+.hint{color:var(--mu);font-size:11px;margin:2px 0 8px}
+</style></head><body>
+<header><h1>Kraken Bot IA</h1><nav class="nav"><a href="/">Bot simple</a><a href="/ai" class="on">Bot IA</a></nav>
+<div class="hk"><div class="k"><small>Mode</small><b id="hmode">–</b></div><div class="k"><small>Statut</small><span id="run" class="badge off">ARRÊTÉ</span></div>
+<div class="k"><small>PnL réalisé</small><b id="pnl">–</b></div><div class="k"><small>PnL du jour</small><b id="dpnl">–</b></div><div class="k"><small>Équité</small><b id="eq">–</b></div>
+<div class="k"><small>Positions</small><b id="npos">–</b></div><div class="k"><small>Appels Claude</small><b id="calls">–</b></div></div></header>
+<main>
+<div class="col">
+<section class="card"><h2><span>Réglages IA</span></h2>
+<div id="warn"></div>
+<form id="f">
+<label>Mode<select name="mode"><option value="paper">PAPER (simulé)</option><option value="live">LIVE (argent réel)</option></select></label>
+<label>Modèle Claude<input name="model"></label>
+<label>Agressivité<select name="aggressiveness"><option value="prudent">Prudent</option><option value="equilibre">Équilibré</option><option value="agressif">Agressif</option></select></label>
+<div class="hint" id="aggdesc"></div>
+<label>Trades en parallèle (1-5)<input name="max_positions" type="number" min="1" max="5"></label>
+<label>Bougie analysée<select name="timeframe"><option value="15">15 min</option><option value="60">1 h</option><option value="240">4 h</option><option value="1440">1 j</option></select></label>
+<label>Analyse Claude toutes les (min)<input name="interval_min" type="number"></label>
+<label>Contrôle des stops (sec)<input name="check_every" type="number"></label>
+<label>Montant par trade<input name="order_size" type="number" step="any"></label>
+<label>Budget alloué<input name="budget" type="number" step="any"></label>
+<label>Exposition max (% budget)<input name="max_exposure_pct" type="number" step="any"></label>
+<label>Perte jour max (% budget)<input name="max_daily_loss_pct" type="number" step="any"></label>
+<label>Appels Claude max / jour<input name="max_calls_per_day" type="number"></label>
+<label>Frais / ordre (%)<input name="fee_pct" type="number" step="any"></label>
+<details class="grp" open><summary>Stratégies autorisées</summary><div id="strats"></div></details>
+<details class="grp"><summary>Paires surveillées</summary><div id="pairs"></div></details>
+<label style="display:block">Consignes libres pour Claude (optionnel)<textarea name="notes" rows="3" maxlength="500" placeholder="Ex : évite les memecoins, privilégie BTC et ETH"></textarea></label>
+<div class="row"><button type="submit">Enregistrer</button><button type="button" class="sec" id="restore">Restaurer</button><span id="msg" class="mu" style="align-self:center"></span></div>
+</form></section>
+<section class="card"><h2><span>Contrôle</span></h2>
+<div class="row" style="margin-top:0"><button id="start">Démarrer</button><button id="stop" class="sec">Arrêter</button><button id="analyze" class="sec">Analyser maintenant</button></div>
+<div class="row"><button id="liq" class="ko">Tout liquider</button><button id="reset" class="ko">Reset paper</button></div>
+<div class="hint" id="next" style="margin-top:10px"></div>
+</section>
+</div>
+<div class="col">
+<section class="card"><h2><span>Positions ouvertes</span></h2><div id="pos"></div></section>
+<section class="card"><h2><span>Décisions de Claude</span></h2><div id="dec"></div></section>
+<section class="card"><h2><span>Trades</span></h2><div id="trades"></div></section>
+<section class="card"><h2><span>Journal</span></h2><pre id="logs"></pre></section>
+</div></main>
+<script>
+const $=s=>document.querySelector(s),f=$('#f');
+const fm=(n,d=2)=>n==null?'–':Number(n).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pc=n=>`<span class="${n>=0?'ok':'ko-t'}">${n>=0?'+':''}${fm(n)}</span>`;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let S=null,filled=false,dirty=false;
+async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+ const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||'Erreur');return d}
+function buildOptions(o){
+ $('#strats').innerHTML=Object.entries(o.strategies).map(([k,v])=>`<label class="chk"><input type="checkbox" data-s="${k}"><span><b>${k}</b><br><small>${esc(v)}</small></span></label>`).join('');
+ $('#pairs').innerHTML=o.pairs.map(p=>`<label class="chk"><input type="checkbox" data-p="${p.pair}">${esc(p.label)}</label>`).join('')}
+function fillForm(c){
+ for(const el of f.elements){if(el.name&&c[el.name]!==undefined)el.value=c[el.name]}
+ document.querySelectorAll('[data-s]').forEach(i=>i.checked=c.strategies.includes(i.dataset.s));
+ document.querySelectorAll('[data-p]').forEach(i=>i.checked=c.pairs.includes(i.dataset.p));
+ aggDesc();dirty=false}
+function aggDesc(){$('#aggdesc').textContent=S?S.options.profiles[f.aggressiveness.value]||'':''}
+function readForm(){
+ const o={};for(const el of f.elements){if(el.name)o[el.name]=el.value}
+ for(const k of ['timeframe','interval_min','check_every','max_positions','max_calls_per_day'])o[k]=parseInt(o[k]);
+ for(const k of ['order_size','budget','max_exposure_pct','max_daily_loss_pct','fee_pct'])o[k]=parseFloat(o[k]);
+ o.strategies=[...document.querySelectorAll('[data-s]:checked')].map(i=>i.dataset.s);
+ o.pairs=[...document.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);return o}
+function render(){
+ const c=S.config,live=c.mode==='live';
+ if(!filled){buildOptions(S.options);fillForm(c);filled=true}
+ $('#hmode').innerHTML=live?'<span class="ko-t">LIVE</span>':'PAPER';
+ $('#run').textContent=S.running?(S.reviewing?'ANALYSE…':'EN COURS'):'ARRÊTÉ';$('#run').className='badge '+(S.running?'on':'off');
+ $('#pnl').innerHTML=pc(S.pnl);$('#dpnl').innerHTML=pc(S.day_pnl);$('#eq').textContent=fm(S.equity);
+ $('#npos').textContent=S.positions.length+' / '+c.max_positions;
+ $('#calls').textContent=S.usage.calls+' / '+c.max_calls_per_day;
+ let w='';
+ if(!S.key_ok)w+='<div class="warn">ANTHROPIC_API_KEY absente : ajoute-la dans .env puis relance le serveur.</div>';
+ if(live)w+='<div class="warn">Mode LIVE : Claude passe de vrais ordres au marché. Jamais testé avec de l\'argent réel. Aucun stop n\'existe chez Kraken : si ce programme s\'arrête, rien ne vend.'+(S.live_ok?'':' Clés Kraken absentes.')+'</div>';
+ $('#warn').innerHTML=w;
+ $('#start').disabled=S.running;$('#stop').disabled=!S.running;$('#analyze').disabled=S.reviewing;
+ $('#next').textContent=S.running&&S.next_review_s!=null?'Prochaine analyse dans '+Math.floor(S.next_review_s/60)+' min '+(S.next_review_s%60)+' s · tokens du jour : '+S.usage.in+' entrée / '+S.usage.out+' sortie':'Tokens du jour : '+S.usage.in+' entrée / '+S.usage.out+' sortie';
+ $('#pos').innerHTML=S.positions.length?`<table><thead><tr><th>Paire</th><th>Stratégie</th><th>Entrée</th><th>Prix</th><th>PnL</th><th>SL/TP/Suiv.</th><th></th></tr></thead><tbody>`+S.positions.map(p=>`<tr><td><b>${esc(p.label)}</b><br><small class="mu">${esc(p.opened)} · conf ${fm(p.conf)}</small></td><td>${esc(p.strategy)}</td><td>${fm(p.entry,p.entry<1?6:2)}</td><td>${fm(p.price,p.price<1?6:2)}</td><td>${pc(p.pnl_pct)}%<br>${pc(p.pnl)}</td><td>−${p.sl}% / ${p.tp?'+'+p.tp+'%':'–'} / ${p.trail?p.trail+'%':'–'}</td><td><button class="ko" data-close="${p.id}">Fermer</button></td></tr><tr><td colspan="7" class="mu" style="font-size:12px">${esc(p.reason)}</td></tr>`).join('')+'</tbody></table>':'<span class="mu">Aucune position ouverte.</span>';
+ $('#dec').innerHTML=S.decisions.length?S.decisions.map(d=>`<div class="dec"><div class="t">${esc(d.time)} · ${esc(d.mode)}</div><div>${esc(d.view)}</div>${d.actions.length?'<ul>'+d.actions.map(a=>`<li class="${a.ok?'ok':'ko-t'}">${a.ok?'✔':'✘'} ${esc(a.text)}${a.reason?`<br><small class="mu">${esc(a.reason)}</small>`:''}</li>`).join('')+'</ul>':'<div class="mu">Aucune action.</div>'}</div>`).join(''):'<span class="mu">Aucune analyse pour l\'instant.</span>';
+ $('#trades').innerHTML=S.trades.length?`<table><thead><tr><th>Heure</th><th>Paire</th><th></th><th>Prix</th><th>PnL</th><th>Raison</th></tr></thead><tbody>`+S.trades.map(t=>`<tr><td>${esc(t.time)}</td><td>${esc(t.pair)}</td><td>${t.side}</td><td>${fm(t.price,t.price<1?6:2)}</td><td>${t.side==='SELL'?pc(t.pnl):''}</td><td class="mu">${esc(t.why)}</td></tr>`).join('')+'</tbody></table>':'<span class="mu">Aucun trade dans ce mode.</span>';
+ $('#logs').textContent=S.logs.join('\n')}
+async function refresh(){try{S=await (await fetch('/api/ai/status')).json();render()}catch(e){}}
+const note=t=>{$('#msg').textContent=t;setTimeout(()=>{if($('#msg').textContent===t)$('#msg').textContent=''},4000)};
+f.oninput=()=>{dirty=true};f.aggressiveness.onchange=aggDesc;
+f.onsubmit=async e=>{e.preventDefault();const o=readForm();
+ if(o.mode==='live'&&S.config.mode!=='live'&&!confirm('Passer en mode LIVE ? Claude passera de vrais ordres avec ton argent.'))return;
+ try{await post('/api/ai/config',o);note('Enregistré');dirty=false;await refresh()}catch(err){note('✘ '+err.message)}};
+$('#restore').onclick=()=>fillForm(S.config);
+const act=(id,url,conf)=>{$(id).onclick=async()=>{if(conf&&!confirm(conf))return;try{await post(url);await refresh()}catch(err){alert(err.message)}}};
+act('#start','/api/ai/start');act('#stop','/api/ai/stop');act('#analyze','/api/ai/analyze');
+act('#liq','/api/ai/liquidate','Fermer toutes les positions au marché ?');act('#reset','/api/ai/reset','Réinitialiser le portefeuille et l\'historique du bot IA ?');
+$('#pos').onclick=async e=>{const b=e.target.closest('[data-close]');if(!b||!confirm('Fermer cette position au marché ?'))return;
+ try{await post('/api/ai/close-'+b.dataset.close);await refresh()}catch(err){alert(err.message)}};
+refresh();setInterval(refresh,3000);
+</script></body></html>

@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 state.json
 config.json
+ai_state.json
+ai_config.json

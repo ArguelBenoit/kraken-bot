@@ -10,9 +10,11 @@ if env.exists():
             os.environ.setdefault(k.strip(), v.strip())
 
 from bot import Bot, scan
+from ai_bot import AIBot
 
 app = Flask(__name__)
 bot = Bot()
+ai = AIBot()
 
 
 @app.before_request
@@ -76,6 +78,54 @@ def pin():
 def unpin(pid):
     try:
         bot.unpin_preset(pid)
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 400
+
+
+@app.get("/ai")
+def ai_page():
+    return render_template("ai.html")
+
+
+@app.get("/api/ai/status")
+def ai_status():
+    return jsonify(ai.snapshot())
+
+
+@app.post("/api/ai/config")
+def ai_config():
+    try:
+        ai.update_config(request.get_json())
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 400
+
+
+@app.post("/api/ai/<action>")
+def ai_action(action):
+    try:
+        if action == "start":
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                return jsonify(ok=False, error="ANTHROPIC_API_KEY absente (.env)"), 400
+            if ai.config["mode"] == "live" and not (os.getenv("KRAKEN_API_KEY") and os.getenv("KRAKEN_API_SECRET")):
+                return jsonify(ok=False, error="Clés Kraken absentes (.env)"), 400
+            ai.start()
+        elif action == "stop":
+            ai.stop()
+        elif action == "analyze":
+            if not os.getenv("ANTHROPIC_API_KEY"):
+                return jsonify(ok=False, error="ANTHROPIC_API_KEY absente (.env)"), 400
+            ai.analyze_now()
+        elif action == "liquidate":
+            ai.liquidate()
+        elif action == "reset":
+            ai.stop()
+            ai.reset_paper()
+        elif action.startswith("close-"):
+            ai.close_position(action[6:])
+        else:
+            return jsonify(ok=False), 404
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 400
