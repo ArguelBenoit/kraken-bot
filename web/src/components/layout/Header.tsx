@@ -1,30 +1,22 @@
-import { Bot } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
 import { Tip } from '@/components/ui/Tip'
 import css from './Header.module.css'
 
 interface HeaderProps {
   title: string
+  icon: LucideIcon
   children: ReactNode
 }
 
-/** Bandeau commun : titre à gauche, indicateurs de la page, puis menu (Bot simple / Bot IA) tout à droite. */
-export function Header({ title, children }: HeaderProps) {
+/** Bandeau de page : titre à gauche, indicateurs alignés à droite (la navigation est dans la barre latérale). */
+export function Header({ title, icon: Icon, children }: HeaderProps) {
   return (
     <header className={css.header}>
       <h1 className={css.title}>
-        <Bot className="ic" />
+        <Icon className="ic" />
         {title}
       </h1>
-      <nav className={css.nav}>
-        <NavLink to="/" end className={({ isActive }) => (isActive ? css.active : '')}>
-          Bot simple
-        </NavLink>
-        <NavLink to="/ai" className={({ isActive }) => (isActive ? css.active : '')}>
-          Bot IA
-        </NavLink>
-      </nav>
       <div className={css.kpis}>{children}</div>
     </header>
   )
@@ -33,7 +25,7 @@ export function Header({ title, children }: HeaderProps) {
 interface KpiProps {
   label: string
   tip?: string
-  /** Aligne l'infobulle sur le bord droit (indicateurs proches du menu). */
+  /** Aligne l'infobulle sur le bord droit (indicateurs près du bord de l'écran). */
   tipRight?: boolean
   hidden?: boolean
   children: ReactNode

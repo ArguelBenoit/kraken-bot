@@ -6,7 +6,7 @@
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 16px; background: var(--bg); color: var(--tx); font: 13px var(--mono); }
+body { margin: 0; background: var(--bg); color: var(--tx); font: 13px var(--mono); }
 [hidden] { display: none !important; }
 
 /* ----- utilitaires de ton ----- */

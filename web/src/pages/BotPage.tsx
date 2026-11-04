@@ -1,3 +1,4 @@
+import { ChartCandlestick } from 'lucide-react'
 import { Header, Kpi } from '@/components/layout/Header'
 import { MarketCard } from '@/components/bot/MarketCard'
 import { OpenTradeCard } from '@/components/bot/OpenTradeCard'
@@ -20,7 +21,7 @@ export function BotPage() {
 
   return (
     <>
-      <Header title="Kraken Bot">
+      <Header title="Bot simple" icon={ChartCandlestick}>
         <Kpi label="Mode" tip={KPI_TIPS['Mode']} tipRight={false}>
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>

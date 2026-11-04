@@ -1,3 +1,4 @@
+import { Bot } from 'lucide-react'
 import { AiSettingsCard } from '@/components/ai/AiSettingsCard'
 import { AiTradesCard } from '@/components/ai/AiTradesCard'
 import { DecisionsCard } from '@/components/ai/DecisionsCard'
@@ -23,7 +24,7 @@ export function AiPage() {
 
   return (
     <>
-      <Header title="Kraken Bot IA">
+      <Header title="Bot IA" icon={Bot}>
         <Kpi label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>
           <ModeSwitch mode={c?.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
