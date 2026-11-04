@@ -1,5 +1,4 @@
 import { LogOut } from 'lucide-react'
-import { EmptyTrades } from '@/components/trade/EmptyTrades'
 import { OpenTradeCard } from '@/components/trade/OpenTradeCard'
 import { Button } from '@/components/ui/Button'
 import { fm } from '@/lib/format'
@@ -7,10 +6,9 @@ import { aiTradeInput } from '@/lib/trade'
 import type { AiPosition } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 
-/** Un « Trade en cours » par position ouverte par Claude (jusqu'à 5). */
+/** Un « Trade en cours » par position ouverte par Claude (jusqu'à 5). Rien n'est affiché sans position. */
 export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; feePct: number }) {
   const close = useAiStore((s) => s.closePosition)
-  if (!positions.length) return <EmptyTrades />
   return (
     <>
       {positions.map((p) => (

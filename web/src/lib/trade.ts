@@ -1,4 +1,4 @@
-import type { AiPosition, BotConfig, BotState, ManualPosition } from './types'
+import type { AiPosition, ManualPosition } from './types'
 
 /** Ce qu'il faut savoir d'une position pour l'afficher (indépendant du bot qui la gère). */
 export interface OpenTradeInput {
@@ -83,22 +83,6 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
 
 // ---------- adaptateurs : chaque bot décrit sa position avec ses propres champs ----------
 
-/** Bot simple : RSI / Bollinger ont un take profit fixe ; les autres méthodes laissent courir (stop suiveur). */
-export function botTradeInput(st: BotState, c: BotConfig): OpenTradeInput | null {
-  if (!st.qty || st.entry == null) return null
-  const entry = st.entry
-  const price = st.pos_price
-  const peak = Math.max(st.peak ?? entry, price ?? entry)
-  const fixedTarget = c.strategy === 'rsi' || c.strategy === 'bollinger'
-  let stopPrice = c.atr_stop > 0 && st.stop_px ? st.stop_px : entry * (1 - c.stop_loss_pct / 100)
-  if (!fixedTarget && c.trailing_pct > 0) stopPrice = Math.max(stopPrice, peak * (1 - c.trailing_pct / 100))
-  return {
-    entry, qty: st.qty, price, peak, feePct: c.fee_pct, stopPrice,
-    cost: st.cost ?? (st.qty * entry) / (1 - c.fee_pct / 100),
-    tpPrice: fixedTarget ? entry * (1 + c.take_profit_pct / 100) : null,
-  }
-}
-
 const maxOrNull = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
 
 /** Trading manuel : stop effectif = le plus haut entre stop loss et stop suiveur. */
@@ -118,13 +102,4 @@ export function aiTradeInput(p: AiPosition, feePct: number): OpenTradeInput {
     entry: p.entry, qty: p.qty, price: p.price, cost: p.cost, peak, feePct,
     stopPrice: maxOrNull(sl, trail), tpPrice: p.tp > 0 ? p.entry * (1 + p.tp / 100) : null,
   }
-}
-
-/** Phrase décrivant comment la position du bot simple sera vendue. */
-export function exitRule(c: BotConfig): string {
-  const trail = c.trailing_pct > 0 ? ` ou stop suiveur −${c.trailing_pct}%` : ''
-  if (c.strategy === 'trend') return `vente automatique si EMA${c.ma_fast} passe sous EMA${c.ma_slow}${trail}`
-  if (c.strategy === 'bollinger') return `vente automatique au retour à la moyenne de Bollinger ou à +${c.take_profit_pct}%`
-  if (c.strategy === 'rsi') return `vente automatique si RSI ≥ ${c.rsi_sell}`
-  return `vente automatique sur signal ${c.strategy}${trail}`
 }

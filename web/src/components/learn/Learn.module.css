@@ -93,7 +93,7 @@
 .dotBtn.past { background: var(--ac); opacity: 0.6; }
 .dotBtn.current { background: var(--ac); opacity: 1; box-shadow: 0 0 8px var(--ac); }
 .drop { position: relative; }
-.panel { position: absolute; top: calc(100% + 8px); z-index: 40; width: 440px; max-height: 70vh; overflow: auto; background: #080808; border: 1px solid var(--ac); padding: 12px 14px; box-shadow: 0 8px 24px #000c; }
+.panel { position: absolute; top: calc(100% + 8px); z-index: 40; width: 440px; max-height: calc(var(--vh100) * 0.7); overflow: auto; background: #080808; border: 1px solid var(--ac); padding: 12px 14px; box-shadow: 0 8px 24px #000c; }
 .panelLeft { left: 0; }
 .panelRight { right: 0; }
 .stage { margin: 0 auto; }

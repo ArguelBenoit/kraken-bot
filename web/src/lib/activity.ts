@@ -20,7 +20,7 @@ export interface ActivityView {
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
 
 /** Ce que le menu affiche pour un bot, d'après l'activité renvoyée par le serveur. */
-export function readActivity(key: 'bot' | 'ai' | 'manual', a: Activity): ActivityView {
+export function readActivity(key: 'ai' | 'manual', a: Activity): ActivityView {
   const { positions, gain, loss } = a[key]
   const tone = zapTone(gain, loss)
   const running = key === 'manual' ? null : a[key].running

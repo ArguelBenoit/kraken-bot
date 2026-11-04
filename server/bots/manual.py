@@ -1,7 +1,7 @@
 """Trading manuel : ordres passés à la main depuis l'interface (achat au marché ou limite), avec stop loss, take profit et
 stop suiveur par position. Plusieurs positions en parallèle, sur des paires différentes ou non. Long uniquement (spot).
 
-Comme pour les autres bots, **aucun stop n'est posé chez Kraken** : SL / TP / suiveur / ordres limites sont surveillés par ce
+**Aucun stop n'est posé chez Kraken** : SL / TP / suiveur / ordres limites sont surveillés par ce
 programme (thread `_loop`). S'il s'arrête, rien ne se déclenche. Le mode live n'a jamais été testé avec de l'argent réel.
 """
 import re
@@ -279,5 +279,5 @@ class ManualTrader:
                     "equity": s["cash"] + reserved + sum(p["value"] for p in pos),
                     "positions": pos, "pending": [{**o, "label": LABELS.get(o["pair"], o["pair"])} for o in s["pending"]],
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-60:][::-1], "logs": self.journal.recent(40),
-                    "live_ok": settings.kraken_configured(), "quote": quote}
+                    "live_ok": settings.kraken_configured(), "claude_ok": settings.claude_configured(), "quote": quote}
 

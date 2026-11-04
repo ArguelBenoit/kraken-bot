@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Notice'
+import { Tip } from '@/components/ui/Tip'
+import { ClaudeProposals } from './ClaudeProposals'
 import { PAIRS, pairLabel } from '@/lib/constants'
 import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { previewTicket, quickSizes } from '@/lib/ticket'
@@ -11,7 +13,7 @@ import { useMarketStore } from '@/stores/marketStore'
 
 const clean = (n: number) => String(Number(n.toPrecision(6)))
 
-/** Ticket d'ordre : achat au marché ou limite, avec stop loss / take profit / stop suiveur et aperçu du risque. */
+/** Ticket d'ordre : propositions de Claude en tête, puis achat au marché ou limite avec stop loss / take profit / stop suiveur et aperçu du risque. */
 export function OrderTicketCard() {
   const status = useManualStore((s) => s.status)
   const t = useManualStore((s) => s.ticket)
@@ -51,14 +53,15 @@ export function OrderTicketCard() {
           s&apos;arrête, rien ne se déclenche.{status && !status.live_ok && ' Clés Kraken absentes.'}
         </div>
       )}
+      <ClaudeProposals />
       <form onSubmit={onSubmit}>
-        <Field label="Paire">
+        <Field label="Paire" tip="La crypto à acheter, cotée contre un stablecoin (≈ 1 $). Le graphique et le prix actuel suivent ton choix.">
           <select value={t.pair} onChange={(e) => setTicket({ pair: e.target.value })}>
             {PAIRS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </Field>
         <div className="field">
-          <span>Prix actuel</span>
+          <span>Prix actuel<Tip text="Dernier prix de la paire sur Kraken, et sa variation sur 24 h. Un ordre au marché est exécuté à ce prix, à quelques centimes près." /></span>
           <b>
             {price == null ? '–' : fmPrice(price)}
             {row?.chg24 != null && <span className={gainClass(row.chg24)}> {signed(row.chg24)}%</span>}
@@ -66,7 +69,7 @@ export function OrderTicketCard() {
         </div>
 
         <div className="field">
-          <span>Type</span>
+          <span>Type<Tip text="Marché = achat immédiat au prix actuel. Limite = l'achat se fait seulement si le prix descend jusqu'au prix que tu fixes (ordre surveillé par ce programme, pas posé chez Kraken)." /></span>
           <div className="seg">
             <button type="button" className={t.type === 'market' ? 'on' : ''} onClick={() => setTicket({ type: 'market' })}>Marché</button>
             <button type="button" className={t.type === 'limit' ? 'on' : ''} onClick={() => setTicket({ type: 'limit', limit: t.limit || (price ? clean(price * 0.99) : '') })}>Limite</button>
@@ -110,12 +113,12 @@ export function OrderTicketCard() {
 
         {preview ? (
           <div className="summary">
-            <span>Prix d&apos;entrée</span><span>{fmPrice(preview.entry)}</span>
-            <span>Quantité ≈</span><span>{fm(preview.qty, 6)}</span>
-            <span>Stop loss</span><span>{preview.slPrice == null ? 'aucun' : `${fmPrice(preview.slPrice, preview.entry)} (${signed(preview.lossAtSl ?? 0)})`}</span>
-            <span>Take profit</span><span>{preview.tpPrice == null ? 'aucun' : `${fmPrice(preview.tpPrice, preview.entry)} (${signed(preview.gainAtTp ?? 0)})`}</span>
-            <span>Gain / risque</span><span>{preview.ratio == null ? '–' : `${fm(preview.ratio, 2)} : 1`}</span>
-            <span>Frais aller-retour</span><span>≈ {fm(preview.fees)}</span>
+            <span>Prix d&apos;entrée<Tip text="Prix auquel l'achat sera fait : le prix actuel (marché) ou ton prix limite." /></span><span>{fmPrice(preview.entry)}</span>
+            <span>Quantité ≈<Tip text="Quantité de crypto obtenue pour ton montant, une fois les frais d'achat retirés." /></span><span>{fm(preview.qty, 6)}</span>
+            <span>Stop loss<Tip text="Prix de vente automatique si le trade perd le pourcentage choisi, et la perte en monnaie à ce moment-là, frais compris." /></span><span>{preview.slPrice == null ? 'aucun' : `${fmPrice(preview.slPrice, preview.entry)} (${signed(preview.lossAtSl ?? 0)})`}</span>
+            <span>Take profit<Tip text="Prix de vente automatique quand l'objectif est atteint, et le gain en monnaie à ce moment-là, frais compris." /></span><span>{preview.tpPrice == null ? 'aucun' : `${fmPrice(preview.tpPrice, preview.entry)} (${signed(preview.gainAtTp ?? 0)})`}</span>
+            <span>Gain / risque<Tip text="Gain à l'objectif divisé par la perte au stop : 2 : 1 = on gagne 2 pour 1 risqué. Vise au moins 1,5 : 1 pour compenser les frais et les trades perdants." /></span><span>{preview.ratio == null ? '–' : `${fm(preview.ratio, 2)} : 1`}</span>
+            <span>Frais aller-retour<Tip text="Frais Kraken estimés pour acheter puis vendre (≈ 0,5 % du montant). Le trade doit gagner plus que ça pour être rentable." /></span><span>≈ {fm(preview.fees)}</span>
           </div>
         ) : (
           <div className="hint">Renseigne un montant pour voir l&apos;aperçu du risque.</div>

@@ -1,6 +1,5 @@
 import { LogOut } from 'lucide-react'
 import { useState } from 'react'
-import { EmptyTrades } from '@/components/trade/EmptyTrades'
 import { OpenTradeCard } from '@/components/trade/OpenTradeCard'
 import { Button } from '@/components/ui/Button'
 import { manualTradeInput } from '@/lib/trade'
@@ -62,9 +61,8 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
   )
 }
 
-/** Un « Trade en cours » par position ouverte à la main, avec vente partielle et réglage des stops. */
+/** Un « Trade en cours » par position ouverte à la main, avec vente partielle et réglage des stops. Rien n'est affiché sans position. */
 export function ManualOpenTrades({ positions, feePct, live }: { positions: ManualPosition[]; feePct: number; live: boolean }) {
-  if (!positions.length) return <EmptyTrades />
   return (
     <>
       {positions.map((p) => <ManualTrade key={p.id} p={p} feePct={feePct} live={live} />)}

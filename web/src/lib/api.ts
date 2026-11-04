@@ -24,8 +24,8 @@ export const api = {
   del: <T = { ok: true }>(url: string) => request<T>('DELETE', url),
 }
 
-/** 404 sur une route /api : le serveur Python tourne encore avec une ancienne version du code. */
-export const isMissingRoute = (e: unknown) => e instanceof ApiError && e.status === 404
+/** 404 ou 405 sur une route /api : le serveur Python tourne encore avec une ancienne version du code (un POST inconnu tombe sur la route de l'interface, d'où le 405). */
+export const isMissingRoute = (e: unknown) => e instanceof ApiError && (e.status === 404 || e.status === 405)
 
 /** Message affichable d'une erreur inconnue. */
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))

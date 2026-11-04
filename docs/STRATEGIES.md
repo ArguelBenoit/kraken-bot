@@ -1,25 +1,27 @@
 # Méthodes de trading
 
-Toutes les méthodes sont **long uniquement**, ordres **au marché**, **une seule position** à la fois (bot simple). Les signaux sont calculés
-sur les bougies **closes** (`server/market/strategies.py`) ; stops et objectifs sont évalués à chaque cycle (`check_every`) avec le prix courant.
-Les règles de sortie sont dans `server/bots/simple/exits.py`.
+Six méthodes classiques, **long uniquement**, signaux calculés sur les bougies **closes**. Plus aucun bot ne les exécute seul : elles servent à
+**apprendre** (tutoriel : leçons, simulateur et épreuves, `web/src/lib/learn/methods.ts`), à **tester** (backtest, `server/market/strategies.py`)
+et de vocabulaire commun avec **Claude** (Bot IA et propositions de trade).
 
-| Méthode | Achat | Sortie |
+| Méthode | Signal d'achat | Sortie typique |
 |---|---|---|
-| `rsi` | RSI ≤ `rsi_buy` (mean-reversion) | take profit, stop loss, ou RSI ≥ `rsi_sell` |
-| `trend` | croisement haussier EMA `ma_fast` / `ma_slow` | croisement baissier, stop loss, stop suiveur `trailing_pct` |
-| `bollinger` | clôture sous la bande basse (`bb_period`, `bb_std`) | retour à la moyenne, take profit, stop loss |
-| `donchian` | cassure du plus haut des `dc_entry` bougies | cassure du plus bas des `dc_exit` bougies, stop loss, stop suiveur |
-| `macd` | croisement MACD / signal à la hausse | croisement inverse, stop loss, stop suiveur |
-| `momentum` | hausse ≥ `mom_min_pct` % sur `mom_period` bougies et RSI < 80 | hausse repassée < 0, stop loss, stop suiveur |
+| `rsi` | RSI ≤ seuil bas (mean-reversion, 30 par défaut) | RSI ≥ seuil haut, objectif, stop loss |
+| `trend` | croisement haussier EMA rapide / lente (20 / 50) | croisement baissier, stop loss, stop suiveur |
+| `bollinger` | clôture sous la bande basse (20, 2 écarts-types) | retour à la moyenne, objectif, stop loss |
+| `donchian` | cassure du plus haut des 20 bougies précédentes | cassure du plus bas des 10 bougies, stop loss, stop suiveur |
+| `macd` | croisement MACD / signal à la hausse (12, 26, 9) | croisement inverse, stop loss, stop suiveur |
+| `momentum` | hausse ≥ 3 % sur 24 bougies et RSI < 80 | hausse repassée < 0, stop loss, stop suiveur |
 
-## Options communes
+Les paramètres par défaut sont dans `DEFAULT_PARAMS` (`server/market/strategies.py`). Les règles sont **dupliquées** côté interface pour le tutoriel :
+si une règle change d'un côté, la modifier de l'autre.
 
-- **Filtre de tendance** (`filter_ema`, `filter_tf`) : n'achète que si le cours est au-dessus de l'EMA(N), calculée sur une autre durée de bougie (confirmation multi-timeframe). Non appliqué au tableau Marché.
-- **Stop ATR** (`atr_stop`) : stop = prix d'entrée − N × ATR(14), mémorisé à l'achat (`stop_px`) ; remplace le stop loss en %.
-- **Stop suiveur** (`trailing_pct`) : suit le plus haut atteint depuis l'achat (0 = désactivé).
-- La position ouverte est suivie sur **sa propre paire** et garde les règles de sortie de la méthode **active**.
-- Après une sortie par signal baissier (tendance), pas de rachat sur la même bougie.
+## Trading manuel et propositions de Claude
+
+Sur la page Trading, les stops sont posés **par position** : stop loss, objectif (take profit) et stop suiveur, en % de l'entrée. Ils sont surveillés par
+le programme (toutes les 10 s par défaut), **pas chez Kraken**. « Demander à Claude » propose jusqu'à 4 presets à partir d'un résumé chiffré du marché en 4 h
+(RSI, EMA 20/50, Bollinger, plus hauts/bas, rendements, volatilité). Le code borne chaque preset : stop loss 0,5–10 %, objectif ≥ 1,02 % (au-dessus des frais), suiveur 0,5–10 %,
+repli de l'ordre limite 0,3–5 % ; les paires déjà détenues sont exclues et le montant reste à ton choix.
 
 ## Bot IA
 

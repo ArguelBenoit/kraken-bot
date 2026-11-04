@@ -1,2 +1,2 @@
-.shell { display: flex; min-height: 100vh; }
+.shell { display: flex; min-height: var(--vh100); }
 .content { flex: 1 1 0; min-width: 0; padding: 16px; }

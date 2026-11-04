@@ -1,5 +1,5 @@
 /** Types du trading manuel. */
-import type { Mode } from './bot'
+import type { Mode } from './market'
 
 export interface ManualConfig {
   mode: Mode
@@ -63,5 +63,7 @@ export interface ManualStatus {
   trades: PairTrade[]
   logs: string[]
   live_ok: boolean
+  /** ANTHROPIC_API_KEY définie côté serveur (propositions de trade). */
+  claude_ok: boolean
   quote: { pair: string; price: number } | null
 }

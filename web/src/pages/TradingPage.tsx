@@ -1,6 +1,6 @@
 import { Crosshair } from 'lucide-react'
 import { useMemo } from 'react'
-import { MarketCard } from '@/components/bot/MarketCard'
+import { MarketCard } from '@/components/market/MarketCard'
 import type { ChartLevel } from '@/lib/chartTypes'
 import { Header, Kpi } from '@/components/layout/Header'
 import { LogCard } from '@/components/ui/LogCard'
@@ -12,7 +12,6 @@ import { ManualOpenTrades } from '@/components/trading/ManualOpenTrades'
 import { PendingOrdersCard } from '@/components/trading/PendingOrdersCard'
 import { useTradingSync } from '@/hooks/useTradingSync'
 import { fm, gainClass, signed } from '@/lib/format'
-import { NEUTRAL_VIEW } from '@/lib/scan'
 import { previewTicket } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
@@ -41,7 +40,7 @@ function useChartLevels(): ChartLevel[] {
   }, [status, t, chartPair])
 }
 
-/** Page du trading manuel : ticket d'ordre, positions ouvertes, ordres en attente, marché et graphique. */
+/** Page d'accueil — trading manuel : ticket d'ordre (avec les propositions de Claude), positions ouvertes, ordres en attente, marché et graphique. */
 export function TradingPage() {
   useTradingSync()
   const status = useManualStore((s) => s.status)
@@ -75,14 +74,14 @@ export function TradingPage() {
       <main className="layout">
         <div className="col">
           <OrderTicketCard />
+          <ManualSettingsCard />
           <PairTradesCard trades={status?.trades ?? []} />
           <LogCard logs={status?.logs ?? []} />
-          <ManualSettingsCard />
         </div>
         <div className="col">
           <ManualOpenTrades positions={status?.positions ?? []} feePct={status?.config.fee_pct ?? 0.26} live={!!live} />
           <PendingOrdersCard pending={status?.pending ?? []} />
-          <MarketCard cfg={NEUTRAL_VIEW} showSignal={false} tradeLabel="Acheter" levels={levels}
+          <MarketCard tradeLabel="Acheter" levels={levels}
             onSelect={(pair) => setTicket({ pair })} onTrade={(pair) => { setTicket({ pair }); window.scrollTo({ top: 0, behavior: 'smooth' }) }} />
         </div>
       </main>

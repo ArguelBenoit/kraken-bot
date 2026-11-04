@@ -1,6 +1,6 @@
 # Kraken Bot — contexte du projet
 
-Bot de trading algorithmique sur **Kraken** (spot, long uniquement, paire contre stablecoin USDC/USDT) avec interface web locale.
+Plateforme de trading sur **Kraken** (spot, long uniquement, paire contre stablecoin USDC/USDT) avec interface web locale : trading manuel (accueil) assisté par Claude, Bot IA, tutoriel.
 Projet perso de l'utilisateur (francophone) : réponds en français, reste concis, et valide avant toute action touchant à de l'argent réel.
 Présentation : `README.md`. Détails : `docs/ARCHITECTURE.md`, `docs/API.md`, `docs/STRATEGIES.md`, `docs/TUTORIEL.md`.
 
@@ -15,20 +15,20 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 
 ## Structure (résumé — voir docs/ARCHITECTURE.md)
 
-- `server/` : `settings`, `app`, `services` (singletons des 3 bots), `core/` (storage, journal, cache, claude, limits), `market/` (kraken, indicators, strategies, pairs, prices, scan, snapshot),
-  `bots/simple/` (config, exits, bot), `bots/ai/` (config, prompt, guards, cost, bot), `bots/manual.py`, `features/` (suggest, learn), `routes/` (un blueprint par domaine), `backtest.py`.
+- `server/` : `settings`, `app`, `services` (singletons Bot IA + trader manuel), `core/` (storage, journal, cache, claude, limits), `market/` (kraken, indicators, strategies [backtest], pairs, prices, scan, chart, snapshot),
+  `bots/ai/` (config, prompt, guards, cost, bot), `bots/manual.py`, `features/` (proposals, learn), `routes/` (un blueprint par domaine), `backtest.py`.
 - `web/src/` : `lib/` (logique pure, `types/`, `learn/`), `stores/` (zustand), `hooks/`, `components/` (ui, layout, chart, trade, bot, ai, trading, learn), `pages/`, `styles/theme.css`.
-- Données à la racine, ignorées par git : `config.json`, `state.json`, `ai_*.json`, `manual_*.json`, `learn_state.json`.
+- Données à la racine, ignorées par git : `ai_*.json`, `manual_*.json`, `learn_state.json`.
 
 ## Règles de conception
 
-- **Claude propose, le code dispose** : Bot IA et mode IA du bot simple passent par des garde-fous codés ; Claude ne règle jamais montant, frais, mode.
-- Une seule implémentation des signaux (`market/strategies.py`) ; le tutoriel en a une copie TS (`lib/learn/methods.ts`) : modifier les deux ensemble.
+- **Claude propose, le code dispose** : Bot IA et propositions de trade (`features/proposals.py`, qui ne font que pré-remplir le ticket) passent par des garde-fous codés ; Claude ne règle jamais montant, frais, mode.
+- Les six méthodes ne sont plus exécutées par un bot : tutoriel (`lib/learn/methods.ts`) et backtest (`market/strategies.py`) en ont chacun une copie, à modifier ensemble.
 - Aucun stop chez Kraken : tout est surveillé localement. Live : `confirm:true` exigé côté serveur pour les ordres manuels.
 - `/api/connections` n'expose jamais les valeurs des variables d'environnement.
-- Ajouter un réglage du bot simple : `bots/simple/config.py` + `lib/fields.ts` + `lib/types/bot.ts` (+ `lib/tips.ts`).
+- Le Trading est la page d'accueil (`/`) ; le bot simple a été supprimé (voir l'historique git si besoin).
 - Ne jamais renvoyer le résultat de `window.scrollTo(...)` depuis un `useEffect` (écran noir).
-- Interface : thème sombre monospace, accent `--ac` orange chaud, largeur minimale 1600 px, aucun responsive. Icônes `lucide-react`.
+- Interface : thème sombre monospace, accent `--ac` orange chaud, largeur minimale 1600 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`, qui compense aussi les unités `vh`). Icônes `lucide-react`.
 - Code propre : pas de code mort, pas de gros fichiers (découper par fonction), un commentaire sur chaque symbole exporté, **pas de tests** (retirés volontairement, voir commit `888267d`).
 
 ## Conventions de travail avec l'utilisateur
@@ -43,4 +43,4 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 ## Limites connues
 
 Live jamais testé en réel ; prix d'entrée live approximatif ; `ordermin` ignoré ; pas de stop chez Kraken ; bots non redémarrés automatiquement et non coordonnés entre eux ;
-720 bougies max par durée (backtests courts, biais de sélection). Idées : stops posés chez Kraken, multi-paires, service systemd, état paper/live séparé.
+720 bougies max par durée (backtests courts, biais de sélection). Idées : stops posés chez Kraken (chantier prévu, avec `validate=true` d'abord), short en marge spot (plus tard), service systemd, état paper/live séparé.

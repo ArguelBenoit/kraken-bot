@@ -1,32 +1,25 @@
 import { ChartCandlestick, ChartColumn, RefreshCw } from 'lucide-react'
 import { PriceChart } from '@/components/chart/PriceChart'
-import type { ChartLevel } from '@/lib/chartTypes'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Tip } from '@/components/ui/Tip'
 import { MARKET_TFS, pairLabel } from '@/lib/constants'
-import type { BotConfig } from '@/lib/types'
-import { useBotStore } from '@/stores/botStore'
+import type { ChartLevel } from '@/lib/chartTypes'
 import { useMarketStore } from '@/stores/marketStore'
 import css from './MarketCard.module.css'
 import { ScanTable } from './ScanTable'
 
-interface MarketCardProps {
-  /** Réglages utilisés pour trier et colorer le tableau (par défaut : ceux du bot simple). */
-  cfg?: BotConfig
-  /** Affiche la colonne « Signal » (propre à la méthode du bot simple). */
-  showSignal?: boolean
-  tradeLabel?: string
-  onTrade?: (pair: string, tf: number) => void
+interface Props {
+  /** Texte du bouton d'une ligne du tableau. */
+  tradeLabel: string
+  onTrade: (pair: string) => void
   onSelect?: (pair: string) => void
+  /** Lignes horizontales tracées sur le graphique des prix. */
   levels?: ChartLevel[]
 }
 
 /** Tableau du marché + graphique de la paire sélectionnée. Le sélecteur « Bougie » pilote les deux. */
-export function MarketCard({ cfg: cfgProp, showSignal = true, tradeLabel = 'Trader', onTrade, onSelect, levels }: MarketCardProps) {
-  const botCfg = useBotStore((s) => s.status?.config)
-  const tradeThis = useBotStore((s) => s.tradeThis)
-  const cfg = cfgProp ?? botCfg
+export function MarketCard({ tradeLabel, onTrade, onSelect, levels }: Props) {
   const tf = useMarketStore((s) => s.tf)
   const info = useMarketStore((s) => s.info)
   const chart = useMarketStore((s) => s.chart)
@@ -48,17 +41,13 @@ export function MarketCard({ cfg: cfgProp, showSignal = true, tradeLabel = 'Trad
     </>
   )
 
-  const chartTitle = chart
-    ? `— ${pairLabel(chart.pair)} · ${chart.tf} min · RSI en bas${chart.strategy === 'trend' ? ` · EMA${chart.ma_fast} (bleu) / EMA${chart.ma_slow} (violet)` : ''}`
-    : ''
-
   return (
     <Card title="Marché — où trader ?" icon={ChartColumn} actions={actions}>
-      {cfg && <ScanTable cfg={cfg} showSignal={showSignal} tradeLabel={tradeLabel} onTrade={onTrade ?? tradeThis} onSelect={onSelect} />}
+      <ScanTable tradeLabel={tradeLabel} onTrade={onTrade} onSelect={onSelect} />
       <h2 className={`card-title ${css.chartTitle}`}>
         <span>
           <ChartCandlestick className="ic" />
-          Graphique <span>{chartTitle}</span>
+          Graphique <span>{chart ? `— ${pairLabel(chart.pair)} · ${chart.tf} min · RSI en bas` : ''}</span>
         </span>
       </h2>
       <PriceChart data={chart} levels={levels} />

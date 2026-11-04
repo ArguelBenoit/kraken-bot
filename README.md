@@ -1,7 +1,7 @@
 # Kraken Bot
 
-Plateforme locale de trading crypto sur **Kraken** (spot, long uniquement, paire contre stablecoin USDC/USDT) : un bot à méthodes
-classiques, un bot piloté par **Claude**, du trading manuel, et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
+Plateforme locale de trading crypto sur **Kraken** (spot, long uniquement, paire contre stablecoin USDC/USDT) : du **trading manuel
+assisté par Claude**, un bot piloté par **Claude**, et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
 en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 > ⚠ Trader est risqué. Ce projet est une expérimentation personnelle : aucune rentabilité n'est garantie, ce n'est pas un conseil financier.
@@ -11,9 +11,8 @@ en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 | Page | Rôle |
 |---|---|
-| **Bot simple** | Une paire, une méthode au choix (RSI, tendance EMA, Bollinger, cassure Donchian, MACD, momentum), une position à la fois. Un bouton **« Demander à Claude »** propose le meilleur réglage du moment et remplit le formulaire. |
+| **Trading** (accueil) | Tu passes tes ordres à la main (marché ou limite) avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
 | **Bot IA** | Claude analyse le marché à intervalle régulier et gère jusqu'à 5 positions en parallèle. Claude ne fait que *proposer* : stops, tailles, exposition et perte journalière sont imposés par le code. |
-| **Trading** | Ordres passés à la main (marché ou limite) avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. |
 | **Tutoriel** | 100 % simulation, pour débutant complet : leçons en « tunnel », glossaire cliquable, quiz, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves (une par méthode) à valider. |
 
 Le menu latéral montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
@@ -37,7 +36,7 @@ Copie `.env.example` en `.env`. Toutes les variables sont facultatives : sans cl
 
 | Variable | Pour quoi faire |
 |---|---|
-| `ANTHROPIC_API_KEY` | Bot IA et mode IA du bot simple (appels payants à l'API Anthropic). |
+| `ANTHROPIC_API_KEY` | Bot IA et propositions de trade de la page Trading (appels payants à l'API Anthropic). |
 | `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` | Mode **live** uniquement. Droits *Query Funds* + *Create Orders*, **jamais de retrait**. |
 | `HOST`, `PORT` | Adresse d'écoute (défaut `127.0.0.1:5000`). |
 | `APP_PASSWORD` | Mot de passe (HTTP Basic) exigé hors localhost. À définir dès que `HOST=0.0.0.0`. |
@@ -53,14 +52,14 @@ docs/        Architecture, API, méthodes de trading, tutoriel
 run.sh       Lance tout en une commande
 ```
 
-Les réglages et états (`config.json`, `state.json`, `ai_*.json`, `manual_*.json`, `learn_state.json`) sont créés à la racine ;
+Les réglages et états (`ai_*.json`, `manual_*.json`, `learn_state.json`) sont créés à la racine ;
 ils sont ignorés par git.
 
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md) — organisation du code, flux de données, conventions, comment ajouter une page / un réglage / une méthode.
 - [API](docs/API.md) — toutes les routes HTTP.
-- [Méthodes de trading](docs/STRATEGIES.md) — règles des 6 méthodes, options (filtre, stop ATR), backtest et ses limites.
+- [Méthodes de trading](docs/STRATEGIES.md) — règles des 6 méthodes (tutoriel, Bot IA, backtest) et limites du backtest.
 - [Tutoriel](docs/TUTORIEL.md) — conception pédagogique, épreuves, simulateur.
 
 ## Développement
@@ -70,7 +69,7 @@ cd web
 npm run dev          # interface seule (nécessite l'API sur :5000)
 npm run build        # contrôle des types + build de production
 python -m server     # API seule (depuis la racine)
-python -m server.backtest ETHUSDC rsi    # backtest d'une méthode
+python -m server.backtest ETHUSDC rsi    # backtest d'une méthode (outil de recherche)
 ```
 
 ## Limites connues

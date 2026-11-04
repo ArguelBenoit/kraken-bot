@@ -7,21 +7,15 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 
 | Route | Rôle |
 |---|---|
-| `GET /api/activity` | Bots en marche, positions ouvertes, combien en gain / en perte (pastilles du menu, sondé toutes les 4 s). |
+| `GET /api/activity` | Bot IA et trading manuel : positions ouvertes, ordres en attente, combien en gain / en perte (pastilles du menu, sondé toutes les 4 s). |
 | `GET /api/connections` | Pour chaque variable d'environnement (`ANTHROPIC_API_KEY`, `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`) : `set` vrai/faux. **Jamais la valeur.** |
 
-## Bot simple
+## Marché (lecture seule, données publiques Kraken)
 
 | Route | Rôle |
 |---|---|
-| `GET /api/status` | Réglages, état, position, journal, indicateurs. |
-| `GET /api/chart?pair&tf` | Bougies, indicateurs et marqueurs de trades pour le graphique. |
-| `GET /api/scan?tf` | Tableau Marché : signal de chaque paire suivie selon la méthode active. |
-| `POST /api/config` | Enregistre les réglages (validés et bornés côté serveur). |
-| `POST /api/start` · `/stop` | Démarre / arrête la boucle. |
-| `POST /api/liquidate` | Vend la position ouverte au marché. |
-| `POST /api/reset` | Remet l'état à zéro (cash, position, historique). |
-| `POST /api/suggest` | `{lock_pair}` : Claude propose un réglage ; **rien n'est enregistré**, l'interface pré-remplit le formulaire. |
+| `GET /api/chart?pair&tf` | Bougies, RSI(14) et repères des trades passés sur la paire (`tf` : 15, 60, 240, 1440). |
+| `GET /api/scan?tf` | Tableau Marché : prix, variation 24 h, volume, volatilité, RSI, tendance (écart EMA20 / EMA50, croisement) et %B de Bollinger de chaque paire suivie (cache 60 s). |
 
 ## Bot IA
 
@@ -39,13 +33,14 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 
 | Route | Rôle |
 |---|---|
-| `GET /api/manual/status?pair=` | Réglages, positions, ordres en attente, journal, cotation (`quote`) de la paire. |
+| `GET /api/manual/status?pair=` | Réglages, positions, ordres en attente, journal, cotation (`quote`) de la paire, `claude_ok` (clé Anthropic définie). |
 | `POST /api/manual/config` | Réglages (mode, solde paper, montant max…). |
 | `POST /api/manual/order` | Ordre d'achat marché ou limite avec `sl` / `tp` / `trail`. En **live**, `confirm: true` est exigé par le serveur. |
 | `POST /api/manual/positions/<id>/close` | Vente totale ou partielle (`fraction`). |
 | `POST /api/manual/positions/<id>/adjust` | Modifie stop loss / objectif / stop suiveur. |
 | `DELETE /api/manual/pending/<id>` | Annule un ordre limite en attente. |
 | `POST /api/manual/reset` | Remet l'état à zéro. |
+| `POST /api/manual/propose` | Claude propose 0 à 4 presets de trade à prendre maintenant (paire, marché/limite, SL, TP, suiveur, justification). **Rien n'est exécuté** : l'interface pré-remplit le ticket. Un appel à la fois, 10 s entre deux demandes ; le montant n'est jamais proposé. |
 
 ## Tutoriel
 

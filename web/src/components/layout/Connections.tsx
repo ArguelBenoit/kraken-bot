@@ -2,7 +2,7 @@ import { useActivityStore } from '@/stores/activityStore'
 import css from './Connections.module.css'
 
 const TIPS = {
-  Claude: "Clé de l'API Anthropic. Nécessaire pour le Bot IA et pour le mode IA du Bot simple (bouton « Demander à Claude »). À mettre dans .env, puis relancer le serveur.",
+  Claude: "Clé de l'API Anthropic. Nécessaire pour le Bot IA et pour les propositions de trade de la page Trading (bouton « Demander à Claude »). À mettre dans .env, puis relancer le serveur.",
   Kraken: "Clés de l'API Kraken : nécessaires seulement pour le mode LIVE (droits Query Funds + Create Orders, jamais de retrait). Le paper trading n'en a pas besoin.",
 } as const
 

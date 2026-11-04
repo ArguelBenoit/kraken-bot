@@ -1,5 +1,5 @@
 /* Pastilles d'activité en bout de ligne du menu. */
-.badges { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.badges { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 1.1em; }
 .zap { filter: drop-shadow(0 0 4px currentColor); }
 .up { color: var(--ok); }
 .down { color: var(--ko); }

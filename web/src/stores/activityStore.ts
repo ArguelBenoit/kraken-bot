@@ -10,7 +10,7 @@ interface ActivityStore {
   loadConnections: () => Promise<void>
 }
 
-/** État léger des trois bots (tourne ? positions ?) pour les pastilles du menu, et variables d'environnement définies (bas du menu). */
+/** État léger des bots (tourne ? positions ?) pour les pastilles du menu, et variables d'environnement définies (bas du menu). */
 export const useActivityStore = create<ActivityStore>((set) => ({
   activity: null,
   connections: null,

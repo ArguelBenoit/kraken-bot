@@ -3,7 +3,7 @@ from flask import Blueprint, jsonify
 
 from server import settings
 from server.market.prices import try_last_price
-from server.services import ai, bot, manual
+from server.services import ai, manual
 
 bp = Blueprint("system", __name__, url_prefix="/api")
 
@@ -22,12 +22,10 @@ def _tally(positions):
 
 @bp.get("/activity")
 def activity():
-    """Pour chaque bot : tourne-t-il ? combien de positions ouvertes, et combien sont en gain / en perte."""
-    bot_positions = [(bot.position_pair, bot.state.get("entry"))] if bot.has_position else []
+    """Bot IA (tourne ? positions) et trading manuel (positions, ordres en attente) : combien sont en gain / en perte."""
     ai_positions = [(p["pair"], p["entry"]) for p in list(ai.state["positions"])]
     manual_positions = [(p["pair"], p["entry"]) for p in list(manual.state["positions"])]
     return jsonify(
-        bot={"running": bot.running, "positions": len(bot_positions), **_tally(bot_positions)},
         ai={"running": ai.running, "positions": len(ai_positions), **_tally(ai_positions)},
         manual={"positions": len(manual_positions), "pending": len(manual.state["pending"]), **_tally(manual_positions)},
     )

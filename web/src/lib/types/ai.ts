@@ -1,5 +1,5 @@
 /** Types du Bot IA (Claude). */
-import type { Mode } from './bot'
+import type { Mode } from './market'
 
 export type Aggressiveness = 'prudent' | 'equilibre' | 'agressif'
 

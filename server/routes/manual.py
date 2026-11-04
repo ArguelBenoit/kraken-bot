@@ -1,7 +1,9 @@
 """Routes du trading manuel. Tout ordre ou vente LIVE exige `confirm: true` dans la requête (filet de sécurité côté serveur)."""
 from flask import Blueprint, jsonify, request
 
-from server.services import manual
+from server.core.claude import ClaudeError
+from server.features import proposals
+from server.services import ai, manual
 from .helpers import run
 
 bp = Blueprint("manual", __name__, url_prefix="/api/manual")
@@ -49,3 +51,12 @@ def cancel(order_id):
 @bp.post("/reset")
 def reset():
     return run(manual.reset_paper)
+
+
+@bp.post("/propose")
+def propose():
+    """Claude propose quelques trades à prendre maintenant. Ne passe aucun ordre : l'interface pré-remplit le ticket."""
+    try:
+        return jsonify(ok=True, **proposals.propose(manual, ai.config["model"]))
+    except ClaudeError as e:
+        return jsonify(ok=False, error=str(e)), e.status

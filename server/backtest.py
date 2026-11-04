@@ -8,7 +8,6 @@ meilleure parmi des centaines crée un biais de sélection, les résultats affic
 import itertools
 import sys
 
-from server.bots.simple.config import DEFAULT_CONFIG
 from server.market import kraken, strategies
 
 TRAIN_SHARE = 0.6
@@ -16,7 +15,7 @@ WINDOW = 300          # bougies passées fournies à chaque calcul de signal
 
 
 def run(rows, strategy, cfg, sl, tp, trail, fee=0.26, start=0, ema_filter=0):
-    """Rejoue `rows` bougie par bougie (une position à la fois) avec les mêmes signaux que le bot."""
+    """Rejoue `rows` bougie par bougie (une position à la fois) avec les signaux de `strategies.py`."""
     entry = peak = None
     returns, equity, top, drawdown = [], 1.0, 1.0, 0.0
     for i in range(max(start, 1), len(rows)):
@@ -71,7 +70,7 @@ def main(argv):
         buy_hold = (rows[-1][4] / rows[cut][4] - 1) * 100
         results = []
         for overrides, sl, tp, trail in GRIDS[strategy]():
-            cfg = {**DEFAULT_CONFIG, **overrides}
+            cfg = {**strategies.DEFAULT_PARAMS, **overrides}
             train = run(rows[:cut], strategy, cfg, sl, tp, trail, fee, ema_filter=ema_filter)
             test = run(rows, strategy, cfg, sl, tp, trail, fee, start=cut, ema_filter=ema_filter)
             if train["n"] >= 3:

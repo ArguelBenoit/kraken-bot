@@ -1,4 +1,4 @@
-"""Signaux des six méthodes sur bougies CLOSES : une seule implémentation pour le bot, le scan du marché et le backtest.
+"""Signaux des six méthodes sur bougies CLOSES : utilisés par le backtest.
 
 `signal(strategy, rows, cfg)` reçoit les bougies [(t, o, h, l, c), ...] (la dernière = la plus récente) et renvoie
 {"buy": bool, "sell": bool, "info": str} pour cette dernière bougie : `buy` = condition d'entrée, `sell` = condition de sortie,
@@ -7,6 +7,15 @@
 from .indicators import ema_series, rsi_last
 
 METHODS = ("rsi", "trend", "bollinger", "donchian", "macd", "momentum")
+# Paramètres par défaut de chaque méthode (le backtest en surcharge une partie)
+DEFAULT_PARAMS = {
+    "rsi_period": 14, "rsi_buy": 30, "rsi_sell": 70,
+    "ma_fast": 20, "ma_slow": 50,
+    "bb_period": 20, "bb_std": 2.0,
+    "dc_entry": 20, "dc_exit": 10,
+    "macd_fast": 12, "macd_slow": 26, "macd_signal": 9,
+    "mom_period": 24, "mom_min_pct": 3.0,
+}
 NO_DATA = "données insuffisantes"
 
 
@@ -23,9 +32,8 @@ def _trend(rows, cl, cfg):
     f, s = ema_series(cl, cfg["ma_fast"]), ema_series(cl, cfg["ma_slow"])
     up = f[-1] > s[-1]
     cross = f[-2] <= s[-2] and up
-    entry = cross or (cfg.get("instant_entry") and up)          # option : entrer sans attendre un croisement
     label = f"EMA{cfg['ma_fast']} {'>' if up else '<'} EMA{cfg['ma_slow']}" + (" (croisement)" if cross else "")
-    return _result(entry, f[-1] < s[-1], label)
+    return _result(cross, f[-1] < s[-1], label)
 
 
 def _bollinger(rows, cl, cfg):

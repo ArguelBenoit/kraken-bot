@@ -21,7 +21,7 @@ Routes : `/learn` (sommaire + passeport), `/learn/:id/:step`. Le menu **Chapitre
 
 `GET/PUT /api/learn/progress` → `learn_state.json` (écriture atomique) ; côté interface, le store `learnStore`.
 
-## Cohérence avec le bot
+## Cohérence avec le backtest
 
-Les signaux enseignés (`lib/learn/methods.ts`, `indicators.ts`) reproduisent ceux de `server/market/strategies.py`. Si tu modifies une règle d'un côté, modifie l'autre.
+Les signaux enseignés (`lib/learn/methods.ts`, `indicators.ts`) reproduisent ceux de `server/market/strategies.py` (utilisés par le backtest). Si tu modifies une règle d'un côté, modifie l'autre.
 Les anciens tests de comparaison ont été retirés ; ils restent consultables dans le commit `888267d` (`web/src/lib/learn/learn.test.ts`).

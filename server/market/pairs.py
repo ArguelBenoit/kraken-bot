@@ -1,4 +1,4 @@
-"""Paires surveillées (tableau Marché, Bot IA, suggestion de Claude). Les paires sont des altnames Kraken.
+"""Paires surveillées (tableau Marché, Bot IA, propositions de Claude). Les paires sont des altnames Kraken.
 
 SUI, PEPE, NEAR, INJ, ARB et APT n'ont pas de paire USDC/USDT chez Kraken.
 """

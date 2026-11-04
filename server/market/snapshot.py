@@ -1,20 +1,10 @@
-"""Résumé chiffré du marché envoyé à Claude (Bot IA et suggestion du Bot simple) : uniquement des nombres, jamais de texte libre."""
+"""Résumé chiffré du marché envoyé à Claude (Bot IA et propositions de trade) : uniquement des nombres, jamais de texte libre."""
 import time
 
 from . import kraken
-from .indicators import ema_series, rsi_last
+from .indicators import bollinger_pct_b, ema_series, rsi_last
 
 PAUSE = 0.35      # pause entre deux paires (API publique)
-
-
-def _bollinger_pct_b(closes, n=20):
-    """Position du cours dans les bandes de Bollinger (0 = bande basse, 1 = bande haute) ; None si indéterminé."""
-    if len(closes) < n:
-        return None
-    window = closes[-n:]
-    mean = sum(window) / n
-    sd = (sum((x - mean) ** 2 for x in window) / n) ** 0.5
-    return None if sd == 0 else (closes[-1] - (mean - 2 * sd)) / (4 * sd)
 
 
 def _round(value, digits):
@@ -35,7 +25,7 @@ def _pair_snapshot(pair, tf):
         "pair": pair, "price": price, "chg24h_pct": round((price / open24 - 1) * 100, 2),
         "rsi14": _round(rsi_last(cl, 14), 1),
         "ema20_vs_ema50_pct": _round(gap, 2), "ema_gap_prev_pct": _round(prev_gap, 2),
-        "bollinger_pctB": _round(_bollinger_pct_b(cl), 2),
+        "bollinger_pctB": _round(bollinger_pct_b(cl), 2),
         "vs_20bar_high_pct": round((price / max(highs[-20:]) - 1) * 100, 2),
         "vs_20bar_low_pct": round((price / min(lows[-20:]) - 1) * 100, 2),
         "ret_6bars_pct": round((cl[-1] / cl[-7] - 1) * 100, 2) if len(cl) > 7 else None,
