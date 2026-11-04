@@ -28,10 +28,10 @@ pre{margin:0;max-height:160px;overflow:auto;font-size:12px;color:var(--mu)}
 <div class="k"><small>Positions</small><b id="npos">–</b></div><div class="k"><small>Appels Claude</small><b id="calls">–</b></div></div></header>
 <main>
 <div class="col">
-<section class="card"><h2><span>Réglages IA</span></h2>
+<section class="card"><h2><span><svg class="ic"><use href="/static/icons.svg#settings"/></svg>Réglages IA</span></h2>
 <div id="warn"></div>
 <form id="f">
-<label>Modèle Claude<input name="model"></label>
+<label>Modèle Claude<select name="model"></select></label>
 <label>Agressivité<select name="aggressiveness"><option value="prudent">Prudent</option><option value="equilibre">Équilibré</option><option value="agressif">Agressif</option></select></label>
 <div class="hint" id="aggdesc"></div>
 <label>Trades en parallèle (1-5)<input name="max_positions" type="number" min="1" max="5"></label>
@@ -44,22 +44,25 @@ pre{margin:0;max-height:160px;overflow:auto;font-size:12px;color:var(--mu)}
 <label>Perte jour max (% budget)<input name="max_daily_loss_pct" type="number" step="any"></label>
 <label>Appels Claude max / jour<input name="max_calls_per_day" type="number"></label>
 <label>Frais / ordre (%)<input name="fee_pct" type="number" step="any"></label>
+<details class="grp"><summary>Coût Claude (estimation)</summary>
+<label>Prix entrée ($ / M tokens)<input name="price_in" type="number" step="any"></label>
+<label>Prix sortie ($ / M tokens)<input name="price_out" type="number" step="any"></label>
+<label>Crédit restant (console, $)<input name="credit_base" type="number" step="any"></label>
+<div class="hint">Les prix dépendent du modèle : copie-les depuis la console Anthropic. Saisis ton solde actuel pour recaler l'estimation (l'API ne donne pas le solde).</div></details>
 <details class="grp" open><summary>Stratégies autorisées</summary><div id="strats"></div></details>
 <details class="grp"><summary>Paires surveillées</summary><div id="pairs"></div></details>
 <label style="display:block">Consignes libres pour Claude (optionnel)<textarea name="notes" rows="3" maxlength="500" placeholder="Ex : évite les memecoins, privilégie BTC et ETH"></textarea></label>
 <div class="row"><button type="submit">Enregistrer</button><button type="button" class="sec" id="restore">Restaurer</button><span id="msg" class="mu" style="align-self:center"></span></div>
-</form></section>
-<section class="card"><h2><span>Contrôle</span></h2>
-<div class="row" style="margin-top:0"><button id="start">Démarrer</button><button id="stop" class="sec">Arrêter</button><button id="analyze" class="sec">Analyser maintenant</button></div>
-<div class="row"><button id="liq" class="ko">Tout liquider</button><button id="reset" class="ko">Reset paper</button></div>
-<div class="hint" id="next" style="margin-top:10px"></div>
-</section>
+</form>
+<div class="row"><button id="start"><svg class="ic f"><use href="/static/icons.svg#play"/></svg>Démarrer</button><button id="stop" class="ko"><svg class="ic f"><use href="/static/icons.svg#square"/></svg>Stop</button><button id="analyze" class="sec"><svg class="ic"><use href="/static/icons.svg#refresh-cw"/></svg>Analyser maintenant</button></div>
+<div class="row"><button id="liq" class="sec"><svg class="ic"><use href="/static/icons.svg#log-out"/></svg>Tout liquider</button><button id="reset" class="sec">Reset paper</button></div>
+<div class="hint" id="next" style="margin-top:10px"></div></section>
 </div>
 <div class="col">
-<section class="card"><h2><span>Positions ouvertes</span></h2><div id="pos"></div></section>
-<section class="card"><h2><span>Décisions de Claude</span></h2><div id="dec"></div></section>
-<section class="card"><h2><span>Trades</span></h2><div id="trades"></div></section>
-<section class="card"><h2><span>Journal</span></h2><pre id="logs"></pre></section>
+<section class="card"><h2><span><svg class="ic"><use href="/static/icons.svg#zap"/></svg>Positions ouvertes</span></h2><div id="pos"></div></section>
+<section class="card"><h2><span><svg class="ic"><use href="/static/icons.svg#bot"/></svg>Décisions de Claude</span></h2><div id="dec"></div></section>
+<section class="card"><h2><span><svg class="ic"><use href="/static/icons.svg#arrow-left-right"/></svg>Trades</span></h2><div id="trades"></div></section>
+<section class="card"><h2><span><svg class="ic"><use href="/static/icons.svg#scroll-text"/></svg>Journal</span></h2><pre id="logs"></pre></section>
 </div></main>
 <script>
 const ic=(n,c='')=>`<svg class="ic ${c}"><use href="/static/icons.svg#${n}"/></svg>`;
@@ -71,6 +74,7 @@ let S=null,filled=false,dirty=false;
 async function post(url,body){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
  const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||'Erreur');return d}
 function buildOptions(o){
+ $('[name=model]').innerHTML=Object.entries(o.models).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
  $('#strats').innerHTML=Object.entries(o.strategies).map(([k,v])=>`<label class="chk"><input type="checkbox" data-s="${k}"><span><b>${k}</b><br><small>${esc(v)}</small></span></label>`).join('');
  $('#pairs').innerHTML=o.pairs.map(p=>`<label class="chk"><input type="checkbox" data-p="${p.pair}">${esc(p.label)}</label>`).join('')}
 function fillForm(c){
@@ -82,7 +86,7 @@ function aggDesc(){$('#aggdesc').textContent=S?S.options.profiles[f.aggressivene
 function readForm(){
  const o={};for(const el of f.elements){if(el.name)o[el.name]=el.value}
  for(const k of ['timeframe','interval_min','check_every','max_positions','max_calls_per_day'])o[k]=parseInt(o[k]);
- for(const k of ['order_size','budget','max_exposure_pct','max_daily_loss_pct','fee_pct'])o[k]=parseFloat(o[k]);
+ for(const k of ['order_size','budget','max_exposure_pct','max_daily_loss_pct','fee_pct','price_in','price_out','credit_base'])o[k]=parseFloat(o[k]);
  o.strategies=[...document.querySelectorAll('[data-s]:checked')].map(i=>i.dataset.s);
  o.pairs=[...document.querySelectorAll('[data-p]:checked')].map(i=>i.dataset.p);return o}
 function render(){
@@ -94,6 +98,7 @@ function render(){
  $('#npos').textContent=S.positions.length+' / '+c.max_positions;
  $('#calls').textContent=S.usage.calls+' / '+c.max_calls_per_day;
  let w='';
+ if(S.cost.low)w+='<div class="warn" style="border-color:var(--ko);color:var(--ko)">Crédit Anthropic épuisé : le bot a été arrêté. Recharge dans la console puis ressaisis ton solde (Coût Claude) et redémarre.</div>';
  if(!S.key_ok)w+='<div class="warn">ANTHROPIC_API_KEY absente : ajoute-la dans .env puis relance le serveur.</div>';
  if(live)w+='<div class="warn">Mode LIVE : Claude passe de vrais ordres au marché. Jamais testé avec de l\'argent réel. Aucun stop n\'existe chez Kraken : si ce programme s\'arrête, rien ne vend.'+(S.live_ok?'':' Clés Kraken absentes.')+'</div>';
  $('#warn').innerHTML=w;

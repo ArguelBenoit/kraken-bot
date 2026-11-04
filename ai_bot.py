@@ -16,6 +16,8 @@ from bot import WATCH, ema_series, rsi_series
 ROOT = Path(__file__).parent
 CONFIG_FILE, STATE_FILE = ROOT / "ai_config.json", ROOT / "ai_state.json"
 API_URL = "https://api.anthropic.com/v1/messages"
+MODELS = {"claude-haiku-5-5": "Haiku 5.5 (rapide, le moins cher)", "claude-sonnet-5-5": "Sonnet 5.5 (équilibré)",
+          "claude-opus-5-5": "Opus 5.5 (plus puissant)", "claude-fable-5-1": "Fable 5.1 (le plus capable)"}
 
 STRATEGIES = {
     "rsi_reversion": "Mean-reversion RSI : achat d'un creux (RSI bas, prix sous la bande de Bollinger basse), sortie au rebond.",
@@ -45,11 +47,15 @@ DEFAULT_CONFIG = {
     "max_daily_loss_pct": 5.0,       # au-delà, plus aucune nouvelle ouverture jusqu'à demain
     "max_calls_per_day": 100,        # plafond d'appels à l'API Claude par jour
     "fee_pct": 0.26,
+    "price_in": 3.0,                 # $ par million de tokens en entrée (à vérifier dans la console Anthropic)
+    "price_out": 15.0,               # $ par million de tokens en sortie
+    "credit_base": 0.0,              # crédit restant lu dans la console ($) ; sert de point de départ à l'estimation
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 5),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
-          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 1000), "fee_pct": (0, 2)}
+          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 1000), "fee_pct": (0, 2),
+          "price_in": (0, 1000), "price_out": (0, 1000), "credit_base": (0, 1000000)}
 TFS = (15, 60, 240, 1440)
 LABELS = dict(WATCH)
 
@@ -119,6 +125,10 @@ def market_snapshot(tf, pairs):
     return rows
 
 
+class CreditError(RuntimeError):
+    pass
+
+
 class AIBot:
     def __init__(self):
         self.lock = threading.Lock()
@@ -142,7 +152,8 @@ class AIBot:
 
     def _fresh_state(self):
         return {"cash": self.config["budget"], "positions": [], "trades": [], "pnl": 0.0, "decisions": [],
-                "usage": {"day": "", "calls": 0, "in": 0, "out": 0}, "day": "", "day_pnl": 0.0}
+                "usage": {"day": "", "calls": 0, "in": 0, "out": 0, "tin": 0, "tout": 0}, "credit_ref": 0.0, "credit_low": False,
+                "day": "", "day_pnl": 0.0}
 
     def _save(self):
         STATE_FILE.write_text(json.dumps(self.state, indent=1))
@@ -162,12 +173,11 @@ class AIBot:
                 raise ValueError("Changement de mode impossible : arrête le bot IA et ferme les positions")
             if c["aggressiveness"] not in PROFILES:
                 raise ValueError("agressivité invalide")
-            if not str(c["model"]).strip():
-                raise ValueError("modèle manquant")
-            c["model"] = str(c["model"]).strip()
+            if c["model"] not in MODELS:
+                raise ValueError("modèle inconnu")
             c["notes"] = str(c["notes"])[:500]
             for k, (lo, hi) in LIMITS.items():
-                c[k] = float(c[k]) if k in ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct") else int(c[k])
+                c[k] = float(c[k]) if k in ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "price_in", "price_out", "credit_base") else int(c[k])
                 if not lo <= c[k] <= hi:
                     raise ValueError(f"{k} doit être entre {lo} et {hi}")
             if c["timeframe"] not in TFS:
@@ -178,6 +188,9 @@ class AIBot:
                 raise ValueError("Choisis au moins une stratégie et une paire")
             if c["order_size"] > c["budget"]:
                 raise ValueError("Le montant par trade dépasse le budget")
+            if c["credit_base"] != self.config["credit_base"]:     # recalage : on repart du solde lu dans la console
+                self.state["credit_ref"] = self._spent(c)
+                self.state["credit_low"] = False
             self.config = c
             CONFIG_FILE.write_text(json.dumps(c, indent=1))
         self.log("Réglages IA enregistrés")
@@ -194,6 +207,7 @@ class AIBot:
         if self.running:
             return
         self.running = True
+        self.state["credit_low"] = False
         self.last_review = 0.0
         self.thread = threading.Thread(target=self._loop, daemon=True)
         self.thread.start()
@@ -312,12 +326,15 @@ class AIBot:
                                 "tools": [DECIDE_TOOL], "tool_choice": {"type": "auto"},
                                 "messages": [{"role": "user", "content": user}]})
         if r.status_code != 200:
+            if "credit balance" in r.text:
+                raise CreditError("Crédit Anthropic épuisé : recharge dans la console (Plans & Billing)")
             raise RuntimeError(f"API Claude {r.status_code}: {r.text[:200]}")
         d = r.json()
         u = self.state["usage"]
         u["calls"] += 1
-        u["in"] += d.get("usage", {}).get("input_tokens", 0)
-        u["out"] += d.get("usage", {}).get("output_tokens", 0)
+        ti, to = d.get("usage", {}).get("input_tokens", 0), d.get("usage", {}).get("output_tokens", 0)
+        u["in"] += ti; u["out"] += to
+        u["tin"] = u.get("tin", 0) + ti; u["tout"] = u.get("tout", 0) + to
         for b in d.get("content", []):
             if b.get("type") == "tool_use" and b.get("name") == "decide":
                 return b["input"]
@@ -347,6 +364,9 @@ class AIBot:
             s["decisions"] = (s["decisions"] + [{"time": datetime.now().strftime("%d/%m %H:%M"), "view": "", "mode": c["mode"],
                                                  "actions": [{"text": "Erreur : " + str(e)[:300], "ok": False}]}])[-40:]
             self.log(f"ERREUR analyse: {e}")
+            if isinstance(e, CreditError):          # inutile de continuer à appeler l'API : on arrête le bot
+                s["credit_low"] = True
+                self.running = False
         finally:
             self.reviewing = False
             self._save()
@@ -453,6 +473,12 @@ class AIBot:
                 raise ValueError("Position introuvable")
             self._sell(p, kraken.last_price(p["pair"]), "Fermeture manuelle")
 
+    # ---------- coût estimé ----------
+    def _spent(self, c=None):
+        """Dépense cumulée estimée ($) d'après les tokens comptés et les prix réglés."""
+        c, u = c or self.config, self.state["usage"]
+        return (u.get("tin", 0) * c["price_in"] + u.get("tout", 0) * c["price_out"]) / 1e6
+
     # ---------- état pour l'UI ----------
     def snapshot(self):
         with self.lock:
@@ -469,7 +495,10 @@ class AIBot:
                     "live_ok": bool(os.getenv("KRAKEN_API_KEY") and os.getenv("KRAKEN_API_SECRET")),
                     "cash": s["cash"], "equity": self._equity(), "pnl": s["pnl"], "day_pnl": s["day_pnl"],
                     "positions": pos, "usage": s["usage"],
+                    "cost": {"total": self._spent(), "today": (s["usage"]["in"] * c["price_in"] + s["usage"]["out"] * c["price_out"]) / 1e6,
+                             "left": (c["credit_base"] - (self._spent() - s.get("credit_ref", 0.0))) if c["credit_base"] > 0 else None,
+                             "low": bool(s.get("credit_low"))},
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-40:][::-1],
                     "decisions": s["decisions"][-15:][::-1], "logs": self.logs[-30:][::-1],
-                    "options": {"strategies": STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
+                    "options": {"models": MODELS, "strategies": STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
                                 "profiles": {k: v["desc"] for k, v in PROFILES.items()}}}
