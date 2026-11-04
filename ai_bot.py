@@ -286,7 +286,7 @@ class AIBot:
         system = (
             "Tu es le moteur de décision d'un bot de trading crypto spot sur Kraken (long uniquement, ordres au marché, "
             "paires contre stablecoin). Tu reçois un résumé chiffré du marché et l'état du portefeuille, et tu réponds "
-            "UNIQUEMENT en appelant l'outil `decide`.\n\n"
+            "UNIQUEMENT en appelant l'outil `decide` (aucun texte en dehors de l'appel).\n\n"
             f"Profil : {c['aggressiveness']} — {prof['desc']}.\n"
             f"Stratégies autorisées :\n" + "\n".join(f"- {k}: {STRATEGIES[k]}" for k in c["strategies"]) + "\n\n"
             "Règles :\n"
@@ -309,7 +309,7 @@ class AIBot:
         r = requests.post(API_URL, timeout=90, headers={"x-api-key": key, "anthropic-version": "2023-06-01",
                                                         "content-type": "application/json"},
                           json={"model": self.config["model"], "max_tokens": 2000, "system": system,
-                                "tools": [DECIDE_TOOL], "tool_choice": {"type": "tool", "name": "decide"},
+                                "tools": [DECIDE_TOOL], "tool_choice": {"type": "auto"},
                                 "messages": [{"role": "user", "content": user}]})
         if r.status_code != 200:
             raise RuntimeError(f"API Claude {r.status_code}: {r.text[:200]}")
@@ -321,7 +321,8 @@ class AIBot:
         for b in d.get("content", []):
             if b.get("type") == "tool_use" and b.get("name") == "decide":
                 return b["input"]
-        raise RuntimeError("Réponse sans décision")
+        txt = " ".join(b.get("text", "") for b in d.get("content", []) if b.get("type") == "text")[:200]
+        raise RuntimeError("Réponse sans appel à l'outil decide" + (f" : {txt}" if txt else ""))
 
     def _review(self):
         c, s = self.config, self.state
