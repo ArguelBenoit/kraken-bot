@@ -45,7 +45,7 @@ function ScanTable({ cfg }: { cfg: BotConfig }) {
       <table className={css.table}>
         <thead>
           <tr>
-            <th>Paire</th><th>Prix</th><th>24h</th><th className={css.vol}>Volume 24h</th>
+            <th>Paire</th><th>Prix</th><th>24h</th><th>Volume 24h</th>
             <th>Volatilité<Tip text={MARKET_TIPS['Volatilité']} /></th>
             <th>RSI<Tip text={MARKET_TIPS['RSI']} right /></th>
             <th>Signal</th><th />
@@ -63,7 +63,7 @@ function ScanTable({ cfg }: { cfg: BotConfig }) {
                 <td><b>{x.label}</b></td>
                 <td>{fm(x.price, (x.price ?? 0) < 1 ? 6 : 2)}</td>
                 <td className={(x.chg24 ?? 0) >= 0 ? 't-ok' : 't-ko'}>{signed(x.chg24 ?? 0)}%</td>
-                <td className={css.vol}>{fm(x.vol24, 0)}</td>
+                <td>{fm(x.vol24, 0)}</td>
                 <td>{fm(x.volat)}%</td>
                 <td className={rsiTone(x, cfg) === 'ok' ? 't-ok' : rsiTone(x, cfg) === 'ko' ? 't-ko' : ''}>{fm(x.rsi, 1)}</td>
                 <td><SignalCell row={x} cfg={cfg} /></td>

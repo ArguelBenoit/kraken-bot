@@ -98,6 +98,7 @@ Deux pages (react-router) : `/` Bot simple, `/ai` Bot IA, menu en haut à droite
   `DEFAULT_CONFIG`/`LIMITS` côté Python + une entrée dans `fields.ts` + son type dans `types.ts` + (option) son infobulle dans `tips.ts`.
 - Le brouillon du formulaire vit dans le store : il n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
   « Restaurer » le remet sur la config enregistrée. Presets / Trader / collage JSON ne font que **pré-remplir** (rien n'est enregistré).
+- Largeur minimale 1400 px (`body{min-width}`), **aucun responsive** : en dessous, la page déborde du viewport sans se réorganiser.
 - Marché : 8 lignes visibles, trié selon la méthode, le sélecteur « Bougie » pilote tableau **et** graphique, **Trader** pré-remplit le formulaire.
 - Presets : intégrés (`lib/presets.ts`, issus de backtests : biais de sélection) + **configs épinglées** dans `state.json["presets"]`.
 - Icônes : `lucide-react` (`<Settings className="ic" />`, `ic f` pour les pleines). Aucun asset à copier.

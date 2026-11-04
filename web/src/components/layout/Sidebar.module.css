@@ -14,11 +14,3 @@
 .link.active { color: var(--ac); background: #1a1300; border-left-color: var(--ac); }
 .footer { margin-top: auto; padding: 0 16px; font-size: 10px; color: var(--mu); letter-spacing: 0.06em; }
 
-@media (max-width: 900px) {
-  .sidebar { position: static; align-self: stretch; height: auto; width: auto; flex-direction: row; align-items: center; gap: 12px; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--bd); overflow-x: auto; }
-  .brand { padding: 0; }
-  .nav { flex-direction: row; }
-  .label, .footer { display: none; }
-  .link { padding: 6px 10px; border-left: 0; border-bottom: 2px solid transparent; }
-  .link.active { border-bottom-color: var(--ac); }
-}

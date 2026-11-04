@@ -5,8 +5,7 @@
 .top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
 .top b:first-child { font-size: 22px; letter-spacing: 0.04em; }
 .top b:last-child { font-size: 34px; line-height: 1; }
-.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 14px; margin: 10px 0 14px; font-size: 15px; }
-@media (min-width: 1001px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 14px; margin: 10px 0 14px; font-size: 15px; }
 .grid small { display: block; color: var(--mu); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
 .gauge { position: relative; height: 22px; background: linear-gradient(90deg, #3a1414, #1a1a1a 50%, #133a22); border: 1px solid var(--bd); }
 .fill { position: absolute; top: 0; bottom: 0; }
