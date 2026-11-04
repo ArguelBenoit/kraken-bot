@@ -18,6 +18,35 @@ export const ADVANCED: Lesson[] = [
     ],
   },
   {
+    id: 'a-short', module: 'avance', title: 'Parier sur la baisse : le short', minutes: 7,
+    summary: `Gagner quand le prix baisse… et pourquoi c'est plus dangereux.`,
+    blocks: [
+      { t: 'p', text: `Jusqu'ici, tu gagnais quand le prix **montait** ([[long|position longue]]). Mais un marché peut aussi baisser longtemps. Le [[short|short]] permet de gagner dans ce cas : c'est l'inverse d'un achat.` },
+      { t: 'h', text: `Comment ça marche` },
+      { t: 'steps', items: [
+        `Tu **empruntes** de la crypto à la plateforme (c'est la [[marge|marge]]).`,
+        `Tu la **vends** tout de suite, par exemple à 100.`,
+        `Le prix baisse à 90 : tu la **rachètes** 90 et tu la rends. Tu gardes la différence : **+10**.`,
+        `Mais si le prix monte à 110, tu la rachètes 110 : **−10**.`,
+      ] },
+      { t: 'example', text: `Short de 200 avec un levier ×2 : tu immobilises 100 de garantie. Si le prix baisse de 5 %, tu gagnes 10 (5 % de 200), soit +10 % de ta garantie. Si le prix monte de 5 %, tu perds 10 : −10 % de ta garantie.` },
+      { t: 'h', text: `Pourquoi c'est plus risqué` },
+      { t: 'list', items: [
+        `**Perte non plafonnée** : un achat ne peut perdre que sa mise (le prix tombe à 0 au pire). Un short peut perdre bien plus, car le prix peut monter sans limite.`,
+        `**Levier** : il multiplie les gains **et** les pertes.`,
+        `**[[liquidation|Liquidation]]** : si le prix monte trop, la plateforme ferme ta position de force et tu perds ta garantie. À ×2, c'est vers +40 % ; à ×5, vers +16 %.`,
+        `**Frais de report** toutes les 4 h tant que la position reste ouverte : un short n'est pas fait pour être oublié.`,
+        `Les hausses brutales (« short squeeze ») sont fréquentes et rapides en crypto.`,
+      ] },
+      { t: 'callout', tone: 'key', title: 'Règles de survie', text: `1) Un stop loss **obligatoire**, bien en dessous du prix de liquidation. 2) Levier bas (×2). 3) Un short se prend dans une tendance baissière claire, jamais « parce que ça a trop monté ». 4) Petite taille, paper d'abord.` },
+      { t: 'callout', tone: 'warn', title: 'Dans ce projet', text: `La page **Trading** permet le short en paper (stops inversés, liquidation et frais de marge simulés). En live il est désactivé par défaut : la marge Kraken n'a jamais été testée sur ton compte. Les exercices de ce tutoriel restent des achats.` },
+    ],
+    quiz: [
+      { q: `Tu fais un short à 100. Le prix passe à 90. Que se passe-t-il ?`, options: [`Tu perds 10`, `Tu gagnes 10 (avant frais)`, `Rien : un short ne gagne jamais`], answer: 1, explain: `Tu as vendu à 100 et tu rachètes à 90 : la différence est ton gain. Un short gagne quand le prix baisse.` },
+      { q: `Quel est le principal danger d'un short avec levier ?`, options: [`Les frais d'ouverture`, `La perte peut dépasser la mise et la position peut être liquidée si le prix monte`, `Il faut le garder au moins une semaine`], answer: 1, explain: `Le prix peut monter sans limite, et le levier amplifie la perte : d'où le stop loss obligatoire, placé bien avant la liquidation.` },
+    ],
+  },
+  {
     id: 'a-realite', module: 'avance', title: 'La réalité du trading', minutes: 7,
     summary: `Ce qu'aucune méthode ne peut te promettre, et les bonnes habitudes.`,
     blocks: [

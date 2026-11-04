@@ -1,6 +1,6 @@
 # Méthodes de trading
 
-Six méthodes classiques, **long uniquement**, signaux calculés sur les bougies **closes**. Plus aucun bot ne les exécute seul : elles servent à
+Six méthodes classiques, présentées **en long** (achat), signaux calculés sur les bougies **closes**. Plus aucun bot ne les exécute seul : elles servent à
 **apprendre** (tutoriel : leçons, simulateur et épreuves, `web/src/lib/learn/methods.ts`), à **tester** (backtest, `server/market/strategies.py`)
 et de vocabulaire commun avec **Claude** (Bot IA et propositions de trade).
 
@@ -18,9 +18,9 @@ si une règle change d'un côté, la modifier de l'autre.
 
 ## Trading manuel et propositions de Claude
 
-Sur la page Trading, les stops sont posés **par position** : stop loss, objectif (take profit) et stop suiveur, en % de l'entrée. Ils sont surveillés par
+Sur la page Trading (long ou short, voir [SHORT](SHORT.md)), les stops sont posés **par position** : stop loss, objectif (take profit) et stop suiveur, en % de l'entrée. Ils sont surveillés par
 le programme (toutes les 10 s par défaut), **pas chez Kraken**. « Demander à Claude » propose jusqu'à 4 presets à partir d'un résumé chiffré du marché en 4 h
-(RSI, EMA 20/50, Bollinger, plus hauts/bas, rendements, volatilité). Le code borne chaque preset : stop loss 0,5–10 %, objectif ≥ 1,02 % (au-dessus des frais), suiveur 0,5–10 %,
+(RSI, EMA 20/50, Bollinger, plus hauts/bas, rendements, volatilité). Le code borne chaque preset : sens long ou short (short seulement s'il est autorisé, levier borné, stop sous la liquidation), stop loss 0,5–10 %, objectif ≥ 1,02 % (au-dessus des frais), suiveur 0,5–10 %,
 repli de l'ordre limite 0,3–5 % ; les paires déjà détenues sont exclues et le montant reste à ton choix.
 
 ## Bot IA

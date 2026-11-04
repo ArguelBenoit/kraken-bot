@@ -27,3 +27,6 @@ export const MARKET_VISIBLE_ROWS = 8
 /** Seuils du RSI repris par le tableau et le graphique : survendu (vert) / suracheté (rouge). */
 export const RSI_OVERSOLD = 30
 export const RSI_OVERBOUGHT = 70
+
+/** Perte (en part de la garantie) à partir de laquelle un short est liquidé : estimation, comme côté serveur. */
+export const LIQ_LOSS = 0.8

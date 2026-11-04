@@ -7,10 +7,31 @@ export interface ManualConfig {
   paper_balance: number
   check_every: number
   max_order: number
+  max_leverage: number
+  margin_fee_pct: number
+  rollover_pct: number
+  allow_live_short: boolean
 }
+
+/** Sens d'une position : long = pari sur la hausse, short = pari sur la baisse (vente à découvert en marge). */
+export type Side = 'long' | 'short'
 
 export interface ManualPosition {
   id: string
+  side: Side
+  /** 1 pour un long ; 2 et plus pour un short. */
+  leverage: number
+  /** Short : prix de liquidation estimé. */
+  liq_price: number | null
+  /** Short : garantie immobilisée et frais d'ouverture payés. */
+  collateral?: number
+  open_fees?: number
+  /** Frais de report cumulés (short). */
+  rollover: number
+  /** Montant engagé à l'entrée : quantité × prix d'entrée. */
+  notional: number
+  /** Live : un stop est posé chez Kraken pour cette position ? null en paper. */
+  exchange_stop: boolean | null
   pair: string
   label: string
   qty: number
@@ -20,6 +41,7 @@ export interface ManualPosition {
   price: number
   value: number
   pnl: number
+  /** Variation du prix dans le sens qui fait gagner la position (hausse pour un long, baisse pour un short). */
   pnl_pct: number
   sl: number
   tp: number
@@ -32,6 +54,8 @@ export interface ManualPosition {
 
 export interface ManualPending {
   id: string
+  side: Side
+  leverage: number
   pair: string
   label: string
   size: number
@@ -44,7 +68,11 @@ export interface ManualPending {
 
 export interface PairTrade {
   time: string
+  /** Sens de l'ordre envoyé (BUY / SELL), pas celui de la position. */
   side: 'BUY' | 'SELL'
+  /** Trading manuel : sens de la position et ouverture / fermeture. */
+  dir?: Side
+  kind?: 'open' | 'close'
   pair: string
   price: number
   pnl: number
@@ -63,6 +91,8 @@ export interface ManualStatus {
   trades: PairTrade[]
   logs: string[]
   live_ok: boolean
+  /** Les shorts sont-ils autorisés dans le mode courant ? */
+  shorts_allowed: boolean
   /** ANTHROPIC_API_KEY définie côté serveur (propositions de trade). */
   claude_ok: boolean
   quote: { pair: string; price: number } | null

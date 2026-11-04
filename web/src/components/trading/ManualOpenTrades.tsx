@@ -2,6 +2,7 @@ import { LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { OpenTradeCard } from '@/components/trade/OpenTradeCard'
 import { Button } from '@/components/ui/Button'
+import { fm, fmPrice } from '@/lib/format'
 import { manualTradeInput } from '@/lib/trade'
 import type { ManualPosition } from '@/lib/types'
 import { useManualStore } from '@/stores/manualStore'
@@ -32,18 +33,26 @@ function EditStops({ p, onDone }: { p: ManualPosition; onDone: () => void }) {
 function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; live: boolean }) {
   const close = useManualStore((s) => s.closePosition)
   const [editing, setEditing] = useState(false)
+  const short = p.side === 'short'
 
   const sell = (fraction: number) => {
     const what = fraction >= 1 ? 'toute la position' : `${fraction * 100}% de la position`
-    const ok = window.confirm(`Vendre ${what} ${p.label} au prix du marché maintenant ?${live ? '\nMODE LIVE : ordre réel sur Kraken.' : ''}`)
+    const ok = window.confirm(`${short ? 'Racheter' : 'Vendre'} ${what} ${p.label} au prix du marché maintenant ?${live ? '\nMODE LIVE : ordre réel sur Kraken.' : ''}`)
     if (ok) void close(p.id, fraction, live)
   }
 
   return (
     <OpenTradeCard
-      pair={p.label}
+      pair={short ? `${p.label} · SHORT ×${p.leverage}` : p.label}
       input={manualTradeInput(p, feePct)}
-      info={<>ouvert le {p.opened}{p.trail > 0 && <> · suiveur {p.trail}% depuis le pic</>}</>}
+      info={
+        <>
+          ouvert le {p.opened}{p.trail > 0 && <> · suiveur {p.trail}% depuis le {short ? 'creux' : 'pic'}</>}
+          {p.exchange_stop === true && <> · <span className="t-ok">stop posé chez Kraken ✓</span></>}
+          {p.exchange_stop === false && (p.sl > 0 || p.trail > 0) && <> · <b className="t-ko">STOP NON POSÉ chez Kraken</b></>}
+          {short && p.liq_price != null && <> · <span className="t-ko">liquidation ≈ {fmPrice(p.liq_price, p.entry)}</span> · report {fm(p.rollover)}</>}
+        </>
+      }
       actions={
         <>
           <Button size="title" variant="sec" onClick={() => sell(0.25)}>25%</Button>
@@ -51,7 +60,7 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
           <Button size="title" variant="sec" onClick={() => setEditing((e) => !e)}>Stops</Button>
           <Button size="title" variant="ko" onClick={() => sell(1)}>
             <LogOut className="ic mr" />
-            Tout vendre
+            {short ? 'Tout racheter' : 'Tout vendre'}
           </Button>
         </>
       }

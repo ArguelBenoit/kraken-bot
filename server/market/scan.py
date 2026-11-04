@@ -12,11 +12,6 @@ RSI_PERIOD = 14
 EMA_FAST, EMA_SLOW = 20, 50
 
 
-def _asset_pair_keys():
-    """altname -> clé interne de Kraken, utilisée dans les réponses de Ticker."""
-    return memo("asset_pairs", 3600, lambda: {v["altname"]: k for k, v in kraken.public("AssetPairs").items()})
-
-
 def _row(pair, label, ticker, tf):
     price, open24 = float(ticker["c"][0]), float(ticker["o"])
     candles = kraken.closed_candles(pair, tf)
@@ -37,12 +32,12 @@ def _row(pair, label, ticker, tf):
 def scan(tf):
     """Une ligne par paire surveillée ; les paires injoignables sont marquées `error`. Mise en cache 60 s."""
     def compute():
-        keys = _asset_pair_keys()
+        pairs = kraken.asset_pairs()
         tickers = kraken.public("Ticker", pair=",".join(p for p, _ in WATCH))
         rows = []
         for pair, label in WATCH:
             try:
-                rows.append(_row(pair, label, tickers[keys[pair]], tf))
+                rows.append(_row(pair, label, tickers[pairs[pair]["key"]], tf))
             except Exception:
                 rows.append({"pair": pair, "label": label, "error": True})
             time.sleep(PAUSE)

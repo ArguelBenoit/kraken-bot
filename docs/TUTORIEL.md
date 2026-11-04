@@ -4,7 +4,7 @@ Page `/learn` : **100 % paper et 100 % navigateur**, aucun ordre n'est jamais en
 
 ## Contenu
 
-- **Cours** en 11 leçons (`web/src/lib/learn/content/`), tutoiement, jargon expliqué. Dans les textes : `[[id|texte]]` crée un lien vers le glossaire, `**gras**` met en valeur (`RichText`).
+- **Cours** en 12 leçons (dont une sur le short, théorique : les exercices restent des achats) (`web/src/lib/learn/content/`), tutoiement, jargon expliqué. Dans les textes : `[[id|texte]]` crée un lien vers le glossaire, `**gras**` met en valeur (`RichText`).
 - **Glossaire** cliquable (`glossary.ts`), **quiz** par leçon, **calculette de risque**, **explorateur de bougies**.
 - **Simulateur de replay** (`sim.ts`, `PracticeArena`) : un vrai moment passé (`/api/chart`, ≤ 720 bougies) révélé bougie par bougie. 80 bougies par exercice, 1 000 € fictifs,
   frais 0,26 %, stop testé avant l'objectif, gap exécuté à l'ouverture. Pour une méthode, le départ est choisi pour qu'un signal d'achat arrive après au moins 4 bougies calmes ;

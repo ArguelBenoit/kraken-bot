@@ -1,6 +1,6 @@
 # Kraken Bot
 
-Plateforme locale de trading crypto sur **Kraken** (spot, long uniquement, paire contre stablecoin USDC/USDT) : du **trading manuel
+Plateforme locale de trading crypto sur **Kraken** (spot, paire contre stablecoin USDC/USDT ; long, et short en marge) : du **trading manuel
 assisté par Claude**, un bot piloté par **Claude**, et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
 en **paper trading** (vrais prix, ordres simulés) par défaut.
 
@@ -11,7 +11,7 @@ en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 | Page | Rôle |
 |---|---|
-| **Trading** (accueil) | Tu passes tes ordres à la main (marché ou limite) avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
+| **Trading** (accueil) | Tu passes tes ordres à la main, **long** (achat) ou **short** (vente à découvert en marge, levier ×2 à ×5), au marché ou en limite, avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
 | **Bot IA** | Claude analyse le marché à intervalle régulier et gère jusqu'à 5 positions en parallèle. Claude ne fait que *proposer* : stops, tailles, exposition et perte journalière sont imposés par le code. |
 | **Tutoriel** | 100 % simulation, pour débutant complet : leçons en « tunnel », glossaire cliquable, quiz, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves (une par méthode) à valider. |
 
@@ -60,6 +60,8 @@ ils sont ignorés par git.
 - [Architecture](docs/ARCHITECTURE.md) — organisation du code, flux de données, conventions, comment ajouter une page / un réglage / une méthode.
 - [API](docs/API.md) — toutes les routes HTTP.
 - [Méthodes de trading](docs/STRATEGIES.md) — règles des 6 méthodes (tutoriel, Bot IA, backtest) et limites du backtest.
+- [Stops chez Kraken](docs/KRAKEN_STOPS.md) — ce qui est posé chez Kraken en live, cycle de vie, limites.
+- [Short et marge](docs/SHORT.md) — fonctionnement, formules, risques et marche à suivre avant le live.
 - [Tutoriel](docs/TUTORIEL.md) — conception pédagogique, épreuves, simulateur.
 
 ## Développement
@@ -74,7 +76,8 @@ python -m server.backtest ETHUSDC rsi    # backtest d'une méthode (outil de rec
 
 ## Limites connues
 
-- Live jamais testé avec de l'argent réel ; prix d'entrée approximatif (dernier prix, pas le prix exécuté) ; volume minimum Kraken ignoré.
-- Stops, objectifs et ordres limites sont surveillés **par ce programme** (contrôle toutes les 10 à 30 s), pas posés chez Kraken.
+- **Short** : simulé en paper (garantie, frais de marge et de report, liquidation estimée). En live il est **désactivé par défaut** : la marge Kraken n'a jamais été validée sur un compte réel (voir `docs/SHORT.md`).
+- Live jamais testé avec de l'argent réel (le Trading lit désormais le prix et le volume réellement exécutés et respecte `ordermin` ; le Bot IA garde encore l'approximation).
+- **Live** : le stop loss (ou à défaut le stop suiveur) du Trading est posé **chez Kraken** ; l'objectif, le stop suiveur d'un trade qui a aussi un stop loss, les ordres limites et tout le Bot IA restent surveillés **par ce programme** (contrôle toutes les 10 à 30 s). Ce chemin live n'a jamais été exécuté (voir `docs/SHORT.md` et `python -m server.check_kraken`).
 - Les bots ne redémarrent pas seuls et ne se coordonnent pas : ne pas les faire tourner en live en même temps sur le même compte.
 - Kraken ne fournit que 720 bougies par durée : les backtests sont courts et les résultats optimistes (biais de sélection).

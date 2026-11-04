@@ -15,15 +15,20 @@ function Preset({ p, onUse }: { p: TradeProposal; onUse: (p: TradeProposal) => v
   return (
     <div className={css.item}>
       <div className={css.top}>
-        <span className={css.title}>{p.label} · {p.title}</span>
+        <span className={css.title}>
+          {p.label}{p.side === 'short' && <b className="t-ko"> SHORT ×{p.leverage}</b>} · {p.title}
+        </span>
         <span className={css.conf}>confiance {Math.round(p.confidence * 100)} %</span>
       </div>
       <div className={css.levels}>
-        <span>{p.type === 'limit' ? `Limite ≤ ${fmPrice(p.limit_price ?? p.price)} (−${p.limit_discount_pct} %)` : `Marché ≈ ${fmPrice(p.price)}`}</span>
-        <span className="t-ko">SL −{p.sl_pct} %</span>
-        {p.tp_pct > 0 && <span className="t-ok">TP +{p.tp_pct} %</span>}
+        <span>{p.type === 'limit'
+            ? `Limite ${p.side === 'short' ? '≥' : '≤'} ${fmPrice(p.limit_price ?? p.price)} (${p.side === 'short' ? '+' : '−'}${p.limit_discount_pct} %)`
+            : `Marché ≈ ${fmPrice(p.price)}`}</span>
+        <span className="t-ko">SL {p.side === 'short' ? '+' : '−'}{p.sl_pct} %</span>
+        {p.tp_pct > 0 && <span className="t-ok">TP {p.side === 'short' ? '−' : '+'}{p.tp_pct} %</span>}
         {p.trail_pct > 0 && <span className="t-ac">suiveur {p.trail_pct} %</span>}
         {p.ratio != null && <span className="t-mu">gain/risque {p.ratio} : 1</span>}
+        {p.liq_price != null && <span className="t-mu">liquidation ≈ {fmPrice(p.liq_price, p.price)}</span>}
       </div>
       <div className={css.why}>{p.rationale}</div>
       <Button size="xs" onClick={() => onUse(p)}>Pré-remplir le ticket</Button>
@@ -40,7 +45,7 @@ export function ClaudeProposals() {
 
   const use = (p: TradeProposal) => {
     setTicket({
-      pair: p.pair, type: p.type, limit: p.limit_price ? text(p.limit_price) : '',
+      pair: p.pair, side: p.side, leverage: String(p.leverage), type: p.type, limit: p.limit_price ? text(p.limit_price) : '',
       sl: text(p.sl_pct), tp: text(p.tp_pct), trail: text(p.trail_pct),
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })

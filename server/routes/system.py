@@ -9,22 +9,23 @@ bp = Blueprint("system", __name__, url_prefix="/api")
 
 
 def _tally(positions):
-    """[(paire, prix d'entrée)] -> nombre de positions en gain / en perte au prix actuel (prix indisponible : ignoré)."""
+    """[(paire, prix d'entrée, short ?)] -> nombre de positions en gain / en perte au prix actuel (prix indisponible : ignoré)."""
     gain = loss = 0
-    for pair, entry in positions:
+    for pair, entry, short in positions:
         price = try_last_price(pair)
         if price is None or not entry:
             continue
-        gain += price > entry
-        loss += price < entry
+        move = (entry - price) if short else (price - entry)
+        gain += move > 0
+        loss += move < 0
     return {"gain": int(gain), "loss": int(loss)}
 
 
 @bp.get("/activity")
 def activity():
     """Bot IA (tourne ? positions) et trading manuel (positions, ordres en attente) : combien sont en gain / en perte."""
-    ai_positions = [(p["pair"], p["entry"]) for p in list(ai.state["positions"])]
-    manual_positions = [(p["pair"], p["entry"]) for p in list(manual.state["positions"])]
+    ai_positions = [(p["pair"], p["entry"], False) for p in list(ai.state["positions"])]
+    manual_positions = [(p["pair"], p["entry"], p.get("side") == "short") for p in list(manual.state["positions"])]
     return jsonify(
         ai={"running": ai.running, "positions": len(ai_positions), **_tally(ai_positions)},
         manual={"positions": len(manual_positions), "pending": len(manual.state["pending"]), **_tally(manual_positions)},

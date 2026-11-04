@@ -6,12 +6,21 @@ import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { computeOpenTrade, type OpenTradeInput, type OpenTradeView } from '@/lib/trade'
 import css from './OpenTradeCard.module.css'
 
-const TIPS = {
+const LONG_TIPS = {
   value: "Valeur d'achat = ce que tu as dépensé pour ce trade (le montant du ticket, frais d'achat compris). Valeur actuelle = ce que vaut l'actif maintenant (quantité × prix actuel), avant les frais de vente.",
   gain: "Gain brut = quantité × (prix actuel − prix d'achat), sans frais. Gain net estimé = ce que tu récupérerais en vendant maintenant, frais d'achat et de vente déduits.",
   stop: "Prix de déclenchement du stop (le plus haut entre le stop loss et le stop suiveur) et sa distance par rapport à l'achat. Si le prix l'atteint, la position est vendue.",
   entry: "Prix auquel tu as acheté. Au-dessus, le trade gagne ; en dessous, il perd.",
   exit: "Objectif (take profit) : la position est vendue s'il est atteint. Sans objectif, c'est le plus haut atteint depuis l'achat (pic), que le stop suiveur utilise comme repère.",
+} as const
+
+/** Infobulles d'un short : tout est inversé (gain quand le prix baisse) et la position peut être liquidée. */
+const SHORT_TIPS = {
+  value: "Valeur de vente = ce que tu as vendu à découvert (quantité × prix d'entrée). Valeur de rachat = ce qu'il faudrait payer pour racheter maintenant (quantité × prix actuel).",
+  gain: "Gain brut = quantité × (prix de vente − prix actuel), sans frais. Gain net estimé = ce que tu garderais en rachetant maintenant, frais d'ouverture, de rachat et de report déduits.",
+  stop: "Prix de déclenchement du stop (le plus bas entre le stop loss et le stop suiveur) et sa distance par rapport à la vente. Si le prix MONTE jusque-là, la position est rachetée pour limiter la perte.",
+  entry: "Prix auquel tu as vendu à découvert. En dessous, le trade gagne ; au-dessus, il perd.",
+  exit: "Objectif (take profit) : la position est rachetée s'il est atteint. Sans objectif, c'est le plus bas atteint depuis la vente (creux), que le stop suiveur utilise comme repère.",
 } as const
 
 /** Barre stop → objectif ; le prix actuel est écrit au-dessus du repère orange (décalé pour rester dans la barre aux extrémités). */
@@ -31,12 +40,14 @@ function Gauge({ v, price }: { v: OpenTradeView; price: string }) {
 }
 
 function Body({ v, info }: { v: OpenTradeView; info?: ReactNode }) {
+  const short = v.side === 'short'
+  const TIPS = short ? SHORT_TIPS : LONG_TIPS
   const pr = (x: number) => fmPrice(x, v.entry).replace(/\s/g, '')         // même précision partout, selon le prix d'achat ; sans séparateur de milliers (carte compacte)
   const cls = gainClass(v.chg)
   return (
     <>
       <div className={css.grid}>
-        <div><small>Valeur d&apos;achat / actuelle<Tip text={TIPS.value} /></small><b>{fm(v.cost)}</b> / <b>{fm(v.value)}</b></div>
+        <div><small>{short ? 'Valeur de vente / de rachat' : 'Valeur d’achat / actuelle'}<Tip text={TIPS.value} /></small><b>{fm(v.cost)}</b> / <b>{fm(v.value)}</b></div>
         <div>
           <small>Gain brut / net estimé<Tip text={TIPS.gain} right /></small>
           <b className={cls}>{signed(v.grossGain)}</b> / <b className={gainClass(v.netGain)}>{signed(v.netGain)}</b>
@@ -49,11 +60,11 @@ function Body({ v, info }: { v: OpenTradeView; info?: ReactNode }) {
         ) : (
           <span className="t-ko"><ChevronLeft className="ic" />aucun stop<Tip text={TIPS.stop} /></span>
         )}
-        <span>│ achat {pr(v.entry)}<Tip text={TIPS.entry} /></span>
+        <span>│ {short ? 'vente' : 'achat'} {pr(v.entry)}<Tip text={TIPS.entry} /></span>
         {v.tpPrice != null && v.tpChg != null ? (
-          <span className="t-ok">VENTE {signed(v.tpChg)}% · {pr(v.tpPrice)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
+          <span className="t-ok">{short ? 'RACHAT' : 'VENTE'} {signed(v.tpChg)}% · {pr(v.tpPrice)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
         ) : (
-          <span className="t-ok">pic {signed(v.peakPct)}% · {pr(v.peak)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
+          <span className="t-ok">{short ? 'creux' : 'pic'} {signed(v.peakPct)}% · {pr(v.peak)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
         )}
       </div>
       {v.zone && (

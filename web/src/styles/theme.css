@@ -142,3 +142,5 @@ pre.log { margin: 0; max-height: 180px; overflow: auto; font-size: 12px; color: 
 .summary { border: 1px dashed var(--bd); padding: 8px 10px; margin: 10px 0; display: grid; grid-template-columns: 1fr auto; gap: 3px 12px; font-size: 12px; }
 .summary span:nth-child(odd) { color: var(--mu); }
 .summary span:nth-child(even) { text-align: right; }
+.btn.sell { background: var(--ko); border-color: var(--ko); }
+.seg button.on.short { background: var(--ko); border-color: var(--ko); }

@@ -1,15 +1,19 @@
-import type { AiPosition, ManualPosition } from './types'
+import type { AiPosition, ManualPosition, Side } from './types'
 
 /** Ce qu'il faut savoir d'une position pour l'afficher (indépendant du bot qui la gère). */
 export interface OpenTradeInput {
+  /** Sens de la position (long par défaut). Un short gagne quand le prix baisse : stops au-dessus, objectif en dessous. */
+  side?: Side
   entry: number
   qty: number
   /** Prix actuel ; null = indisponible. */
   price: number | null
-  /** Montant dépensé à l'achat (frais d'achat inclus). */
+  /** Long : montant dépensé à l'achat (frais compris). Short : montant vendu (quantité × prix d'entrée). */
   cost: number
   feePct: number
-  /** Plus haut atteint depuis l'achat. */
+  /** Frais déjà payés ou à payer en plus des frais de fermeture (short : ouverture et report). */
+  fixedFees?: number
+  /** Meilleur prix atteint depuis l'entrée : le plus haut pour un long, le plus bas pour un short. */
   peak?: number
   /** Prix du stop effectif (stop loss ou stop suiveur, le plus haut des deux) ; null = aucun stop. */
   stopPrice: number | null
@@ -18,6 +22,7 @@ export interface OpenTradeInput {
 }
 
 export interface OpenTradeView {
+  side: Side
   entry: number
   px: number
   qty: number
@@ -26,10 +31,10 @@ export interface OpenTradeView {
   grossGain: number
   netGain: number
   chg: number
-  /** up/dn : couleur de la carte selon que le prix est au-dessus ou sous l'entrée. */
+  /** up/dn : couleur de la carte selon que la position gagne ou perd. */
   tone: 'up' | 'dn'
   stopPrice: number | null
-  /** Variation (%) au niveau du stop, depuis l'entrée (négative, ou positive si un suiveur protège déjà un gain). */
+  /** Variation favorable (%) au niveau du stop, depuis l'entrée (négative, ou positive si un suiveur protège déjà un gain). */
   stopChg: number | null
   tpPrice: number | null
   tpChg: number | null
@@ -50,13 +55,17 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
   const px = i.price
   if (px == null || !i.qty || i.entry <= 0) return null
   const { entry, qty } = i
+  const side = i.side ?? 'long'
+  const short = side === 'short'
   const fee = i.feePct / 100
-  const chg = (px / entry - 1) * 100
+  // variation « favorable » en % depuis l'entrée : hausse pour un long, baisse pour un short
+  const fav = (price: number) => (short ? (entry - price) / entry : price / entry - 1) * 100
+  const chg = fav(px)
   const value = qty * px
-  const peak = Math.max(i.peak ?? entry, px)
-  const peakPct = (peak / entry - 1) * 100
-  const stopChg = i.stopPrice == null ? null : (i.stopPrice / entry - 1) * 100
-  const tpChg = i.tpPrice == null ? null : (i.tpPrice / entry - 1) * 100
+  const peak = short ? Math.min(i.peak ?? entry, px) : Math.max(i.peak ?? entry, px)
+  const peakPct = fav(peak)
+  const stopChg = i.stopPrice == null ? null : fav(i.stopPrice)
+  const tpChg = i.tpPrice == null ? null : fav(i.tpPrice)
 
   // bornes : du stop à l'objectif ; sans objectif, jusqu'au pic atteint (+ la distance du stop) ; sans stop, symétrique
   const lo = stopChg ?? -Math.max(2, Math.abs(chg) + 1)
@@ -66,15 +75,15 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
   const ent = clamp(((0 - lo) / total) * 100)
 
   let zone: OpenTradeView['zone'] = null
-  if (i.stopPrice != null && px <= i.stopPrice) zone = { icon: 'ban', text: 'zone de stop atteinte' }
-  else if (i.tpPrice != null && px >= i.tpPrice) zone = { icon: 'target', text: 'zone de vente atteinte' }
+  if (i.stopPrice != null && (short ? px >= i.stopPrice : px <= i.stopPrice)) zone = { icon: 'ban', text: 'zone de stop atteinte' }
+  else if (i.tpPrice != null && (short ? px <= i.tpPrice : px >= i.tpPrice)) zone = { icon: 'target', text: short ? 'zone de rachat atteinte' : 'zone de vente atteinte' }
 
   return {
-    entry, px, qty, cost: i.cost, value, chg, peak, peakPct, lo, hi, zone,
+    side, entry, px, qty, cost: i.cost, value, chg, peak, peakPct, lo, hi, zone,
     stopPrice: i.stopPrice, stopChg, tpPrice: i.tpPrice, tpChg,
-    grossGain: value - qty * entry,
-    netGain: value * (1 - fee) - i.cost,
-    tone: px >= entry ? 'up' : 'dn',
+    grossGain: short ? qty * (entry - px) : value - qty * entry,
+    netGain: short ? qty * (entry - px) - value * fee - (i.fixedFees ?? 0) : value * (1 - fee) - i.cost,
+    tone: chg >= 0 ? 'up' : 'dn',
     gauge: chg >= 0
       ? { pos, entry: ent, fillLeft: ent, fillWidth: Math.max(0, pos - ent), positive: true }
       : { pos, entry: ent, fillLeft: pos, fillWidth: Math.max(0, ent - pos), positive: false },
@@ -85,11 +94,17 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
 
 const maxOrNull = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
 
-/** Trading manuel : stop effectif = le plus haut entre stop loss et stop suiveur. */
+/** Stop effectif = le plus protecteur : le plus haut des deux pour un long, le plus bas pour un short. */
+const nearest = (a: number | null, b: number | null, short: boolean) =>
+  a == null ? b : b == null ? a : short ? Math.min(a, b) : Math.max(a, b)
+
+/** Trading manuel : long ou short ; pour un short, frais fixes = ouverture (déjà payés) + report cumulé. */
 export function manualTradeInput(p: ManualPosition, feePct: number): OpenTradeInput {
+  const short = p.side === 'short'
   return {
-    entry: p.entry, qty: p.qty, price: p.price, cost: p.cost, peak: p.peak, feePct,
-    stopPrice: maxOrNull(p.sl_price, p.trail_price), tpPrice: p.tp_price,
+    side: p.side, entry: p.entry, qty: p.qty, price: p.price, cost: short ? p.notional : p.cost, peak: p.peak, feePct,
+    fixedFees: short ? (p.open_fees ?? 0) + p.rollover : 0,
+    stopPrice: nearest(p.sl_price, p.trail_price, short), tpPrice: p.tp_price,
   }
 }
 

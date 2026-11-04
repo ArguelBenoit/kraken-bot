@@ -1,21 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '@/lib/api'
+import type { Ticket } from '@/lib/ticket'
 import type { ManualConfig, ManualStatus, Mode, Notice } from '@/lib/types'
 import { runAction } from './runAction'
 
-/** Formulaire d'ordre (valeurs en texte tant que l'utilisateur tape). */
-export interface Ticket {
-  pair: string
-  size: string
-  type: 'market' | 'limit'
-  limit: string
-  sl: string
-  tp: string
-  trail: string
-}
-
-const DEFAULT_TICKET: Ticket = { pair: 'XBTUSDC', size: '100', type: 'market', limit: '', sl: '2', tp: '4', trail: '0' }
+const DEFAULT_TICKET: Ticket = { side: 'long', leverage: '2', pair: 'XBTUSDC', size: '100', type: 'market', limit: '', sl: '2', tp: '4', trail: '0' }
 
 interface ManualStore {
   status: ManualStatus | null
@@ -58,10 +48,10 @@ export const useManualStore = create<ManualStore>()(
         submit: (live) => {
           const t = get().ticket
           const body = {
-            pair: t.pair, size: Number(t.size), type: t.type, limit_price: Number(t.limit),
+            pair: t.pair, side: t.side, leverage: Number(t.leverage), size: Number(t.size), type: t.type, limit_price: Number(t.limit),
             sl_pct: Number(t.sl || 0), tp_pct: Number(t.tp || 0), trail_pct: Number(t.trail || 0), confirm: live || undefined,
           }
-          return run(() => api.post('/api/manual/order', body), t.type === 'limit' ? 'Ordre limite placé' : 'Ordre exécuté')
+          return run(() => api.post('/api/manual/order', body), t.type === 'limit' ? 'Ordre limite placé' : t.side === 'short' ? 'Short ouvert' : 'Ordre exécuté')
         },
 
         closePosition: async (id, fraction, live) => {
@@ -87,6 +77,11 @@ export const useManualStore = create<ManualStore>()(
         },
       }
     },
-    { name: 'manual-ticket', partialize: (s) => ({ ticket: s.ticket }) },
+    {
+      name: 'manual-ticket',
+      partialize: (s) => ({ ticket: s.ticket }),
+      // un ticket enregistré avant l'arrivée du short n'a ni sens ni levier : on complète avec les valeurs par défaut
+      merge: (saved, current) => ({ ...current, ticket: { ...DEFAULT_TICKET, ...(saved as Partial<ManualStore>)?.ticket } }),
+    },
   ),
 )

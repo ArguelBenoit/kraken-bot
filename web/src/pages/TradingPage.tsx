@@ -12,7 +12,7 @@ import { ManualOpenTrades } from '@/components/trading/ManualOpenTrades'
 import { PendingOrdersCard } from '@/components/trading/PendingOrdersCard'
 import { useTradingSync } from '@/hooks/useTradingSync'
 import { fm, gainClass, signed } from '@/lib/format'
-import { previewTicket } from '@/lib/ticket'
+import { previewFromTicket } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
 
@@ -25,14 +25,15 @@ function useChartLevels(): ChartLevel[] {
     if (!chartPair || !status) return []
     const out: ChartLevel[] = []
     for (const p of status.positions.filter((x) => x.pair === chartPair)) {
-      out.push({ price: p.entry, color: '#d4d0c0', title: 'achat' })
+      out.push({ price: p.entry, color: '#d4d0c0', title: p.side === 'short' ? 'short' : 'achat' })
+      if (p.liq_price) out.push({ price: p.liq_price, color: '#ff4d4d', title: 'liquidation' })
       if (p.sl_price) out.push({ price: p.sl_price, color: '#ff4d4d', title: 'SL' })
       if (p.tp_price) out.push({ price: p.tp_price, color: '#3ddc84', title: 'TP' })
       if (p.trail_price) out.push({ price: p.trail_price, color: '#ff7a1a', title: 'suiveur' })
     }
     for (const o of status.pending.filter((x) => x.pair === chartPair)) out.push({ price: o.limit, color: '#4aa3ff', title: 'limite' })
     if (t.pair === chartPair && status.quote?.pair === chartPair) {
-      const pv = previewTicket({ price: status.quote.price, size: Number(t.size), feePct: status.config.fee_pct, slPct: Number(t.sl || 0), tpPct: Number(t.tp || 0), type: t.type, limitPrice: Number(t.limit) })
+      const pv = previewFromTicket(t, status.config, status.quote.price)
       if (pv?.slPrice) out.push({ price: pv.slPrice, color: '#ff4d4d88', title: 'SL (ordre)' })
       if (pv?.tpPrice) out.push({ price: pv.tpPrice, color: '#3ddc8488', title: 'TP (ordre)' })
     }
@@ -67,7 +68,7 @@ export function TradingPage() {
         <Kpi label="Équité" tip="Cash + valeur des positions ouvertes au prix actuel.">
           <b>{live ? 'n/a' : fm(status?.equity)}</b>
         </Kpi>
-        <Kpi label="Positions" tip="Positions ouvertes. Leurs stops sont surveillés par ce programme, pas par Kraken.">
+        <Kpi label="Positions" tip="Positions ouvertes. En paper, leurs stops sont simulés par ce programme ; en live, le stop loss est posé chez Kraken (objectif et stop suiveur restent surveillés ici).">
           <b>{status ? status.positions.length : '–'}</b>
         </Kpi>
       </Header>

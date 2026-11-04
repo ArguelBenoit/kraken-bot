@@ -13,14 +13,14 @@ export function PendingOrdersCard({ pending }: { pending: ManualPending[] }) {
   return (
     <Card title="Ordres en attente" icon={Clock}>
       <table>
-        <thead><tr><th>Paire</th><th>Montant<Tip text="Montant réservé pour cet ordre (en paper, retiré du cash tant que l'ordre est en attente)." /></th><th>Achat si prix ≤<Tip text="L'achat est déclenché quand le prix descend à cette valeur ou en dessous." /></th><th>SL / TP<Tip text="Stop loss et take profit appliqués à la position une fois l'achat exécuté." right /></th><th /></tr></thead>
+        <thead><tr><th>Paire</th><th>Montant<Tip text="Montant réservé pour cet ordre (en paper, retiré du cash tant que l'ordre est en attente)." /></th><th>Déclenche si prix<Tip text="Achat (long) : déclenché quand le prix descend à cette valeur ou en dessous (≤). Short : déclenché quand le prix monte à cette valeur ou au-dessus (≥)." /></th><th>SL / TP<Tip text="Stop loss et take profit appliqués à la position une fois l'achat exécuté." right /></th><th /></tr></thead>
         <tbody>
           {pending.map((o) => (
             <tr key={o.id}>
-              <td><b>{o.label}</b><br /><small className="t-mu">{o.created}</small></td>
+              <td><b>{o.label}</b>{o.side === 'short' && <b className="t-ko"> SHORT ×{o.leverage}</b>}<br /><small className="t-mu">{o.created}</small></td>
               <td>{fm(o.size)}</td>
-              <td>{fmPrice(o.limit)}</td>
-              <td className="small">{o.sl ? `−${o.sl}%` : '–'} / {o.tp ? `+${o.tp}%` : '–'}</td>
+              <td>{o.side === 'short' ? '≥' : '≤'} {fmPrice(o.limit)}</td>
+              <td className="small">{o.sl ? `${o.side === 'short' ? '+' : '−'}${o.sl}%` : '–'} / {o.tp ? `${o.side === 'short' ? '−' : '+'}${o.tp}%` : '–'}</td>
               <td><Button size="xs" variant="ko" onClick={() => void cancel(o.id)}>Annuler</Button></td>
             </tr>
           ))}
