@@ -21,7 +21,9 @@ Après une modif du code : relancer le serveur (Ctrl+C puis `python app.py`) pui
 | `app.py` | Flask : routes + chargement de `.env`. |
 | `bot.py` | Classe `Bot` : boucle (thread), stratégie, ordres, état, presets épinglés, scan du marché, données du graphique. |
 | `kraken.py` | Client Kraken : public (OHLC, Ticker) et privé signé HMAC (`AddOrder` au marché). |
-| `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`). |
+| `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`), `trend`, et les 4 nouvelles méthodes. |
+| `strategies.py` | Signaux purs des méthodes Bollinger / Donchian / MACD / Momentum (`signal()`), ATR, filtre de tendance : partagés par le bot, le scan et le backtest. |
+| `indicators.py` | `ema_series`, `rsi_series` (ré-exportés par `bot.py`). |
 | `templates/index.html` | Toute l'UI (HTML + CSS + JS dans un seul fichier). |
 | `static/` | `lightweight-charts.js` (TradingView 4.1.3, local) et `icons.svg` (sprite Lucide 0.468.0, ISC). |
 | `config.json` | Réglages enregistrés (créé au 1er « Enregistrer »). Ignoré par git. |
@@ -42,6 +44,14 @@ dernière bougie close ; sortie sur croisement baissier, `stop_loss_pct` fixe ou
 (0 = off). Pas de take profit. `state["trend_block"]` empêche de racheter sur la bougie de la sortie. Backtest : `python backtest.py ETHUSDC trend [frais]`
 (résultats non concluants : trop peu de trades sur 720 bougies, aucun preset tendance fourni). Le graphique trace les 2 EMA, le tableau Marché
 affiche Haussier/Baissier/Croisement et se trie par croisement puis écart EMA, la jauge du trade en cours va du stop effectif au pic.
+
+**Méthodes à signaux (`_tick_signal`, `strategies.py`)** : `bollinger` (achat sous la bande basse, vente à la moyenne, TP + SL),
+`donchian` (achat sur cassure du plus haut de `dc_entry` bougies, vente sous le plus bas de `dc_exit`, SL + stop suiveur),
+`macd` (croisement MACD/signal, SL + stop suiveur), `momentum` (hausse ≥ `mom_min_pct` sur `mom_period` bougies et RSI < 80, vente si la hausse repasse < 0, SL + suiveur).
+Options **communes à toutes les méthodes** : filtre de tendance `filter_ema` (achat seulement si cours > EMA(N), sur `filter_tf` = confirmation multi-timeframe ;
+non appliqué au tableau Marché) et `atr_stop` (stop = entrée − N×ATR(14) mémorisé dans `state["stop_px"]`, remplace le stop en %).
+Backtest : `python backtest.py ETHUSDC <bollinger|donchian|macd|momentum> [frais] [filtre_ema]`. Non encore évaluées sur la durée : à tester en paper.
+Non implémentées : grille et DCA (incompatibles avec « une seule position », voir branche `feature/bot-ia` pour le multi-positions), rotation entre paires.
 
 **RSI** (méthode d'origine) :
 

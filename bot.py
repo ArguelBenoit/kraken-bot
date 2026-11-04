@@ -3,6 +3,8 @@ from datetime import datetime
 from pathlib import Path
 
 import kraken
+from indicators import ema_series, rsi_series   # noqa: F401 (ré-exportés : backtest.py, ai_bot.py)
+import strategies
 
 ROOT = Path(__file__).parent
 CONFIG_FILE, STATE_FILE = ROOT / "config.json", ROOT / "state.json"
@@ -25,13 +27,30 @@ DEFAULT_CONFIG = {
     "trailing_pct": 5.0,        # trend : stop suiveur depuis le plus haut (0 = désactivé)
     "check_every": 30,          # secondes entre deux analyses
     "paper_balance": 1000.0,    # capital de départ du paper trading
+    "bb_period": 20,            # bollinger : période de la moyenne
+    "bb_std": 2.0,              # bollinger : nb d'écarts-types (achat sous la bande basse, vente à la moyenne)
+    "dc_entry": 20,             # donchian : achat si cassure du plus haut des N bougies précédentes
+    "dc_exit": 10,              # donchian : vente si cassure du plus bas des N bougies précédentes
+    "macd_fast": 12,            # macd : EMA rapide
+    "macd_slow": 26,            # macd : EMA lente
+    "macd_signal": 9,           # macd : EMA du signal
+    "mom_period": 24,           # momentum : hausse mesurée sur N bougies
+    "mom_min_pct": 3.0,         # momentum : achat si hausse >= ce %, vente si la hausse repasse sous 0
+    "filter_ema": 0,            # filtre de tendance (toutes méthodes) : achat seulement si cours > EMA(N). 0 = désactivé
+    "filter_tf": 0,             # timeframe du filtre (0 = celui de la stratégie, sinon 60 / 240 / 1440)
+    "atr_stop": 0.0,            # stop = prix d'entrée − N × ATR(14) à la place du stop loss en % (0 = désactivé)
 }
 PIN_FIELDS = ["pair", "timeframe", "rsi_period", "rsi_buy", "rsi_sell", "take_profit_pct",
-              "stop_loss_pct", "order_size", "fee_pct", "check_every", "strategy", "ma_fast", "ma_slow", "trailing_pct", "instant_entry"]
+              "stop_loss_pct", "order_size", "fee_pct", "check_every", "strategy", "ma_fast", "ma_slow", "trailing_pct", "instant_entry",
+              "bb_period", "bb_std", "dc_entry", "dc_exit", "macd_fast", "macd_slow", "macd_signal", "mom_period", "mom_min_pct",
+              "filter_ema", "filter_tf", "atr_stop"]
 LIMITS = {"order_size": (5, 100000), "rsi_period": (2, 100), "rsi_buy": (1, 50), "rsi_sell": (50, 99),
           "take_profit_pct": (0.1, 50), "stop_loss_pct": (0.1, 50), "check_every": (10, 3600),
-          "ma_fast": (2, 200), "ma_slow": (5, 400), "trailing_pct": (0, 50)}
-STRATEGIES = ("rsi", "trend")
+          "ma_fast": (2, 200), "ma_slow": (5, 400), "trailing_pct": (0, 50),
+          "bb_period": (5, 200), "bb_std": (0.5, 4), "dc_entry": (5, 200), "dc_exit": (2, 100), "macd_fast": (2, 100),
+          "macd_slow": (5, 200), "macd_signal": (2, 50), "mom_period": (2, 200), "mom_min_pct": (0, 100),
+          "filter_ema": (0, 400), "filter_tf": (0, 1440), "atr_stop": (0, 10)}
+STRATEGIES = ("rsi", "trend") + strategies.NEW
 
 
 def rsi(closes, n):
@@ -56,9 +75,11 @@ _scan_cache = {}
 _pair_keys = {}
 
 
-def scan(tf, period, fast=20, slow=50):
+def scan(tf, period, fast=20, slow=50, cfg=None):
     """Tableau comparatif des paires pour un timeframe (cache 60 s)."""
-    hit = _scan_cache.get((tf, period, fast, slow))
+    use = bool(cfg) and cfg["strategy"] in strategies.NEW
+    ck = (tf, period, fast, slow, tuple(sorted(cfg.items())) if use else None)
+    hit = _scan_cache.get(ck)
     if hit and time.time() - hit[0] < 60:
         return hit[1]
     if not _pair_keys:
@@ -76,28 +97,19 @@ def scan(tf, period, fast=20, slow=50):
             last = candles[-30:]
             volat = sum((c[2] - c[3]) / c[4] for c in last) / len(last) * 100
             ts = trend_state(closes, fast, slow)
-            rows.append({"pair": pair, "label": label, "price": price, "chg24": (price / open_ - 1) * 100,
-                         "vol24": vol, "rsi": r, "volat": volat,
-                         "trend_gap": (ts[0] / ts[1] - 1) * 100 if ts else None, "trend_cross": bool(ts and ts[2])})
+            row = {"pair": pair, "label": label, "price": price, "chg24": (price / open_ - 1) * 100,
+                   "vol24": vol, "rsi": r, "volat": volat,
+                   "trend_gap": (ts[0] / ts[1] - 1) * 100 if ts else None, "trend_cross": bool(ts and ts[2])}
+            if use:
+                row["sig"] = strategies.signal(cfg["strategy"], candles, cfg)
+            rows.append(row)
         except Exception:
             rows.append({"pair": pair, "label": label, "error": True})
         time.sleep(0.4)
-    _scan_cache[(tf, period, fast, slow)] = (time.time(), rows)
+    _scan_cache[ck] = (time.time(), rows)
     return rows
 
 
-def ema_series(closes, n):
-    """EMA de période n ; None tant que n bougies ne sont pas disponibles (amorcée par la moyenne simple)."""
-    out = [None] * len(closes)
-    if len(closes) < n:
-        return out
-    e = sum(closes[:n]) / n
-    out[n - 1] = e
-    k = 2 / (n + 1)
-    for i in range(n, len(closes)):
-        e = closes[i] * k + e * (1 - k)
-        out[i] = e
-    return out
 
 
 def trend_state(closes, fast, slow):
@@ -108,20 +120,6 @@ def trend_state(closes, fast, slow):
     return f[-1], sl[-1], (f[-2] <= sl[-2] and f[-1] > sl[-1])
 
 
-def rsi_series(closes, n):
-    """RSI (lissage de Wilder) pour chaque bougie ; None tant que les données manquent."""
-    out = [None] * len(closes)
-    if len(closes) <= n:
-        return out
-    ag = sum(max(closes[i] - closes[i-1], 0) for i in range(1, n + 1)) / n
-    al = sum(max(closes[i-1] - closes[i], 0) for i in range(1, n + 1)) / n
-    for i in range(n, len(closes)):
-        if i > n:
-            d = closes[i] - closes[i-1]
-            ag = (ag * (n - 1) + max(d, 0)) / n
-            al = (al * (n - 1) + max(-d, 0)) / n
-        out[i] = 100.0 if al == 0 else 100 - 100 / (1 + ag / al)
-    return out
 
 
 class Bot:
@@ -169,6 +167,10 @@ class Bot:
             raise ValueError("méthode invalide")
         if cfg["ma_fast"] >= cfg["ma_slow"]:
             raise ValueError("ma_fast doit être < ma_slow")
+        if cfg["macd_fast"] >= cfg["macd_slow"]:
+            raise ValueError("macd_fast doit être < macd_slow")
+        if cfg["filter_tf"] not in (0, 15, 60, 240, 1440):
+            raise ValueError("filter_tf doit valoir 0, 15, 60, 240 ou 1440")
         if cfg["mode"] not in ("paper", "live"):
             raise ValueError("mode invalide")
         if cfg["mode"] != self.config["mode"] and (self.running or self.state.get("qty")):
@@ -260,6 +262,8 @@ class Bot:
         pair = (self.state.get("pair") or c["pair"]) if self.state["qty"] > 0 else c["pair"]
         if c["strategy"] == "trend":
             return self._tick_trend(pair)
+        if c["strategy"] in strategies.NEW:
+            return self._tick_signal(pair)
         closes = kraken.candles(pair, c["timeframe"])
         price = kraken.last_price(pair)
         r = rsi(closes, c["rsi_period"])
@@ -268,14 +272,14 @@ class Bot:
             return self.log("Pas assez de données pour le RSI")
         s = self.state
         if s["qty"] == 0:
-            if r <= c["rsi_buy"]:
+            if r <= c["rsi_buy"] and self._filter_ok(pair):
                 self._buy(price, f"RSI {r:.1f} <= {c['rsi_buy']}")
         else:
             chg = (price / s["entry"] - 1) * 100
             if chg >= c["take_profit_pct"]:
                 self._sell(price, f"take profit {chg:+.2f}%")
-            elif chg <= -c["stop_loss_pct"]:
-                self._sell(price, f"stop loss {chg:+.2f}%")
+            elif self._sl_reason(price, chg):
+                self._sell(price, self._sl_reason(price, chg))
             elif r >= c["rsi_sell"]:
                 self._sell(price, f"RSI {r:.1f} >= {c['rsi_sell']}")
 
@@ -294,14 +298,14 @@ class Bot:
         candle = rows[-1][0]
         if s["qty"] == 0:
             # une seule entrée par bougie : pas de rachat immédiat après une sortie sur la même bougie
-            if (cross or (c.get("instant_entry") and fast > slow)) and s.get("trend_block") != candle:
+            if (cross or (c.get("instant_entry") and fast > slow)) and s.get("trend_block") != candle and self._filter_ok(pair, rows):
                 self._buy(price, f"{'croisement' if cross else 'tendance haussière'} EMA{c['ma_fast']} > EMA{c['ma_slow']}")
         else:
             s["peak"] = max(s.get("peak") or s["entry"], price)
             chg = (price / s["entry"] - 1) * 100
             reason = None
-            if chg <= -c["stop_loss_pct"]:
-                reason = f"stop loss {chg:+.2f}%"
+            if self._sl_reason(price, chg):
+                reason = self._sl_reason(price, chg)
             elif c["trailing_pct"] > 0 and price <= s["peak"] * (1 - c["trailing_pct"] / 100):
                 reason = f"stop suiveur −{c['trailing_pct']}% depuis le pic ({chg:+.2f}%)"
             elif fast < slow:
@@ -311,6 +315,62 @@ class Bot:
                 self._sell(price, reason)
             else:
                 self._save()
+
+    def _tick_signal(self, pair):
+        """Bollinger / Donchian / MACD / Momentum : signaux de `strategies.signal` sur la dernière bougie close.
+        Sorties : stop (loss % ou ATR), signal de sortie, et selon la méthode take profit (Bollinger) ou stop suiveur (les autres)."""
+        c, s = self.config, self.state
+        rows = kraken.ohlc(pair, c["timeframe"])[:-1]
+        price = kraken.last_price(pair)
+        sg = strategies.signal(c["strategy"], rows, c)
+        self.last = {"price": price, "rsi": None, "time": datetime.now().strftime("%H:%M:%S"), "info": sg["info"]}
+        if sg["info"] == "données insuffisantes":
+            return self.log("Pas assez de données pour cette méthode")
+        candle = rows[-1][0]
+        if s["qty"] == 0:
+            if sg["buy"] and s.get("trend_block") != candle and self._filter_ok(pair, rows):
+                self._buy(price, f"{c['strategy']} : {sg['info']}")
+        else:
+            s["peak"] = max(s.get("peak") or s["entry"], price)
+            chg = (price / s["entry"] - 1) * 100
+            reason = self._sl_reason(price, chg)
+            if not reason and c["strategy"] == "bollinger" and chg >= c["take_profit_pct"]:
+                reason = f"take profit {chg:+.2f}%"
+            elif not reason and c["strategy"] != "bollinger" and c["trailing_pct"] > 0 and price <= s["peak"] * (1 - c["trailing_pct"] / 100):
+                reason = f"stop suiveur −{c['trailing_pct']}% depuis le pic ({chg:+.2f}%)"
+            elif not reason and sg["sell"]:
+                reason = f"sortie {c['strategy']} : {sg['info']} ({chg:+.2f}%)"
+            if reason:
+                s["trend_block"] = candle
+                self._sell(price, reason)
+            else:
+                self._save()
+
+    def _sl_reason(self, price, chg):
+        """Texte de sortie si le stop est touché (ATR si actif et connu pour cette position, sinon stop loss en %), sinon None."""
+        c, sp = self.config, self.state.get("stop_px")
+        if c["atr_stop"] > 0 and sp:
+            return f"stop ATR {chg:+.2f}%" if price <= sp else None
+        return f"stop loss {chg:+.2f}%" if chg <= -c["stop_loss_pct"] else None
+
+    def _filter_ok(self, pair, rows=None):
+        """Filtre de tendance optionnel (cours > EMA(filter_ema) sur filter_tf). Un signal bloqué est journalisé une fois par bougie."""
+        c = self.config
+        if c["filter_ema"] <= 0:
+            return True
+        try:
+            tf = c["filter_tf"] or c["timeframe"]
+            if rows is None or tf != c["timeframe"]:
+                rows = kraken.ohlc(pair, tf)[:-1]
+            ok = strategies.trend_ok(rows, c["filter_ema"])
+        except Exception as e:
+            self.log(f"Filtre de tendance indisponible : {e}")
+            return False
+        key = (pair, rows[-1][0] if rows else 0)
+        if not ok and getattr(self, "_fl", None) != key:
+            self._fl = key
+            self.log(f"Signal ignoré : filtre de tendance (cours sous l'EMA{c['filter_ema']} en {tf} min)" if ok is False else "Filtre de tendance : pas assez de données")
+        return bool(ok)
 
     # ---------- ordres ----------
     def _buy(self, price, why):
@@ -326,6 +386,13 @@ class Bot:
             kraken.market_order(c["pair"], "buy", qty)
             qty *= 1 - c["fee_pct"] / 100
         s["qty"], s["entry"], s["pair"], s["cost"], s["peak"] = qty, price, c["pair"], size, price
+        s["stop_px"] = None
+        if c["atr_stop"] > 0:
+            try:
+                a = strategies.atr(kraken.ohlc(c["pair"], c["timeframe"])[:-1])
+                s["stop_px"] = price - c["atr_stop"] * a if a else None
+            except Exception as e:
+                self.log(f"ATR indisponible, stop en % utilisé : {e}")
         self._record("BUY", price, qty, why, 0)
 
     def _sell(self, price, why):
@@ -337,7 +404,7 @@ class Bot:
         pnl = proceeds - qty * s["entry"]
         if c["mode"] == "paper":
             s["cash"] += proceeds
-        s["qty"], s["entry"] = 0.0, None
+        s["qty"], s["entry"], s["stop_px"] = 0.0, None, None
         s["pnl"] += pnl
         self._record("SELL", price, qty, why, pnl)
 

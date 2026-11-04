@@ -49,7 +49,7 @@ def scan_route():
         tf = int(request.args.get("tf", 240))
         if tf not in (15, 60, 240, 1440):
             raise ValueError("timeframe invalide")
-        return jsonify(scan(tf, bot.config["rsi_period"], bot.config["ma_fast"], bot.config["ma_slow"]))
+        return jsonify(scan(tf, bot.config["rsi_period"], bot.config["ma_fast"], bot.config["ma_slow"], bot.config))
     except Exception as e:
         return jsonify(error=str(e)), 502
 
