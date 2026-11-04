@@ -1,22 +1,17 @@
 import { errMsg } from '@/lib/api'
-import type { Notice } from '@/lib/types'
+import { toast } from './uiStore'
 
 /**
- * Exécute une action serveur pour un store : affiche le résultat (succès ou message d'erreur du serveur) et recharge l'état.
- * Renvoie true si l'action a réussi.
+ * Exécute une action serveur pour un store : affiche le résultat en notification (succès si `successText`, sinon rien ;
+ * échec avec le message d'erreur du serveur) puis recharge l'état. Renvoie true si l'action a réussi.
  */
-export async function runAction(
-  action: () => Promise<unknown>,
-  successText: string | undefined,
-  setNotice: (notice: Notice | null) => void,
-  refresh: () => Promise<void>,
-): Promise<boolean> {
+export async function runAction(action: () => Promise<unknown>, successText: string | undefined, refresh: () => Promise<void>): Promise<boolean> {
   try {
     await action()
-    setNotice(successText ? { kind: 'ok', text: successText } : null)
+    if (successText) toast.ok(successText)
     return true
   } catch (e) {
-    setNotice({ kind: 'error', text: errMsg(e) })
+    toast.error(errMsg(e))
     return false
   } finally {
     await refresh()

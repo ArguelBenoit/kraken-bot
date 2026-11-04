@@ -54,13 +54,14 @@ React 19 + TypeScript + Vite. Un thème sombre (`styles/theme.css`) et des CSS m
 | `lib/` | Logique pure, sans React : `api` (fetch typé), `format`, `constants`, `scan`, `trade` (jauge « trade en cours »), `ticket` (aperçu d'un ordre), `activity`, `markers`, `tips`… |
 | `lib/types/` | Types partagés avec l'API, par domaine (`market`, `ai`, `manual`, `activity`, `proposal`, `notice`). |
 | `lib/learn/` | Tout le tutoriel : `methods`/`indicators` (signaux), `sim` (simulateur), `trials` (épreuves), `tunnel` (découpage en étapes), `coach`, `glossary`, `content/` (leçons par module). |
-| `stores/` | État global (zustand) : `aiStore`, `manualStore`, `proposalStore`, `marketStore`, `learnStore`, `activityStore` ; `runAction` factorise « appeler l'API, afficher le résultat, recharger ». |
+| `stores/` | État global (zustand) : `aiStore`, `manualStore`, `proposalStore`, `marketStore`, `learnStore`, `activityStore`, `uiStore` (notifications et confirmations) ; `runAction` factorise « appeler l'API, notifier le résultat, recharger ». |
 | `hooks/` | `usePolling`, `useTradingSync`, `useReplaySession`, `useDismiss`, `useMaxRowsHeight`. |
 | `components/` | `ui/` (Card, Field, Button, Tip…), `layout/` (barre latérale, bandeau), `chart/`, `trade/` (carte « Trade en cours » commune), `market/` (tableau + graphique), `ai/`, `trading/` (ticket, propositions de Claude), `learn/`. |
 | `pages/` | Une page par route : `TradingPage` (accueil, route `/`), `AiPage`, `LearnPage`. |
 
 ### Conventions
 
+- **Retours d'action** : jamais de `alert` ni `window.confirm`. Succès et échecs d'une action serveur s'affichent en **toast** (`toast.ok / error / info`, `ToastHost`, déjà géré par `runAction`) ; toute action sensible ou irréversible (ordre live, liquidation, reset, passage en live, effacement) demande une **confirmation** (`await confirmAction({ title, message, lines, danger })`, `ConfirmDialog`, focus sur « Annuler » si `danger`). Les messages de validation d'un formulaire restent en ligne.
 - **Formulaires** : le brouillon vit dans le store et n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
   les propositions de Claude et le bouton « Acheter » du tableau Marché ne font que *pré-remplir* le ticket.
 - **« Trade en cours »** : un composant unique (`components/trade/OpenTradeCard`) alimenté par un adaptateur par page

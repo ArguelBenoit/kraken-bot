@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { api } from '@/lib/api'
 import type { Ticket } from '@/lib/ticket'
-import type { ManualConfig, ManualStatus, Mode, Notice } from '@/lib/types'
+import type { ManualConfig, ManualStatus, Mode } from '@/lib/types'
 import { runAction } from './runAction'
 
 const DEFAULT_TICKET: Ticket = { side: 'long', leverage: '2', pair: 'XBTUSDC', size: '100', type: 'market', limit: '', sl: '2', tp: '4', trail: '0' }
@@ -10,7 +10,6 @@ const DEFAULT_TICKET: Ticket = { side: 'long', leverage: '2', pair: 'XBTUSDC', s
 interface ManualStore {
   status: ManualStatus | null
   ticket: Ticket
-  notice: Notice | null
 
   refresh: () => Promise<void>
   setTicket: (patch: Partial<Ticket>) => void
@@ -27,12 +26,11 @@ interface ManualStore {
 export const useManualStore = create<ManualStore>()(
   persist(
     (set, get) => {
-      const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, (notice) => set({ notice }), get().refresh)
+      const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, get().refresh)
 
       return {
         status: null,
         ticket: DEFAULT_TICKET,
-        notice: null,
 
         refresh: async () => {
           try {
@@ -66,8 +64,7 @@ export const useManualStore = create<ManualStore>()(
         },
 
         setMode: async (mode) => {
-          const ok = await run(() => api.post('/api/manual/config', { mode }))
-          if (!ok) alert(get().notice?.text)
+          await run(() => api.post('/api/manual/config', { mode }), `Mode ${mode === 'live' ? 'LIVE' : 'PAPER'} activé`)
         },
 
         saveConfig: (c) => run(() => api.post('/api/manual/config', c), 'Réglages enregistrés'),

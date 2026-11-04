@@ -62,7 +62,6 @@ export function LearnPage() {
   const { id, step } = useParams()
   const trials = useLearnStore((s) => s.trials)
   const lessonsDone = useLearnStore((s) => s.lessonsDone)
-  const error = useLearnStore((s) => s.error)
   const load = useLearnStore((s) => s.load)
   useEffect(() => { void load() }, [load])
   const p = progress(trials)
@@ -82,7 +81,6 @@ export function LearnPage() {
           <b>{LESSONS.filter((l) => lessonsDone[l.id]).length} / {LESSONS.length}</b>
         </Kpi>
       </Header>
-      {error && <div className="warn danger" style={{ maxWidth: 1600, margin: '16px auto 0' }}>{error}</div>}
       <div style={{ paddingTop: 16 }}>
         {lesson ? <Tunnel key={lesson.id} lesson={lesson} steps={steps} index={stepIndex(step, steps.length)} /> : <Welcome />}
       </div>

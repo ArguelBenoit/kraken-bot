@@ -7,6 +7,7 @@ import { LESSONS, type Lesson } from '@/lib/learn/lessons'
 import { progress } from '@/lib/learn/trials'
 import type { Step } from '@/lib/learn/tunnel'
 import { useLearnStore } from '@/stores/learnStore'
+import { confirmAction, toast } from '@/stores/uiStore'
 import { ChapterList } from './ChapterList'
 import css from './Learn.module.css'
 import { Passport } from './Passport'
@@ -33,6 +34,17 @@ interface Props {
 }
 
 /** Barre du tunnel : chapitres (aller où on veut / revenir au début), position dans le chapitre, passeport. */
+/** Efface la progression après confirmation. */
+async function eraseProgress(reset: () => Promise<void>) {
+  const ok = await confirmAction({
+    title: 'Effacer ta progression ?', danger: true, confirmLabel: 'Effacer',
+    message: 'Les quiz réussis et les épreuves validées seront effacés. Cette action est irréversible.',
+  })
+  if (!ok) return
+  await reset()
+  toast.ok('Progression effacée')
+}
+
 export function TunnelBar({ lesson, steps, index, onGo }: Props) {
   const trials = useLearnStore((s) => s.trials)
   const reset = useLearnStore((s) => s.reset)
@@ -50,7 +62,7 @@ export function TunnelBar({ lesson, steps, index, onGo }: Props) {
             </div>
             <ChapterList current={lesson.id} onPick={close} />
             <div className="row">
-              <Button variant="ko" size="xs" onClick={() => window.confirm('Effacer toute ta progression (quiz et épreuves validées) ?') && void reset()}>Effacer ma progression</Button>
+              <Button variant="ko" size="xs" onClick={() => void eraseProgress(reset)}>Effacer ma progression</Button>
             </div>
           </>
         )}

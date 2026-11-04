@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { errMsg } from '@/lib/api'
 import { fetchCandles } from '@/lib/learn/data'
 import { runMethod, type Candle, type MethodId } from '@/lib/learn/methods'
 import {
@@ -6,6 +7,7 @@ import {
 } from '@/lib/learn/sim'
 import { trialSteps } from '@/lib/learn/trials'
 import { useLearnStore } from '@/stores/learnStore'
+import { toast } from '@/stores/uiStore'
 
 const AUTO_PLAY_MS = 650
 
@@ -20,7 +22,6 @@ export function useReplaySession(method: MethodId | 'none', initialPair: string,
   const [sim, setSim] = useState<Sim | null>(null)
   const [session, setSession] = useState(0)            // change à chaque nouvel exercice : remonte le graphique
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [auto, setAuto] = useState(false)
   const [reveal, setReveal] = useState(false)
   const loaded = useRef({ pair: '', tf: 0 })           // dernières bougies chargées (évite de les retélécharger)
@@ -33,7 +34,6 @@ export function useReplaySession(method: MethodId | 'none', initialPair: string,
   /** Démarre un nouvel exercice à un moment tiré au hasard. */
   const start = async () => {
     setLoading(true)
-    setError('')
     try {
       const reuse = candles && pair === loaded.current.pair && tf === loaded.current.tf
       const data = reuse ? candles : await fetchCandles(pair, tf)
@@ -48,7 +48,7 @@ export function useReplaySession(method: MethodId | 'none', initialPair: string,
       setReveal(false)
       credited.current = { trade: false, attempt: false }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      toast.error(errMsg(e))
     } finally {
       setLoading(false)
     }
@@ -79,7 +79,7 @@ export function useReplaySession(method: MethodId | 'none', initialPair: string,
   const act = (fn: (s: Sim, c: Candle[]) => Sim) => candles && setSim((s) => (s ? fn(s, candles) : s))
 
   return {
-    pair, setPair, tf, setTf, candles, sim, session, loading, error, auto, reveal, run, steps, summary, start,
+    pair, setPair, tf, setTf, candles, sim, session, loading, auto, reveal, run, steps, summary, start,
     step: (n: number) => { setAuto(false); act((s, c) => advance(s, c, n)) },
     /** Saute jusqu'au prochain moment utile : signal d'achat si on n'a rien, signal de vente si on est en position. */
     jumpToSignal: () => {

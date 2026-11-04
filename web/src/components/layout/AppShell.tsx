@@ -1,4 +1,6 @@
 import { Outlet } from 'react-router-dom'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { ToastHost } from '@/components/ui/ToastHost'
 import { usePolling } from '@/hooks/usePolling'
 import { useActivityStore } from '@/stores/activityStore'
 import css from './AppShell.module.css'
@@ -14,6 +16,8 @@ export function AppShell() {
       <div className={css.content}>
         <Outlet />
       </div>
+      <ToastHost />
+      <ConfirmDialog />
     </div>
   )
 }

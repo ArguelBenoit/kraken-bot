@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
+import { errMsg } from '@/lib/api'
 import { fetchCandles } from '@/lib/learn/data'
 import type { Candle } from '@/lib/learn/methods'
 import { fm, signed } from '@/lib/format'
+import { toast } from '@/stores/uiStore'
 import { ReplayChart } from './ReplayChart'
 
 /** Décrit une bougie en mots simples. */
@@ -15,14 +17,17 @@ function describeCandle(c: Candle): string {
 /** Leçon « lire une bougie » : survole le graphique, chaque bougie est expliquée en mots simples. */
 export function ExploreWidget() {
   const [candles, setCandles] = useState<Candle[] | null>(null)
-  const [error, setError] = useState('')
+  const [failed, setFailed] = useState(false)
   const [hover, setHover] = useState<number | null>(null)
 
   useEffect(() => {
-    fetchCandles('XBTUSDC', 240).then((c) => setCandles(c.slice(-70))).catch((e) => setError(String(e.message ?? e)))
+    fetchCandles('XBTUSDC', 240).then((c) => setCandles(c.slice(-70))).catch((e) => {
+      toast.error(`Impossible de charger le graphique : ${errMsg(e)}`)
+      setFailed(true)
+    })
   }, [])
 
-  if (error) return <div className="notice error">Impossible de charger le graphique : {error}</div>
+  if (failed) return <div className="t-mu">Graphique indisponible.</div>
   if (!candles) return <div className="t-mu">Chargement du graphique…</div>
   const c = candles[hover ?? candles.length - 1]
   return (

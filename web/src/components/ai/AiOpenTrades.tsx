@@ -5,10 +5,18 @@ import { fm } from '@/lib/format'
 import { aiTradeInput } from '@/lib/trade'
 import type { AiPosition } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
+import { confirmAction } from '@/stores/uiStore'
 
 /** Un « Trade en cours » par position ouverte par Claude (jusqu'à 5). Rien n'est affiché sans position. */
 export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; feePct: number }) {
   const close = useAiStore((s) => s.closePosition)
+  const closeWithConfirm = async (p: AiPosition) => {
+    const ok = await confirmAction({
+      title: `Fermer ${p.label} ?`, danger: true, confirmLabel: 'Fermer la position',
+      message: 'La position sera vendue au prix du marché maintenant.',
+    })
+    if (ok) await close(p.id)
+  }
   return (
     <>
       {positions.map((p) => (
@@ -25,7 +33,7 @@ export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; f
             </>
           }
           actions={
-            <Button variant="ko" size="title" onClick={() => window.confirm(`Fermer la position ${p.label} au marché ?`) && void close(p.id)}>
+            <Button variant="ko" size="title" onClick={() => void closeWithConfirm(p)}>
               <LogOut className="ic mr" />
               Fermer
             </Button>

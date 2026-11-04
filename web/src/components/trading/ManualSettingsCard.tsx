@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
-import { Notice } from '@/components/ui/Notice'
 import { Tip } from '@/components/ui/Tip'
 import { useManualStore } from '@/stores/manualStore'
+import { confirmAction } from '@/stores/uiStore'
 
 const FIELDS = [
   { k: 'max_order', label: 'Montant max par ordre', tip: 'Garde-fou : un ordre plus gros est refusé (évite une faute de frappe, surtout en live).' },
@@ -20,7 +20,6 @@ const FIELDS = [
 /** Réglages du trading manuel : montant maximum par ordre, frais, fréquence de contrôle des stops, capital paper. */
 export function ManualSettingsCard() {
   const status = useManualStore((s) => s.status)
-  const notice = useManualStore((s) => s.notice)
   const { saveConfig, reset } = useManualStore.getState()
   const [v, setV] = useState<Record<string, string>>({})
   const [liveShort, setLiveShort] = useState(false)
@@ -35,8 +34,12 @@ export function ManualSettingsCard() {
   }, [status, filled])
 
   const paper = status?.config.mode === 'paper'
-  const onReset = () => {
-    if (window.confirm('Réinitialiser le portefeuille paper du trading manuel ?\n\nPositions, ordres en attente, historique et PnL seront effacés. Irréversible.')) void reset()
+  const onReset = async () => {
+    const ok = await confirmAction({
+      title: 'Réinitialiser le portefeuille paper ?', danger: true, confirmLabel: 'Réinitialiser',
+      message: 'Positions, ordres en attente, historique et PnL du trading manuel seront effacés. Cette action est irréversible.',
+    })
+    if (ok) await reset()
   }
 
   return (
@@ -62,9 +65,8 @@ export function ManualSettingsCard() {
         </label>
         <div className="row">
           <Button type="submit">Enregistrer</Button>
-          {paper && <Button variant="sec" onClick={onReset}>Reset paper</Button>}
+          {paper && <Button variant="sec" onClick={() => void onReset()}>Reset paper</Button>}
         </div>
-        <Notice notice={notice} collapse />
       </form>
     </Card>
   )

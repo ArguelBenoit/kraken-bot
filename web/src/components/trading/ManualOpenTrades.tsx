@@ -6,6 +6,7 @@ import { fm, fmPrice } from '@/lib/format'
 import { manualTradeInput } from '@/lib/trade'
 import type { ManualPosition } from '@/lib/types'
 import { useManualStore } from '@/stores/manualStore'
+import { confirmAction } from '@/stores/uiStore'
 
 function EditStops({ p, onDone }: { p: ManualPosition; onDone: () => void }) {
   const adjust = useManualStore((s) => s.adjust)
@@ -35,10 +36,13 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
   const [editing, setEditing] = useState(false)
   const short = p.side === 'short'
 
-  const sell = (fraction: number) => {
-    const what = fraction >= 1 ? 'toute la position' : `${fraction * 100}% de la position`
-    const ok = window.confirm(`${short ? 'Racheter' : 'Vendre'} ${what} ${p.label} au prix du marché maintenant ?${live ? '\nMODE LIVE : ordre réel sur Kraken.' : ''}`)
-    if (ok) void close(p.id, fraction, live)
+  const sell = async (fraction: number) => {
+    const what = fraction >= 1 ? 'toute la position' : `${fraction * 100} % de la position`
+    const ok = await confirmAction({
+      title: `${short ? 'Racheter' : 'Vendre'} ${what} ?`, danger: live, confirmLabel: short ? 'Racheter' : 'Vendre',
+      message: `${p.label} ${short ? '(short) ' : ''}sera ${short ? 'rachetée' : 'vendue'} au prix du marché maintenant.${live ? '\nMODE LIVE : ordre réel sur Kraken.' : ''}`,
+    })
+    if (ok) await close(p.id, fraction, live)
   }
 
   return (
@@ -55,10 +59,10 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
       }
       actions={
         <>
-          <Button size="title" variant="sec" onClick={() => sell(0.25)}>25%</Button>
-          <Button size="title" variant="sec" onClick={() => sell(0.5)}>50%</Button>
+          <Button size="title" variant="sec" onClick={() => void sell(0.25)}>25%</Button>
+          <Button size="title" variant="sec" onClick={() => void sell(0.5)}>50%</Button>
           <Button size="title" variant="sec" onClick={() => setEditing((e) => !e)}>Stops</Button>
-          <Button size="title" variant="ko" onClick={() => sell(1)}>
+          <Button size="title" variant="ko" onClick={() => void sell(1)}>
             <LogOut className="ic mr" />
             {short ? 'Tout racheter' : 'Tout vendre'}
           </Button>

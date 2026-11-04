@@ -28,6 +28,7 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 - **Stops** : en paper tout est simulé localement. En live (Trading manuel), `bots/live.py` pose le stop loss (sinon le stop suiveur) chez Kraken (`stop-loss` / `trailing-stop`, `reduce_only` en marge), le suit et le repose s'il disparaît ; objectif et ordres limites restent locaux. **Jamais exécuté sur un compte réel** : vérifier avec `python -m server.check_kraken` (`validate=true`). Bot IA : stops encore locaux. Live : `confirm:true` exigé côté serveur pour les ordres manuels.
 - `/api/connections` n'expose jamais les valeurs des variables d'environnement.
 - Le Trading est la page d'accueil (`/`) ; le bot simple a été supprimé (voir l'historique git si besoin).
+- Interface : pas de `alert` / `window.confirm`. Retours d'action en toast (`stores/uiStore.ts` : `toast.ok/error/info`, via `runAction`) ; actions sensibles derrière `await confirmAction({...})` (`danger: true` pour le live / irréversible).
 - Ne jamais renvoyer le résultat de `window.scrollTo(...)` depuis un `useEffect` (écran noir).
 - Interface : thème sombre monospace, accent `--ac` orange chaud, largeur minimale 1600 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`, qui compense aussi les unités `vh`). Icônes `lucide-react`.
 - Code propre : pas de code mort, pas de gros fichiers (découper par fonction), un commentaire sur chaque symbole exporté, **pas de tests** (retirés volontairement, voir commit `888267d`).

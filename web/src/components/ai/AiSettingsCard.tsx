@@ -2,7 +2,6 @@ import { RotateCcw, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
-import { Notice } from '@/components/ui/Notice'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
 import { COST_FIELDS, LIMIT_FIELDS, PARALLEL_FIELD, type NumberField } from '@/lib/aiForm'
@@ -26,7 +25,6 @@ function NumberInput({ def }: { def: NumberField }) {
 export function AiSettingsCard() {
   const status = useAiStore((s) => s.status)
   const draft = useAiStore((s) => s.draft)
-  const notice = useAiStore((s) => s.notice)
   const { setField, toggleIn, save, restore } = useAiStore.getState()
   if (!status || !draft) return <Card title="Réglages IA" icon={Settings}>Chargement…</Card>
 
@@ -97,7 +95,6 @@ export function AiSettingsCard() {
           <Button type="submit">Enregistrer</Button>
           <Button variant="sec" onClick={restore}><RotateCcw className="ic mr" />Restaurer</Button>
         </div>
-        <Notice notice={notice} />
       </form>
 
       <AiControls status={status} />

@@ -14,14 +14,13 @@ interface Props {
   pair: string
   tf: number
   loading: boolean
-  error: string
   onPair: (pair: string) => void
   onTf: (tf: number) => void
   onStart: () => void
 }
 
 /** Écran de préparation d'un exercice : consigne, choix de la crypto et de la durée des bougies. */
-export function PracticeSetup({ instruction, withMethod, pair, tf, loading, error, onPair, onTf, onStart }: Props) {
+export function PracticeSetup({ instruction, withMethod, pair, tf, loading, onPair, onTf, onStart }: Props) {
   return (
     <Card title="À toi de jouer" icon={Play}>
       <div className={css.prose}>
@@ -43,7 +42,6 @@ export function PracticeSetup({ instruction, withMethod, pair, tf, loading, erro
         </select>
       </Field>
       <div className="row"><Button onClick={onStart} disabled={loading}>{loading ? 'Chargement…' : 'Démarrer l’exercice'}</Button></div>
-      {error && <div className="notice error">{error}</div>}
     </Card>
   )
 }

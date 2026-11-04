@@ -121,9 +121,6 @@ tbody tr:hover { background: #111; }
 pre.log { margin: 0; max-height: 180px; overflow: auto; font-size: 12px; color: var(--mu); }
 
 /* ----- messages ----- */
-.notice { min-height: 18px; margin-top: 6px; }
-.notice.error { color: var(--ko); }
-.notice.ok { color: var(--ok); }
 .warn { border: 1px solid var(--ac); color: var(--ac); padding: 8px 10px; margin-bottom: 10px; font-size: 12px; }
 .warn.danger { border-color: var(--ko); color: var(--ko); }
 

@@ -33,7 +33,7 @@ export function PracticeArena({ method, pair, tf, instruction }: Props) {
 
   if (!s.sim || !s.candles || !s.summary) {
     return <PracticeSetup instruction={instruction} withMethod={method !== 'none'} pair={s.pair} tf={s.tf} loading={s.loading}
-      error={s.error} onPair={s.setPair} onTf={s.setTf} onStart={() => void s.start()} />
+      onPair={s.setPair} onTf={s.setTf} onStart={() => void s.start()} />
   }
   const { sim, candles, run } = s
   const position = sim.position

@@ -39,7 +39,7 @@ function Preset({ p, onUse }: { p: TradeProposal; onUse: (p: TradeProposal) => v
 /** Bloc Claude du ticket d'ordre : quelques trades à prendre maintenant. « Pré-remplir » copie le preset dans le ticket ; le montant reste à ton choix. */
 export function ClaudeProposals() {
   const claudeOk = useManualStore((s) => s.status?.claude_ok)
-  const { result, loading, error } = useProposalStore()
+  const { result, loading } = useProposalStore()
   const { ask, dismiss } = useProposalStore.getState()
   const { setTicket } = useManualStore.getState()
 
@@ -62,14 +62,13 @@ export function ClaudeProposals() {
           </Button>
         </span>
       </div>
-      {!result && !error && !loading && (
+      {!result && !loading && (
         <div className="hint">
           Claude regarde le marché (bougies de 4 h) et propose quelques trades à prendre maintenant, avec leurs stops. Il ne passe aucun ordre
           et ne choisit pas le montant : tu pré-remplis le ticket, tu vérifies, tu valides.
           {claudeOk === false && ' Clé ANTHROPIC_API_KEY absente (.env) : ajoute-la puis relance le serveur.'}
         </div>
       )}
-      {error && <div className="notice error">{error}</div>}
       {result && (
         <>
           <div className={css.view}>{result.market_view}</div>

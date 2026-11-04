@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { api, errMsg, isMissingRoute } from '@/lib/api'
 import type { MethodId } from '@/lib/learn/methods'
 import { emptyRecord, type TrialRecord } from '@/lib/learn/trials'
+import { toast } from './uiStore'
 
 /** Ce qui est sauvegardé : `learn_state.json` côté serveur, comme les autres pages. */
 interface Progress {
@@ -13,7 +14,6 @@ interface Progress {
 
 interface LearnStore extends Progress {
   loaded: boolean
-  error: string
 
   load: () => Promise<void>
   passQuiz: (lessonId: string, method?: MethodId) => Promise<void>
@@ -32,7 +32,7 @@ const upd = (p: Progress, m: MethodId, patch: (r: TrialRecord) => TrialRecord): 
 const stamp = (r: TrialRecord): TrialRecord =>
   r.quiz && r.trade && !r.validatedAt ? { ...r, validatedAt: new Date().toLocaleDateString('fr-FR') } : r
 
-/** Message affiché quand l'enregistrement de la progression échoue. */
+/** Message d'erreur (en toast) quand la lecture ou l'enregistrement de la progression échoue. */
 const failure = (what: string, e: unknown) =>
   isMissingRoute(e)
     ? `${what} : le serveur Python n'a pas la route de progression. Il tourne avec une ancienne version : arrête-le (Ctrl+C) et relance ./run.sh.`
@@ -46,9 +46,9 @@ export const useLearnStore = create<LearnStore>((set, get) => {
     const next = fn({ trials: get().trials, lessonsDone: get().lessonsDone })
     set(next)
     try {
-      set({ ...(await api.put<Progress>('/api/learn/progress', next)), error: '' })
+      set({ ...(await api.put<Progress>('/api/learn/progress', next)) })
     } catch (e) {
-      set({ error: failure('Progression non enregistrée', e) })
+      toast.error(failure('Progression non enregistrée', e))
     }
   }
 
@@ -56,13 +56,12 @@ export const useLearnStore = create<LearnStore>((set, get) => {
     trials: {},
     lessonsDone: {},
     loaded: false,
-    error: '',
 
     load: async () => {
       try {
-        set({ ...(await api.get<Progress>('/api/learn/progress')), loaded: true, error: '' })
+        set({ ...(await api.get<Progress>('/api/learn/progress')), loaded: true })
       } catch (e) {
-        set({ error: failure('Progression illisible', e) })
+        toast.error(failure('Progression illisible', e))
       }
     },
 
@@ -79,9 +78,9 @@ export const useLearnStore = create<LearnStore>((set, get) => {
 
     reset: async () => {
       try {
-        set({ ...(await api.post<Progress>('/api/learn/reset')), loaded: true, error: '' })
+        set({ ...(await api.post<Progress>('/api/learn/reset')), loaded: true })
       } catch (e) {
-        set({ error: failure('Réinitialisation impossible', e) })
+        toast.error(failure('Réinitialisation impossible', e))
       }
     },
   }

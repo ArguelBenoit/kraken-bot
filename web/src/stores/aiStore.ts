@@ -1,8 +1,18 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
 import { AI_NUMERIC_KEYS, type AiNumericKey } from '@/lib/aiForm'
-import type { AiConfig, AiStatus, Mode, Notice } from '@/lib/types'
+import type { AiConfig, AiStatus, Mode } from '@/lib/types'
 import { runAction } from './runAction'
+import { toast } from './uiStore'
+
+/** Message de succès de chaque commande du bot. */
+const CONTROL_DONE = {
+  start: 'Bot IA démarré',
+  stop: 'Bot IA arrêté',
+  analyze: 'Analyse lancée',
+  liquidate: 'Toutes les positions ont été fermées',
+  reset: 'Portefeuille du bot IA réinitialisé',
+} as const
 
 /** Brouillon du formulaire : les champs numériques restent du texte tant que l'utilisateur tape. */
 type AiDraft = Omit<AiConfig, 'mode' | AiNumericKey> & Record<AiNumericKey, number | string>
@@ -24,7 +34,6 @@ const toAiPayload = (d: AiDraft) => {
 interface AiStore {
   status: AiStatus | null
   draft: AiDraft | null
-  notice: Notice | null
 
   refresh: () => Promise<void>
   setField: <K extends keyof AiDraft>(name: K, value: AiDraft[K]) => void
@@ -38,12 +47,11 @@ interface AiStore {
 
 /** État de la page Bot IA : statut du serveur, brouillon du formulaire et actions. */
 export const useAiStore = create<AiStore>((set, get) => {
-  const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, (notice) => set({ notice }), get().refresh)
+  const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, get().refresh)
 
   return {
     status: null,
     draft: null,
-    notice: null,
 
     refresh: async () => {
       try {
@@ -65,7 +73,10 @@ export const useAiStore = create<AiStore>((set, get) => {
 
     restore: () => {
       const cfg = get().status?.config
-      if (cfg) set({ draft: toDraft(cfg), notice: { kind: 'ok', text: 'Formulaire remis à la configuration enregistrée' } })
+      if (cfg) {
+        set({ draft: toDraft(cfg) })
+        toast.info('Formulaire remis à la configuration enregistrée')
+      }
     },
 
     save: () => {
@@ -74,18 +85,15 @@ export const useAiStore = create<AiStore>((set, get) => {
     },
 
     setMode: async (mode) => {
-      const ok = await run(() => api.post('/api/ai/config', { mode }))
-      if (!ok) alert(get().notice?.text)
+      await run(() => api.post('/api/ai/config', { mode }), `Mode ${mode === 'live' ? 'LIVE' : 'PAPER'} activé`)
     },
 
     control: async (action) => {
-      const ok = await run(() => api.post(`/api/ai/${action}`))
-      if (!ok) alert(get().notice?.text)
+      await run(() => api.post(`/api/ai/${action}`), CONTROL_DONE[action])
     },
 
     closePosition: async (id) => {
-      const ok = await run(() => api.post(`/api/ai/close-${id}`))
-      if (!ok) alert(get().notice?.text)
+      await run(() => api.post(`/api/ai/close-${id}`), 'Position fermée')
     },
   }
 })

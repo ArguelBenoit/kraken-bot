@@ -2,7 +2,6 @@ import { Crosshair } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
-import { Notice } from '@/components/ui/Notice'
 import { Tip } from '@/components/ui/Tip'
 import { ClaudeProposals } from './ClaudeProposals'
 import { PAIRS, pairLabel } from '@/lib/constants'
@@ -10,6 +9,7 @@ import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { liqDistance, previewFromTicket, quickSizes } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
+import { confirmAction, toast } from '@/stores/uiStore'
 
 const clean = (n: number) => String(Number(n.toPrecision(6)))
 
@@ -17,7 +17,6 @@ const clean = (n: number) => String(Number(n.toPrecision(6)))
 export function OrderTicketCard() {
   const status = useManualStore((s) => s.status)
   const t = useManualStore((s) => s.ticket)
-  const notice = useManualStore((s) => s.notice)
   const { setTicket, submit } = useManualStore.getState()
   const row = useMarketStore((s) => s.rows.find((r) => r.pair === t.pair))
   const cfg = status?.config
@@ -33,21 +32,44 @@ export function OrderTicketCard() {
   // Short : la garantie (montant / levier) et les frais sont retirés du cash, pas le montant entier
   const base = !cfg ? 0 : live ? cfg.max_order : (status?.cash ?? 0) * (short ? leverage : 1)
   const cap = cfg?.max_order ?? size
-  const tooBig = cfg != null && size > cfg.max_order
-  const noCash = cfg?.mode === 'paper' && !!preview && (preview.collateral ?? size) + (short ? preview.fees : 0) > (status?.cash ?? 0)
-  const limitInvalid = t.type === 'limit' && !(Number(t.limit) > 0 && (price == null || (short ? Number(t.limit) > price : Number(t.limit) < price)))
   const liqDist = liqDistance(leverage)
-  const shortBlocked = short && status != null && !status.shorts_allowed
-  const stopMissing = short && sl <= 0
-  const stopTooWide = short && sl >= liqDist
-  const canSubmit = !!preview && size >= 5 && !tooBig && !noCash && !limitInvalid && !shortBlocked && !stopMissing && !stopTooWide
+
+  /** Première raison qui empêche d'envoyer l'ordre (affichée en toast au clic sur le bouton), ou null. */
+  const problem = (): string | null => {
+    if (!cfg || !preview) return 'Renseigne un montant et un prix valides.'
+    if (size < 5) return 'Montant minimum : 5.'
+    if (size > cfg.max_order) return `Montant supérieur au maximum autorisé (${fm(cfg.max_order, 0)}) : modifiable dans les réglages.`
+    if (short && !status?.shorts_allowed) return 'Shorts LIVE désactivés : active-les dans les réglages (marge Kraken jamais validée).'
+    if (short && sl <= 0) return 'Un short exige un stop loss : sans lui, la perte n’est pas limitée.'
+    if (short && sl >= liqDist) return `Stop loss trop large : la liquidation est estimée à +${liqDist.toFixed(1)} %, le stop doit être en dessous.`
+    const limit = Number(t.limit)
+    if (t.type === 'limit' && !(limit > 0 && (price == null || (short ? limit > price : limit < price))))
+      return `Le prix limite doit être ${short ? 'au-dessus' : 'sous'} le prix actuel.`
+    if (cfg.mode === 'paper' && (preview.collateral ?? size) + (short ? preview.fees : 0) > (status?.cash ?? 0))
+      return `Solde paper insuffisant (${fm(status?.cash)} disponibles).`
+    return null
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const refusal = problem()
+    if (refusal) {
+      toast.error(refusal)
+      return
+    }
     if (live) {
-      const what = t.type === 'limit' ? `ordre limite ${short ? '≥' : '≤'} ${t.limit}` : 'ordre au marché'
-      const verb = short ? `VENDRE À DÉCOUVERT (short ×${leverage}, perte potentiellement supérieure à la mise)` : 'acheter'
-      const ok = window.confirm(`ORDRE RÉEL sur Kraken : ${verb} pour ${size} de ${pairLabel(t.pair)} (${what}).\nStop loss ${sl || 'aucun'}% · take profit ${tp || 'aucun'}%.\n\nConfirmer ?`)
+      const ok = await confirmAction({
+        title: short ? 'Vendre à découvert en RÉEL ?' : 'Acheter en RÉEL ?', danger: true, confirmLabel: short ? 'Vendre à découvert' : 'Acheter',
+        message: `ORDRE RÉEL sur Kraken avec ton argent.${short ? '\nShort avec levier : la perte peut dépasser la mise.' : ''}`,
+        lines: [
+          ['Paire', pairLabel(t.pair)],
+          ['Sens', short ? `Short ×${leverage}` : 'Long'],
+          ['Montant', fm(size)],
+          ['Type', t.type === 'limit' ? `Limite ${short ? '≥' : '≤'} ${t.limit}` : 'Marché'],
+          ['Stop loss', sl ? `${short ? '+' : '−'}${sl} %` : 'aucun'],
+          ['Take profit', tp ? `${short ? '−' : '+'}${tp} %` : 'aucun'],
+        ],
+      })
       if (!ok) return
     }
     await submit(live)
@@ -149,19 +171,12 @@ export function OrderTicketCard() {
         ) : (
           <div className="hint">Renseigne un montant pour voir l&apos;aperçu du risque.</div>
         )}
-        {short && !shortBlocked && <div className="warn">Short ×{leverage} : la perte peut dépasser la mise ; liquidation estimée à +{liqDist.toFixed(1)} %. Frais de report toutes les 4 h.</div>}
-        {shortBlocked && <div className="notice error">Shorts LIVE désactivés : active-les dans les réglages (marge Kraken jamais validée).</div>}
-        {stopMissing && <div className="notice error">Un short exige un stop loss.</div>}
-        {stopTooWide && !stopMissing && <div className="notice error">Stop loss trop large : la liquidation est estimée à +{liqDist.toFixed(1)} %.</div>}
+        {short && <div className="warn">Short ×{leverage} : la perte peut dépasser la mise ; liquidation estimée à +{liqDist.toFixed(1)} %. Frais de report toutes les 4 h.</div>}
         {!short && sl === 0 && <div className="warn">Sans stop loss, rien ne limitera la perte : tu devras fermer la position toi-même.</div>}
-        {tooBig && <div className="notice error">Montant supérieur au maximum autorisé ({fm(cfg!.max_order, 0)}).</div>}
-        {noCash && !tooBig && <div className="notice error">Solde paper insuffisant ({fm(status?.cash)}).</div>}
-        {limitInvalid && <div className="notice error">Le prix limite doit être {short ? 'au-dessus' : 'sous'} le prix actuel.</div>}
 
-        <Button type="submit" className={`block ${short ? 'sell' : 'buy'}`} disabled={!canSubmit}>
+        <Button type="submit" className={`block ${short ? 'sell' : 'buy'}`}>
           {t.type === 'limit' ? 'Placer l’ordre limite' : short ? 'Vendre à découvert au marché' : 'Acheter au marché'} · {pairLabel(t.pair)}
         </Button>
-        <Notice notice={notice} collapse />
       </form>
     </Card>
   )
