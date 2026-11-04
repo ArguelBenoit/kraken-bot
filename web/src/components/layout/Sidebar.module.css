@@ -12,8 +12,7 @@
   text-transform: uppercase; font-size: 12px; letter-spacing: 0.08em; border-left: 3px solid transparent; white-space: nowrap;
 }
 .link:hover { color: var(--tx); background: #111; }
-.link.active { color: var(--ac); background: #1a1300; border-left-color: var(--ac); }
-.footer { margin-top: auto; padding: 0 16px; font-size: 10px; color: var(--mu); letter-spacing: 0.06em; }
+.link.active { color: var(--ac); background: #1f0f05; border-left-color: var(--ac); }
 
 
 /* infobulle : s'ouvre à droite de la barre latérale, au survol ou au focus clavier */
@@ -30,5 +29,20 @@
 .up { color: var(--ok); }
 .down { color: var(--ko); }
 .flat { color: #ff8a00; }
+.unknown { color: #6b6b60; }
 .play { color: var(--ok); }
 .stopped { color: #5a5a50; }
+
+/* bas du menu : connexions (variables d'environnement) */
+.conn { margin-top: auto; padding: 0 16px; display: grid; gap: 8px; }
+.connNote { font-size: 10px; color: var(--ko); line-height: 1.4; }
+.connGroup { position: relative; display: grid; gap: 2px; cursor: help; outline: none; }
+.connName { font-size: 11px; color: var(--tx); letter-spacing: 0.06em; text-transform: uppercase; }
+.connVar { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--mu); }
+.set { color: var(--ok); white-space: nowrap; }
+.unset { color: var(--ko); white-space: nowrap; }
+.connGroup:hover::after, .connGroup:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: calc(100% + 26px); bottom: 0; z-index: 50; width: 280px; padding: 9px 11px;
+  background: #000; border: 1px solid var(--ac); color: var(--tx); font: 400 12px/1.5 var(--mono); text-transform: none;
+  letter-spacing: 0; white-space: normal; box-shadow: 0 8px 24px #000c;
+}

@@ -54,7 +54,7 @@ export const METHODS: Record<MethodId, MethodMeta> = {
 
 const BLUE = '#4aa3ff'
 const PURPLE = '#d58bff'
-const AMBER = '#ffb000'
+const ACCENT = '#ff7a1a'
 const GREY = '#7d7a6c'
 const GREEN = '#3ddc84'
 const RED = '#ff4d4d'
@@ -80,7 +80,7 @@ export function runMethod(id: MethodId, candles: Candle[]): MethodRun {
     })
     return {
       buy, sell, info, lines: [],
-      sub: { title: 'RSI (14)', lines: [{ id: 'rsi', label: 'RSI', color: AMBER, data: r }], levels: [{ value: 30, color: GREEN, label: '30 : survente' }, { value: 70, color: RED, label: '70 : surachat' }] },
+      sub: { title: 'RSI (14)', lines: [{ id: 'rsi', label: 'RSI', color: ACCENT, data: r }], levels: [{ value: 30, color: GREEN, label: '30 : survente' }, { value: 70, color: RED, label: '70 : surachat' }] },
     }
   }
 
@@ -140,7 +140,7 @@ export function runMethod(id: MethodId, candles: Candle[]): MethodRun {
     }
     return {
       buy, sell, info, lines: [],
-      sub: { title: 'MACD (12, 26, 9)', lines: [{ id: 'macd', label: 'MACD', color: BLUE, data: m.line }, { id: 'sig', label: 'Signal', color: AMBER, data: m.signal }], histogram: m.hist, levels: [{ value: 0, color: GREY, label: '0' }] },
+      sub: { title: 'MACD (12, 26, 9)', lines: [{ id: 'macd', label: 'MACD', color: BLUE, data: m.line }, { id: 'sig', label: 'Signal', color: ACCENT, data: m.signal }], histogram: m.hist, levels: [{ value: 0, color: GREY, label: '0' }] },
     }
   }
 

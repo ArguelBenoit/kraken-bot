@@ -1,4 +1,4 @@
-.card { border: 2px solid var(--ac); background: linear-gradient(180deg, #1a1300, var(--card) 140px); box-shadow: 0 0 18px #ffb00033; padding: 18px; }
+.card { border: 2px solid var(--ac); background: linear-gradient(180deg, #1f0f05, var(--card) 140px); box-shadow: 0 0 18px #ff7a1a33; padding: 18px; }
 .card.up { border-color: var(--ok); background: linear-gradient(180deg, #07210f, var(--card) 140px); box-shadow: 0 0 22px #3ddc8444; }
 .card.dn { border-color: var(--ko); background: linear-gradient(180deg, #260909, var(--card) 140px); box-shadow: 0 0 22px #ff4d4d44; }
 .card :global(.card-title) { font-size: 14px; color: var(--tx); }

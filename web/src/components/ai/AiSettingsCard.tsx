@@ -133,8 +133,8 @@ export function AiSettingsCard() {
       </form>
 
       <div className="row">
-        <Button disabled={running} onClick={() => void control('start')}><Play className="ic f mr" />Démarrer</Button>
-        <Button variant="ko" disabled={!running} onClick={() => void control('stop')}><Square className="ic f mr" />Stop</Button>
+        {!running && <Button onClick={() => void control('start')}><Play className="ic f mr" />Démarrer</Button>}
+        {running && <Button variant="ko" onClick={() => void control('stop')}><Square className="ic f mr" />Stop</Button>}
         <Button variant="sec" disabled={reviewing} onClick={() => void control('analyze')}><RefreshCw className="ic mr" />Analyser maintenant</Button>
       </div>
       <div className="row">

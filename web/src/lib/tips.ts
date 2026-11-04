@@ -16,7 +16,6 @@ export const FIELD_TIPS: Record<string, string> = {
   "ma_fast": "EMA rapide : moyenne mobile exponentielle sur ce nombre de bougies. Réagit vite. Achat quand elle passe au-dessus de l'EMA lente.",
   "ma_slow": "EMA lente : même calcul sur plus de bougies, elle donne la direction de fond. Doit être supérieure à l'EMA rapide. Plus l'écart est grand, moins il y a de trades.",
   "trailing_pct": "Stop suiveur : vente si le prix retombe de ce pourcentage depuis son plus haut atteint pendant la position. Protège les gains en tendance. 0 = désactivé.",
-  "preset": "Réglages tout prêts, classés par risque (prudent, modéré, risqué). Ils remplissent le formulaire : clique ensuite sur Enregistrer.",
   "pair": "La crypto tradée contre un stablecoin (USDC/USDT, ≈ 1 $). Le bot n'en gère qu'une à la fois.",
   "mode": "Paper = simulation avec les vrais prix, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (clés API requises).",
   "timeframe": "Durée d'une bougie en minutes (60 = 1 h, 240 = 4 h). Plus c'est long, moins il y a de trades et de bruit. Les tests ont donné les meilleurs résultats en 240.",
@@ -33,7 +32,6 @@ export const FIELD_TIPS: Record<string, string> = {
 
 export const KPI_TIPS: Record<string, string> = {
   "Mode": "Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken.",
-  "Statut": "EN COURS = le bot surveille le marché et passe les ordres. ARRÊTÉ = rien n'est surveillé, une position ouverte reste telle quelle.",
   "Prix": "Dernier prix de la paire sur Kraken.",
   "RSI": "Valeur actuelle du RSI (0-100) : bas = prix a beaucoup baissé, haut = a beaucoup monté.",
   "Position": "Quantité de crypto détenue et prix d'achat. « aucune » = le bot attend un signal d'achat.",
@@ -43,7 +41,6 @@ export const KPI_TIPS: Record<string, string> = {
 
 export const AI_KPI_TIPS: Record<string, string> = {
   "Mode": "Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).",
-  "Statut": "EN COURS = Claude analyse le marché à intervalle régulier et les stops sont surveillés. ARRÊTÉ = rien n'est surveillé, les positions ouvertes restent telles quelles.",
   "PnL réalisé": "Gains/pertes cumulés des trades du bot IA déjà vendus, frais inclus.",
   "PnL du jour": "Gains/pertes réalisés aujourd'hui. Si la perte dépasse le plafond réglé, plus aucune ouverture jusqu'à demain.",
   "Équité": "Cash restant + valeur des positions ouvertes au prix actuel.",

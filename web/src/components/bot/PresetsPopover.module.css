@@ -1,8 +1,0 @@
-.wrap { position: relative; }
-.list {
-  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: min(412px, 86vw); max-height: 70vh; overflow: auto;
-  background: #080808; border: 1px solid var(--ac); padding: 4px 10px 8px; box-shadow: 0 8px 24px #000c;
-  text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--tx); text-align: left;
-}
-.group { margin-top: 8px; }
-.group > small { display: block; color: var(--mu); font-size: 11px; margin-bottom: 4px; }

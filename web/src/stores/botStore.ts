@@ -1,11 +1,10 @@
 import { create } from 'zustand'
 import { api, errMsg } from '@/lib/api'
 import { pairLabel } from '@/lib/constants'
-import { ALL_FIELDS, toPayload } from '@/lib/fields'
-import { PRESET_NAMES, presetFor, type PresetConfig } from '@/lib/presets'
-import type { BotConfig, BotStatus, Mode } from '@/lib/types'
+import { ALL_FIELDS, formValues, toPayload, type FormValues } from '@/lib/fields'
+import type { BotConfig, BotStatus, Mode, Suggestion } from '@/lib/types'
 
-export type Draft = Partial<Record<keyof BotConfig, string | number>>
+export type Draft = FormValues
 export interface Notice {
   kind: 'error' | 'ok'
   text: string
@@ -18,7 +17,14 @@ interface BotStore {
   draft: Draft
   filled: boolean
   notice: Notice | null
+  /** Mode IA : dernière proposition de Claude (le formulaire est déjà rempli avec). */
+  suggestion: Suggestion | null
+  suggesting: boolean
+  suggestError: string
 
+  /** Demande à Claude le meilleur réglage du moment et pré-remplit le formulaire (n'enregistre rien). */
+  askClaude: (lockPair: boolean) => Promise<void>
+  dismissSuggestion: () => void
   refresh: () => Promise<void>
   setField: (name: keyof BotConfig, value: string | number) => void
   /** Pré-remplit le formulaire (sans enregistrer). */
@@ -27,8 +33,6 @@ interface BotStore {
   save: () => Promise<boolean>
   control: (action: 'start' | 'stop' | 'liquidate' | 'reset') => Promise<void>
   setMode: (mode: Mode) => Promise<void>
-  pin: (name: string) => Promise<boolean>
-  removePreset: (id: string, name: string) => Promise<void>
   tradeThis: (pair: string, tf: number) => void
   notify: (n: Notice | null) => void
 }
@@ -52,6 +56,24 @@ export const useBotStore = create<BotStore>((set, get) => {
     draft: {},
     filled: false,
     notice: null,
+    suggestion: null,
+    suggesting: false,
+    suggestError: '',
+
+    askClaude: async (lockPair) => {
+      set({ suggesting: true, suggestError: '' })
+      try {
+        const r = await api.post<Suggestion>('/api/suggest', { lock_pair: lockPair })
+        get().applyDraft(formValues(r.config), { kind: 'ok', text: 'Réglages proposés par Claude chargés dans le formulaire : vérifie, clique Enregistrer puis Démarrer.' })
+        set({ suggestion: r })
+      } catch (e) {
+        set({ suggestError: errMsg(e) })
+      } finally {
+        set({ suggesting: false })
+      }
+    },
+
+    dismissSuggestion: () => set({ suggestion: null, suggestError: '' }),
 
     refresh: async () => {
       try {
@@ -84,27 +106,10 @@ export const useBotStore = create<BotStore>((set, get) => {
       if (!ok) alert(get().notice?.text)
     },
 
-    pin: (name) => run(() => api.post('/api/presets', { name }), `« ${name} » épinglée`),
-
-    removePreset: async (id, name) => {
-      await run(() => api.del(`/api/presets/${id}`), `Config « ${name} » supprimée`)
-    },
-
     tradeThis: (pair, tf) => {
-      const strategy = String(get().draft.strategy ?? get().status?.config.strategy ?? 'rsi')
-      const found = presetFor(pair, strategy)
-      const base: Draft = { pair, timeframe: tf }
-      if (found) {
-        const [id, preset] = found
-        get().applyDraft({ ...base, ...(preset as PresetConfig as Draft) }, {
-          kind: 'ok', text: `Preset « ${PRESET_NAMES[id]} » chargé : vérifie puis clique Enregistrer`,
-        })
-      } else {
-        get().applyDraft(base, {
-          kind: 'ok',
-          text: `Aucun preset ${strategy === 'trend' ? 'EMA' : 'RSI'} pour ${pairLabel(pair)} : seule la paire et la bougie sont changées, règle le reste puis Enregistrer`,
-        })
-      }
+      get().applyDraft({ pair, timeframe: tf }, {
+        kind: 'ok', text: `Paire ${pairLabel(pair)} et bougie ${tf} min chargées dans le formulaire : règle le reste (ou demande à Claude), puis Enregistrer.`,
+      })
     },
 
     notify: (notice) => set({ notice }),

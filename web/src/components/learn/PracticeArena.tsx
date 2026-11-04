@@ -130,7 +130,7 @@ export function PracticeArena({ method, pair: pair0, tf: tf0, instruction }: Pro
       if (run.sell[i] && !run.sell[i - 1]) markers.push({ time: candles[i].time, position: 'aboveBar', color: '#ff4d4d', shape: 'circle', text: '' })
     }
   }
-  for (const t of sim.trades) markers.push({ time: t.time, position: t.side === 'BUY' ? 'belowBar' : 'aboveBar', color: '#ffb000', shape: t.side === 'BUY' ? 'arrowUp' : 'arrowDown', text: t.side === 'BUY' ? 'ACHAT' : 'VENTE' })
+  for (const t of sim.trades) markers.push({ time: t.time, position: t.side === 'BUY' ? 'belowBar' : 'aboveBar', color: '#ff7a1a', shape: t.side === 'BUY' ? 'arrowUp' : 'arrowDown', text: t.side === 'BUY' ? 'ACHAT' : 'VENTE' })
   const levels: PriceLevel[] = pos ? [
     { price: pos.entry, color: '#d4d0c0', title: 'ton achat' },
     ...(pos.sl ? [{ price: pos.sl, color: '#ff4d4d', title: 'stop loss' }] : []),
@@ -175,7 +175,7 @@ export function PracticeArena({ method, pair: pair0, tf: tf0, instruction }: Pro
         </div>
 
         <div className={css.side}>
-          <div className={`${css.coach} ${css[advice.tone]}`}><b>{advice.title}</b><RichText text={advice.text} /></div>
+          <div className={`${css.coach} ${css[advice.tone]}`}><div className={css.coachTitle}>{advice.title}</div><RichText text={advice.text} /></div>
 
           {method !== 'none' && (
             <Card title="Ta liste de validation" icon={Check}>

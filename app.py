@@ -14,6 +14,7 @@ from bot import Bot, scan
 from ai_bot import AIBot
 from manual import ManualTrader
 import learn
+import suggest
 
 DIST = Path(__file__).parent / "web" / "dist"      # build de l'interface React (npm run build)
 app = Flask(__name__, static_folder=None)
@@ -75,7 +76,25 @@ def activity():
 
 @app.get("/api/status")
 def status():
-    return jsonify(bot.snapshot())
+    return jsonify({**bot.snapshot(), "ai_key": bool(os.getenv("ANTHROPIC_API_KEY"))})
+
+
+@app.post("/api/suggest")
+def suggest_route():
+    """Mode IA du bot simple : Claude propose le meilleur réglage du moment (pré-remplit le formulaire, n'enregistre rien)."""
+    body = request.get_json(silent=True) or {}
+    try:
+        res = suggest.propose(bot, (bot.state.get("qty") or 0) > 0, bool(body.get("lock_pair")), ai.config["model"])
+        return jsonify(ok=True, **res)
+    except suggest.SuggestError as e:
+        return jsonify(ok=False, error=str(e)), e.status
+
+
+@app.get("/api/connections")
+def connections():
+    """Quelles variables d'environnement sont définies (jamais leurs valeurs) : pour le bas du menu."""
+    s = lambda name: {"name": name, "set": bool(os.getenv(name))}
+    return jsonify(claude=[s("ANTHROPIC_API_KEY")], kraken=[s("KRAKEN_API_KEY"), s("KRAKEN_API_SECRET")])
 
 
 @app.get("/api/chart")
@@ -101,24 +120,6 @@ def scan_route():
 def config():
     try:
         bot.update_config(request.get_json())
-        return jsonify(ok=True)
-    except Exception as e:
-        return jsonify(ok=False, error=str(e)), 400
-
-
-@app.post("/api/presets")
-def pin():
-    try:
-        bot.pin_preset((request.get_json() or {}).get("name"))
-        return jsonify(ok=True)
-    except Exception as e:
-        return jsonify(ok=False, error=str(e)), 400
-
-
-@app.delete("/api/presets/<pid>")
-def unpin(pid):
-    try:
-        bot.unpin_preset(pid)
         return jsonify(ok=True)
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 400

@@ -45,13 +45,6 @@ export interface Trade {
   pair?: string
 }
 
-export interface PinnedPreset {
-  id: string
-  name: string
-  created: string
-  config: Partial<BotConfig>
-}
-
 export interface BotState {
   cash: number
   qty: number
@@ -62,7 +55,6 @@ export interface BotState {
   stop_px?: number | null
   pnl: number
   trades: Trade[]
-  presets?: PinnedPreset[]
   equity: number
   pos_price: number | null
   pos_rsi: number | null
@@ -70,6 +62,8 @@ export interface BotState {
 }
 
 export interface BotStatus {
+  /** ANTHROPIC_API_KEY définie côté serveur (mode IA du bot simple). */
+  ai_key?: boolean
   running: boolean
   config: BotConfig
   state: BotState
@@ -282,4 +276,27 @@ export interface Activity {
   bot: { running: boolean; positions: number; gain: number; loss: number }
   ai: { running: boolean; positions: number; gain: number; loss: number }
   manual: { positions: number; pending: number; gain: number; loss: number }
+}
+
+// ---------- Connexions (variables d'environnement, jamais leurs valeurs) ----------
+export interface EnvVar {
+  name: string
+  set: boolean
+}
+export interface Connections {
+  claude: EnvVar[]
+  kraken: EnvVar[]
+}
+
+// ---------- Mode IA du bot simple ----------
+export interface Suggestion {
+  rationale: string
+  market_view: string
+  /** 0 à 1 ; null si Claude ne l'a pas donnée. */
+  confidence: number | null
+  /** Claude ne voit aucun avantage net maintenant : mieux vaut ne pas trader. */
+  no_edge: boolean
+  has_position: boolean
+  model: string
+  config: Partial<BotConfig>
 }

@@ -13,6 +13,7 @@ export function App() {
         <Route path="/trading" element={<TradingPage />} />
         <Route path="/learn" element={<LearnPage />} />
         <Route path="/learn/:id" element={<LearnPage />} />
+        <Route path="/learn/:id/:step" element={<LearnPage />} />
         <Route path="/ai" element={<AiPage />} />
         <Route path="*" element={<BotPage />} />
       </Route>

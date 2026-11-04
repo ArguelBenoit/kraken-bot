@@ -50,13 +50,15 @@ function read(key: NonNullable<NavItem['activity']>, a: Activity) {
   const positions = a[key].positions
   const running = key === 'manual' ? null : a[key].running
   const pending = key === 'manual' ? a.manual.pending : 0
+  const unknownTone = typeof a[key].gain !== 'number'
   const parts = [
     running == null ? null : running ? 'bot en marche' : 'bot arrêté',
-    positions ? `${positions} position${positions > 1 ? 's' : ''} ouverte${positions > 1 ? 's' : ''} (${a[key].gain} en gain, ${a[key].loss} en perte)` : 'aucune position',
+    positions ? `${positions} position${positions > 1 ? 's' : ''} ouverte${positions > 1 ? 's' : ''}${unknownTone ? '' : ` (${a[key].gain} en gain, ${a[key].loss} en perte)`}` : 'aucune position',
     pending ? `${pending} ordre${pending > 1 ? 's' : ''} limite en attente` : null,
   ].filter(Boolean)
   // « ordre » : une position ouverte, ou (trading manuel) un ordre limite en attente
-  return { orders: positions + pending, tone: zapTone(a[key].gain, a[key].loss), running, summary: `État : ${parts.join(' · ')}.` }
+  const note = unknownTone ? '\nCouleur de l’éclair indisponible : le serveur Python tourne avec une ancienne version, arrête-le (Ctrl+C) et relance ./run.sh.' : ''
+  return { orders: positions + pending, tone: zapTone(a[key].gain, a[key].loss), running, summary: `État : ${parts.join(' · ')}.${note}` }
 }
 
 /** Pastilles de bout de ligne : ⚡ = au moins un ordre, vert / rouge / orange selon les positions en gain / en perte ; ▶ vert = le bot tourne, ■ gris = il est arrêté. */
@@ -67,6 +69,34 @@ function Indicators({ orders, tone, running }: { orders: number; tone: ZapTone; 
       {running === true && <Play className={`ic f ${css.play}`} />}
       {running === false && <Square className={`ic f ${css.stopped}`} />}
     </span>
+  )
+}
+
+const CONN_TIPS = {
+  claude: "Clé de l'API Anthropic. Nécessaire pour le Bot IA et pour le mode IA du Bot simple (bouton « Demander à Claude »). À mettre dans .env, puis relancer le serveur.",
+  kraken: "Clés de l'API Kraken : nécessaires seulement pour le mode LIVE (droits Query Funds + Create Orders, jamais de retrait). Le paper trading n'en a pas besoin.",
+} as const
+
+/** Bas du menu : quelles variables d'environnement sont définies (« set ») ou non. Jamais les valeurs. */
+function Connections() {
+  const c = useActivityStore((s) => s.connections)
+  const groups = c && c !== 'unavailable' ? ([['Claude', c.claude, CONN_TIPS.claude], ['Kraken', c.kraken, CONN_TIPS.kraken]] as const) : []
+  return (
+    <div className={css.conn}>
+      <div className={css.label} style={{ padding: 0 }}>Connexions</div>
+      {c === 'unavailable' && <div className={css.connNote}>Serveur à redémarrer pour voir l’état des connexions.</div>}
+      {groups.map(([name, vars, tip]) => (
+        <div key={name} className={css.connGroup} data-tip={tip} tabIndex={0}>
+          <div className={css.connName}>{name}</div>
+          {vars.map((v) => (
+            <div key={v.name} className={css.connVar}>
+              <span>{v.name}</span>
+              <span className={v.set ? css.set : css.unset}>{v.set ? '● set' : '○ non'}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -99,7 +129,7 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className={css.footer}>Kraken · spot</div>
+      <Connections />
     </aside>
   )
 }

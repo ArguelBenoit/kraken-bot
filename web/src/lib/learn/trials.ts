@@ -60,7 +60,7 @@ export interface Checklist {
 export function checklist(rec: TrialRecord | undefined, steps: TrialSteps | null): Checklist[] {
   const r = rec ?? emptyRecord()
   return [
-    { id: 'quiz', label: 'Réussir le quiz de la leçon', help: 'Réponds juste aux questions en bas de la leçon.', done: r.quiz },
+    { id: 'quiz', label: 'Réussir le quiz de la leçon', help: 'Réponds juste aux questions de l’étape « Quiz » de ce chapitre.', done: r.quiz },
     { id: 'signal', label: 'Acheter au moment du signal', help: 'Attends que la méthode donne un signal d’achat, puis achète.', done: r.trade || !!steps?.signalBuy },
     { id: 'stop', label: 'Protéger ce trade avec un stop loss', help: 'Avant d’acheter, choisis un « Stop loss » (ex. 3 %) : il limite la perte.', done: r.trade || !!steps?.stop },
     { id: 'closed', label: 'Clôturer le trade (vendre)', help: 'Vends toi-même, ou laisse le stop / l’objectif / le signal de sortie s’en charger.', done: r.trade || !!steps?.closed },

@@ -1,15 +1,14 @@
-import { Pin, Play, RotateCcw, Settings, Square } from 'lucide-react'
+import { Play, RotateCcw, Settings, Square } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field, Fields } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Notice'
-import { pairLabel } from '@/lib/constants'
 import { FORM_ROWS, isVisible, type FieldDef } from '@/lib/fields'
 import { FIELD_TIPS } from '@/lib/tips'
 import type { Strategy } from '@/lib/types'
 import { useBotStore } from '@/stores/botStore'
 import { useMarketStore } from '@/stores/marketStore'
-import { PresetsPopover } from './PresetsPopover'
+import { ClaudeAdvisor } from './ClaudeAdvisor'
 
 function Control({ def }: { def: FieldDef }) {
   const value = useBotStore((s) => s.draft[def.name] ?? '')
@@ -35,22 +34,15 @@ export function SettingsCard() {
   const status = useBotStore((s) => s.status)
   const strategy = useBotStore((s) => String(s.draft.strategy ?? 'rsi')) as Strategy
   const notice = useBotStore((s) => s.notice)
-  const { save, restore, control, pin } = useBotStore.getState()
+  const { save, restore, control } = useBotStore.getState()
   const followConfig = useMarketStore((s) => s.followConfig)
   if (!status) return <Card title="Réglages" icon={Settings}>Chargement…</Card>
 
   const { config, running } = status
-  const saved = config
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (await save()) followConfig(Number(useBotStore.getState().draft.timeframe))
-  }
-
-  const onPin = async () => {
-    const def = `${pairLabel(saved.pair)} ${saved.timeframe}m RSI${saved.rsi_period} ${saved.rsi_buy}/${saved.rsi_sell} TP${saved.take_profit_pct} SL${saved.stop_loss_pct}`
-    const name = window.prompt('Nom de la config à épingler (configuration actuellement enregistrée) :', def)
-    if (name) await pin(name)
   }
 
   const onReset = () => {
@@ -61,7 +53,8 @@ export function SettingsCard() {
   }
 
   return (
-    <Card title="Réglages" icon={Settings} actions={<PresetsPopover />}>
+    <Card title="Réglages" icon={Settings}>
+      <ClaudeAdvisor />
       <form onSubmit={onSubmit}>
         {FORM_ROWS.map((row, i) => {
           const visible = row.filter((f) => isVisible(f, strategy, config.mode))
@@ -74,10 +67,6 @@ export function SettingsCard() {
           <Button variant="sec" title="Annule les modifications non enregistrées : remet le formulaire comme la configuration enregistrée" onClick={() => void restore()}>
             <RotateCcw className="ic mr" />
             Restaurer
-          </Button>
-          <Button variant="sec" title="Épingle la configuration actuellement ENREGISTRÉE (pas les modifications non enregistrées)" onClick={onPin}>
-            <Pin className="ic mr" />
-            Épingler
           </Button>
         </div>
         <Notice notice={notice} />

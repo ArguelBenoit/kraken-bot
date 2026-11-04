@@ -42,8 +42,8 @@ export const MODULES: { id: ModuleId; title: string; intro: string }[] = [
 
 /** Étapes de l'épreuve, rappelées à la fin de chaque leçon de méthode. */
 const TRIAL_STEPS = [
-  `**Réussis le quiz** ci-dessous.`,
-  `Descends tout en bas et clique sur **« Démarrer l’exercice »** : on te donne un vrai moment passé du marché, dont tu ne connais pas la suite.`,
+  `**Réussis le quiz** (à l'étape suivante de ce chapitre).`,
+  `À l'étape **« Épreuve »**, clique sur **« Démarrer l’exercice »** : on te donne un vrai moment passé du marché, dont tu ne connais pas la suite.`,
   `Clique sur **« Aller au prochain signal »** (ou avance bougie par bougie) jusqu'à ce que la méthode donne un **signal d'achat** : le coach te le dit. Choisis un **stop loss**, puis **achète**.`,
   `**Clôture** le trade : vends toi-même, ou laisse le stop, l'objectif ou le signal de sortie le faire. L'épreuve est validée !`,
 ]

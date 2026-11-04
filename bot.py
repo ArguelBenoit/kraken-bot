@@ -1,4 +1,4 @@
-import json, threading, time, uuid
+import json, threading, time
 from datetime import datetime
 from pathlib import Path
 
@@ -40,7 +40,7 @@ DEFAULT_CONFIG = {
     "filter_tf": 0,             # timeframe du filtre (0 = celui de la stratégie, sinon 60 / 240 / 1440)
     "atr_stop": 0.0,            # stop = prix d'entrée − N × ATR(14) à la place du stop loss en % (0 = désactivé)
 }
-PIN_FIELDS = ["pair", "timeframe", "rsi_period", "rsi_buy", "rsi_sell", "take_profit_pct",
+CONFIG_FIELDS = ["pair", "timeframe", "rsi_period", "rsi_buy", "rsi_sell", "take_profit_pct",
               "stop_loss_pct", "order_size", "fee_pct", "check_every", "strategy", "ma_fast", "ma_slow", "trailing_pct", "instant_entry",
               "bb_period", "bb_std", "dc_entry", "dc_exit", "macd_fast", "macd_slow", "macd_signal", "mom_period", "mom_min_pct",
               "filter_ema", "filter_tf", "atr_stop"]
@@ -131,7 +131,7 @@ class Bot:
         self.logs = []
         self.config = {**DEFAULT_CONFIG, **self._load(CONFIG_FILE, {})}
         self.state = self._load(STATE_FILE, None) or self._fresh_state()
-        self.state.setdefault("presets", [])
+        self.state.pop("presets", None)               # ancien système de presets épinglés, supprimé
         if self.state.get("qty", 0) > 0 and not self.state.get("pair"):
             self.state["pair"] = self.config["pair"]      # anciennes positions sans paire mémorisée
         self.last = {"price": None, "rsi": None, "time": None}
@@ -145,9 +145,7 @@ class Bot:
             return default
 
     def _fresh_state(self):
-        presets = getattr(self, "state", {}).get("presets", [])   # les configs épinglées survivent au reset
-        return {"cash": self.config["paper_balance"], "qty": 0.0, "entry": None, "trades": [], "pnl": 0.0,
-                "presets": presets}
+        return {"cash": self.config["paper_balance"], "qty": 0.0, "entry": None, "trades": [], "pnl": 0.0}
 
     def _save(self):
         STATE_FILE.write_text(json.dumps(self.state, indent=1))
@@ -157,7 +155,8 @@ class Bot:
         self.logs = self.logs[-100:]
 
     # ---------- config ----------
-    def update_config(self, new):
+    def validate_config(self, new):
+        """Valide une configuration (sans l'enregistrer) et renvoie la configuration complète, ou lève ValueError."""
         cfg = dict(self.config)
         for k, default in DEFAULT_CONFIG.items():
             if k in new:
@@ -180,37 +179,14 @@ class Bot:
                 raise ValueError(f"{k} doit être entre {lo} et {hi}")
         if cfg["rsi_buy"] >= cfg["rsi_sell"]:
             raise ValueError("rsi_buy doit être < rsi_sell")
+        return cfg
+
+    def update_config(self, new):
+        cfg = self.validate_config(new)
         with self.lock:
             self.config = cfg
             CONFIG_FILE.write_text(json.dumps(cfg, indent=1))
         self.log("Configuration enregistrée")
-
-    def pin_preset(self, name):
-        """Épingle la configuration actuellement ENREGISTRÉE sous un nom."""
-        name = (name or "").strip()
-        if not 1 <= len(name) <= 40:
-            raise ValueError("Nom requis (40 caractères max)")
-        with self.lock:
-            presets = self.state.setdefault("presets", [])
-            if any(p["name"].lower() == name.lower() for p in presets):
-                raise ValueError("Ce nom existe déjà")
-            if len(presets) >= 50:
-                raise ValueError("50 configs maximum")
-            presets.append({"id": uuid.uuid4().hex[:8], "name": name,
-                            "created": datetime.now().strftime("%d/%m/%Y"),
-                            "config": {k: self.config[k] for k in PIN_FIELDS}})
-            self._save()
-        self.log(f"Config épinglée : {name}")
-
-    def unpin_preset(self, pid):
-        with self.lock:
-            presets = self.state.setdefault("presets", [])
-            n = len(presets)
-            self.state["presets"] = [p for p in presets if p["id"] != pid]
-            if len(self.state["presets"]) == n:
-                raise ValueError("Config introuvable")
-            self._save()
-        self.log("Config épinglée supprimée")
 
     def reset_paper(self):
         with self.tlock, self.lock:      # attend la fin d'un cycle éventuel en cours

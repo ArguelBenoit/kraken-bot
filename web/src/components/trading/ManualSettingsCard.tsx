@@ -49,7 +49,7 @@ export function ManualSettingsCard() {
           <Button type="submit">Enregistrer</Button>
           {paper && <Button variant="sec" onClick={onReset}>Reset paper</Button>}
         </div>
-        <Notice notice={notice} />
+        <Notice notice={notice} collapse />
       </form>
     </Card>
   )

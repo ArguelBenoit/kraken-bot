@@ -21,23 +21,23 @@ Après une modif **Python** : relancer (Ctrl+C puis `./run.sh`). Les modifs de l
 | Fichier | Rôle |
 |---|---|
 | `app.py` | Flask : routes + chargement de `.env`. |
-| `bot.py` | Classe `Bot` : boucle (thread), stratégie, ordres, état, presets épinglés, scan du marché, données du graphique. |
+| `bot.py` | Classe `Bot` : boucle (thread), stratégie, ordres, état, scan du marché, données du graphique. |
 | `kraken.py` | Client Kraken : public (OHLC, Ticker) et privé signé HMAC (`AddOrder` au marché). |
 | `ai_bot.py` | Classe `AIBot` (page `/ai`) : Claude analyse le marché toutes les N min et ouvre/ferme jusqu'à 5 positions. Garde-fous appliqués par le code. |
 | `backtest.py` | Backtest RSI sur l'historique Kraken (`python backtest.py ETHUSDC`), `trend`, et les 4 nouvelles méthodes. |
 | `manual.py` | Classe `ManualTrader` (page `/trading`) : ordres passés à la main (marché ou limite) avec SL / TP / stop suiveur par position, plusieurs positions. |
+| `suggest.py` | Mode IA du bot simple : Claude propose le meilleur réglage du moment (`POST /api/suggest`). |
 | `learn.py` | Progression du tutoriel (page `/learn`) dans `learn_state.json` : quiz réussis + épreuves validées. Aucun trading. |
 | `strategies.py` | Signaux purs des méthodes Bollinger / Donchian / MACD / Momentum (`signal()`), ATR, filtre de tendance : partagés par le bot, le scan et le backtest. |
 | `indicators.py` | `ema_series`, `rsi_series` (ré-exportés par `bot.py`). |
 | `web/` | Interface **React + TypeScript** (Vite, zustand, lightweight-charts, lucide-react) : voir section « Interface ». |
 | `run.sh` | Lance tout en une commande (dev ou `prod`). |
 | `config.json` | Réglages enregistrés (créé au 1er « Enregistrer »). Ignoré par git. |
-| `state.json` | État runtime : `cash, qty, entry, pair, cost, pnl, trades[≤200], presets[]`. Ignoré par git. |
+| `state.json` | État runtime : `cash, qty, entry, pair, cost, pnl, trades[≤200]`. Ignoré par git. |
 
-Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `PIN_FIELDS`, donc épinglés).
+Config ajoutée : `strategy, ma_fast, ma_slow, trailing_pct` (dans `CONFIG_FIELDS`, la liste des réglages).
 
-Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST /api/config`, `POST /api/presets`,
-`DELETE /api/presets/<id>`, `POST /api/{start|stop|liquidate|reset}`.
+Routes : `GET /api/status`, `GET /api/chart?pair&tf`, `GET /api/scan?tf`, `POST /api/config`, `POST /api/{start|stop|liquidate|reset}`.
 
 ## Bot IA (ai_bot.py, page /ai)
 
@@ -61,6 +61,20 @@ rien ne se déclenche. Garde-fous : montant min 5, `max_order` (500 par défaut)
 Routes : `GET /api/manual/status?pair=` (inclut `quote`), `POST /api/manual/{config|order|reset}`, `POST /api/manual/positions/<id>/{close|adjust}`, `DELETE /api/manual/pending/<id>`.
 **Testé en paper avec Kraken simulé et sur de vrais prix en paper ; live jamais testé.**
 
+## Mode IA du bot simple (suggest.py)
+
+Bouton « Demander à Claude » en haut des Réglages du bot simple (`ClaudeAdvisor`). `POST /api/suggest {lock_pair}` : snapshot du marché en 4 h (`ai_bot.market_snapshot`) → Claude (outil
+`propose_config`, `tool_choice: auto` ; modèle = celui du Bot IA) → `sanitize()` (valeurs inconnues ignorées, bornes, plafonds de stop, cohérences rapide < lente) → `Bot.validate_config()`.
+Renvoie `config` + `rationale`, `confidence`, `no_edge` : l'interface **pré-remplit seulement le formulaire**, rien n'est enregistré ni lancé sans clic. Claude ne règle jamais
+`order_size`, `fee_pct`, `check_every` ni le mode. Garde-fous : 1 appel à la fois, 10 s entre deux demandes, erreurs claires (clé absente, crédit épuisé). Coût : un appel Claude par clic.
+Le prompt reprend les résultats de backtest du projet (4 h seule zone un peu positive, échantillons faibles) et autorise `no_edge=true` (« ne rien faire »).
+
+## Bas du menu et pastilles (AppShell / Sidebar)
+
+`GET /api/connections` : pour chaque variable (`ANTHROPIC_API_KEY`, `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`) seulement `set` vrai/faux, **jamais la valeur**. `GET /api/activity` (toutes les 4 s) :
+bots en marche, positions ouvertes et combien sont en gain / en perte → éclair vert / rouge / orange ; **gris si le serveur ne renvoie pas gain/loss** (serveur Python à redémarrer).
+Si le front affiche des pastilles manquantes ou un éclair gris, ou « Erreur 404 » : le serveur Python tourne avec une ancienne version → Ctrl+C puis `./run.sh`.
+
 ## Tutoriel « Apprendre » (page /learn, 4ᵉ page, groupe à part dans la barre latérale)
 
 **100 % paper, 100 % navigateur** : aucun ordre n'est jamais envoyé. Pour un débutant complet : cours en leçons (`lib/learn/lessons.ts`, 11 leçons, tutoiement),
@@ -72,6 +86,10 @@ après ≥ 4 bougies calmes (`pickStartWithSignal`) ; bouton « Aller au prochai
 trade **clôturé**. Validée = quiz + trade modèle ; objectif : valider les 6 (« passeport »).
 Les signaux enseignés (`methods.ts`, `indicators.ts`) sont **identiques à ceux du bot Python** : `learn.test.ts` compare, sur une série fixe, les indices de signaux
 avec ceux de `strategies.py` / `indicators.py` (listes générées par Python). Si tu changes une règle d'un côté, change l'autre et régénère les listes.
+**Présentation en tunnel** (une étape à l'écran, jamais tout d'un coup) : `lib/learn/tunnel.ts` (`buildSteps`) découpe chaque leçon selon ses intertitres, SANS perdre de contenu (testé sur les 11 leçons),
+puis ajoute Quiz → Épreuve/Exercice → Bilan. Routes `/learn` (sommaire + passeport), `/learn/:id/:step` (étape 1 = première ; les liens internes pointent vers `/learn/:id/1`).
+`TunnelBar` : menu **Chapitres** (aller à un chapitre, « Reprendre depuis le début », effacer la progression), progression par étape (cliquable), **Passeport** x/6. Flèches ← → du clavier.
+Ne jamais renvoyer le résultat de `window.scrollTo(...)` depuis un `useEffect` (React l'appelle comme fonction de nettoyage → écran noir).
 Progression : `GET/PUT /api/learn/progress`, `POST /api/learn/reset` → `learn_state.json` (écriture atomique, entrée nettoyée côté serveur) ; store `learnStore` (zustand).
 
 ## Stratégie (bot.py)
@@ -82,7 +100,7 @@ Deux méthodes, choix dans Réglages > Méthode (`config["strategy"]` = `rsi` | 
 **Tendance (`_tick_trend`)** : EMA rapide/lente (`ma_fast`/`ma_slow`) sur les bougies closes. Achat sur **croisement haussier** de la
 dernière bougie close ; sortie sur croisement baissier, `stop_loss_pct` fixe ou stop suiveur `trailing_pct` depuis `state["peak"]`
 (0 = off). Pas de take profit. `state["trend_block"]` empêche de racheter sur la bougie de la sortie. Backtest : `python backtest.py ETHUSDC trend [frais]`
-(résultats non concluants : trop peu de trades sur 720 bougies, aucun preset tendance fourni). Le graphique trace les 2 EMA, le tableau Marché
+(résultats non concluants : trop peu de trades sur 720 bougies). Le graphique trace les 2 EMA, le tableau Marché
 affiche Haussier/Baissier/Croisement et se trie par croisement puis écart EMA, la jauge du trade en cours va du stop effectif au pic.
 
 **Méthodes à signaux (`_tick_signal`, `strategies.py`)** : `bollinger` (achat sous la bande basse, vente à la moyenne, TP + SL),
@@ -111,23 +129,22 @@ React 19 + TypeScript + Vite ; **l'API Flask n'a pas changé** (toutes les route
 Trois pages (react-router) : `/` Bot simple, `/ai` Bot IA, `/trading` Trading manuel ; menu dans la barre latérale (`NAV_ITEMS` de `Sidebar.tsx`), bandeau de page = titre + indicateurs (`Header.tsx`).
 
     web/src/
-      lib/        types, api (fetch typé), format, constants, fields (formulaire piloté par données), presets, tips,
+      lib/        types, api (fetch typé), format, constants, fields (formulaire piloté par données), summary, tips,
                   scan / trade / markers = logique pure testée (lib.test.ts, `npm test`)
       stores/     zustand : botStore (statut + brouillon du formulaire + actions), marketStore (tableau, graphique, bougie), aiStore
       hooks/      usePolling, useBotSync (orchestration : sondage 3 s, graphique 60 s, recharge si méthode/trade change), useDismiss, useMaxRowsHeight
       components/ ui/ (Card, Field, Button, Tip, ModeSwitch, StatusBadge, Notice, LogCard) · layout/ · bot/ · ai/ · chart/PriceChart
       pages/      BotPage, AiPage          styles/theme.css  (jetons + primitives), CSS modules pour les composants complexes
 
-- Thème sombre « oldschool » inchangé : monospace, rayon 2 px, accent ambre `--ac`, vert/rouge gains/pertes (variables dans `styles/theme.css`).
+- Thème sombre « oldschool » inchangé : monospace, rayon 2 px, accent orange chaud `--ac` (#ff7a1a), vert/rouge gains/pertes (variables dans `styles/theme.css`).
 - Formulaire des réglages : défini par `FORM_ROWS` (`lib/fields.ts`) ; un champ n'apparaît que pour les méthodes de `only`. Ajouter un réglage =
   `DEFAULT_CONFIG`/`LIMITS` côté Python + une entrée dans `fields.ts` + son type dans `types.ts` + (option) son infobulle dans `tips.ts`.
 - Le brouillon du formulaire vit dans le store : il n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
-  « Restaurer » le remet sur la config enregistrée. Presets / Trader ne font que **pré-remplir** (rien n'est enregistré).
+  « Restaurer » le remet sur la config enregistrée. Trader et la proposition de Claude ne font que **pré-remplir** (rien n'est enregistré).
 - Largeur minimale 1600 px (`body{min-width}`), **aucun responsive** : en dessous, la page déborde du viewport sans se réorganiser.
 - **Trade en cours = un composant commun** (`components/trade/OpenTradeCard.tsx`) pour les 3 pages : une carte par position (PnL, jauge stop → objectif, zone atteinte).
   Chaque page l'alimente via un adaptateur de `lib/trade.ts` (`botTradeInput`, `aiTradeInput`, `manualTradeInput` → `OpenTradeInput`) et ses propres boutons (`actions`).
 - Marché : 8 lignes visibles, trié selon la méthode, le sélecteur « Bougie » pilote tableau **et** graphique, **Trader** pré-remplit le formulaire.
-- Presets : intégrés (`lib/presets.ts`, issus de backtests : biais de sélection) + **configs épinglées** dans `state.json["presets"]`.
 - Icônes : `lucide-react` (`<Settings className="ic" />`, `ic f` pour les pleines). Aucun asset à copier.
 - Tester le vrai parcours dans un navigateur : Chromium headless + protocole DevTools (`--remote-debugging-port`) piloté par un script node jetable avec `ws` installé **hors du projet**
   (dossier temporaire) ; cliquer les boutons par texte **exact** (un lien du menu contient souvent le même mot), apostrophes typographiques `’` dans l'UI.
@@ -137,10 +154,9 @@ Trois pages (react-router) : `/` Bot simple, `/ai` Bot IA, `/trading` Trading ma
 
 - Données Kraken : **720 bougies max** par timeframe → ~48 jours de test en 4 h. Frais taker 0,26 % par ordre (≈ 0,5 % l'aller-retour).
 - **1 h : presque rien de rentable**. **1 j : perd comme le prix.** **4 h, RSI 7, achat 30-35, vente 65-70** : seule zone un peu positive.
-- Les presets viennent de configs positives à l'entraînement **et** au test avec assez de trades, mais choisies parmi 200+ combinaisons
-  par crypto → **biais de sélection, résultats optimistes**. Aucune rentabilité garantie ; recommandé : plusieurs semaines en paper avant le live.
-- Presets (tous 4 h, paper, préfixés RSI · / EMA · dans le popover) : RSI = ETH équilibré/patient, XRP, SHIB, BTC, SOL x2, AVAX x2, LINK ; EMA = BTC, SOL, LINK, ADA.
-  Les presets EMA viennent d'un grid (train>0 et test>0) mais avec 3 à 5 trades de test : très fragiles, à observer en paper. « Trader » (tableau) choisit un preset de la méthode active.
+- Le système de **presets a été supprimé** de l'interface (peu d'intérêt) ; les résultats ci-dessus restent la référence, et le mode IA (Claude) propose un réglage du moment
+  en s'appuyant dessus. Les anciens presets venaient de configs positives à l'entraînement et au test, choisies parmi 200+ combinaisons par crypto : **biais de sélection**, résultats
+  optimistes, très fragiles (surtout EMA, 3 à 5 trades de test). Aucune rentabilité garantie ; recommandé : plusieurs semaines en paper avant le live.
 
 ## Limites et risques connus
 
@@ -149,7 +165,6 @@ Trois pages (react-router) : `/` Bot simple, `/ai` Bot IA, `/trading` Trading ma
 - **Aucun stop chez Kraken** : TP/SL n'existent que dans le programme. Si `app.py` s'arrête (terminal fermé, veille, coupure),
   rien ne vend. Le bot **ne redémarre pas tout seul** : il faut cliquer sur Démarrer.
 - Paper et live **partagent `state.json`** ; le changement de mode est bloqué si le bot tourne ou si une position est ouverte. Changer de paire est autorisé (voir plus haut).
-- Les presets épinglés vivent dans `state.json` : supprimer ce fichier les efface (un fichier séparé serait plus robuste).
 - Écriture de `state.json` non atomique ; une seule instance du programme à la fois sur un compte.
 
 ## Reste à faire (idées discutées)
@@ -157,7 +172,7 @@ Trois pages (react-router) : `/` Bot simple, `/ai` Bot IA, `/trading` Trading ma
 1. Stop loss / take profit **posés chez Kraken** (ordres conditionnels, `close[...]`, tester avec `validate=true`) + vérifier le solde réel au démarrage en live.
 2. **Multi-paires** : un bot par paire, état séparé, plafond d'exposition global.
 3. Redémarrage automatique du bot s'il tournait + lancement en arrière-plan (service systemd).
-4. Bloquer le changement de **mode** avec une position ouverte ; séparer l'état paper / live ; déplacer les presets épinglés dans leur propre fichier.
+4. Bloquer le changement de **mode** avec une position ouverte ; séparer l'état paper / live .
 5. Filtre de tendance (ex. pas d'achat sous la moyenne mobile 200) ou stratégie en grille ; tri du tableau Marché combinant RSI et volatilité.
 
 ## Conventions de travail avec l'utilisateur

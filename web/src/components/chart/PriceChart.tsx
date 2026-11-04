@@ -46,7 +46,7 @@ export function PriceChart({ data, levels = [] }: { data: ChartData | null; leve
     const candles = price.addCandlestickSeries({
       upColor: '#3ddc84', downColor: '#ff4d4d', borderVisible: false, wickUpColor: '#3ddc84', wickDownColor: '#ff4d4d',
     })
-    const rsiLine = rsi.addLineSeries({ color: '#ffb000', lineWidth: 2 })
+    const rsiLine = rsi.addLineSeries({ color: '#ff7a1a', lineWidth: 2 })
     const fast = price.addLineSeries(lineOpts('#4aa3ff'))
     const slow = price.addLineSeries(lineOpts('#d58bff'))
     price.timeScale().subscribeVisibleLogicalRangeChange((r) => r && rsi.timeScale().setVisibleLogicalRange(r))

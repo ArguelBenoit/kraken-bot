@@ -43,11 +43,20 @@ interface KpiProps {
   /** Aligne l'infobulle sur le bord droit (indicateurs près du bord de l'écran). */
   tipRight?: boolean
   hidden?: boolean
+  /** Sans libellé : seulement la valeur (ou le contrôle) suivie de sa pastille d'aide. */
+  bare?: boolean
   children: ReactNode
 }
 
-export function Kpi({ label, tip, tipRight = true, hidden, children }: KpiProps) {
+export function Kpi({ label, tip, tipRight = true, hidden, bare, children }: KpiProps) {
   if (hidden) return null
+  if (bare)
+    return (
+      <div className={css.kpi} role="group" aria-label={label}>
+        {children}
+        <Tip text={tip} right={tipRight} />
+      </div>
+    )
   return (
     <div className={css.kpi}>
       <small>

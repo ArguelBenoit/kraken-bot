@@ -1,13 +1,19 @@
-/* Bandeau de page : collant en haut, pleine largeur (il recouvre ce qui défile dessous), sans trait de séparation. */
-.header { position: sticky; top: 0; z-index: 50; background: var(--bg); margin: -16px -16px 16px; padding: 18px 16px; }
+/* Bandeau de page : collant en haut, pleine largeur, sans trait de séparation. */
+.header {
+  position: sticky; top: 0; z-index: 50; margin: -16px -16px 0; padding: 18px 16px;
+  /* noir translucide + flou : le contenu qui défile dessous reste devinable sans gêner la lecture */
+  background: rgba(5, 5, 5, 0.4);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
 .inner { max-width: 1600px; margin: 0 auto; display: flex; align-items: center; gap: 10px 32px; padding: 0 2px; }
-.title { font-size: 24px; margin: 0; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ac); white-space: nowrap; }
+.title { flex: none; font-size: 22px; margin: 0; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ac); white-space: nowrap; }
 .title :global(.ic) { margin-right: 12px; }
-/* Les indicateurs prennent la place restante, alignés à droite, et passent à la ligne entre eux si besoin. */
-.kpis { flex: 1 1 0; min-width: 0; display: flex; justify-content: flex-end; gap: 8px 34px; flex-wrap: wrap; align-items: center; }
-.kpi { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.kpi small { color: var(--mu); font-size: 13px; }
+/* Tout tient sur une seule ligne : les indicateurs prennent la place restante, alignés à droite. */
+.kpis { flex: 1 1 0; min-width: 0; display: flex; justify-content: flex-end; gap: 8px 18px; flex-wrap: nowrap; align-items: center; }
+.kpi { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.kpi small { color: var(--mu); font-size: 12px; }
 .kpi small::after { content: ':'; margin-left: 4px; }
-.kpi b { font-size: 20px; }
+.kpi b { font-size: 17px; }
 .kpi :global(.badge) { font-size: 13px; padding: 4px 11px; }
 .kpi :global(.sw) { font-size: 13px; gap: 10px; }

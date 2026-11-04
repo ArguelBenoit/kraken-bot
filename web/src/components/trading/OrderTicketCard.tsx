@@ -129,7 +129,7 @@ export function OrderTicketCard() {
         <Button type="submit" className="block buy" disabled={!canSubmit}>
           {t.type === 'limit' ? 'Placer l’ordre limite' : 'Acheter au marché'} · {pairLabel(t.pair)}
         </Button>
-        <Notice notice={notice} />
+        <Notice notice={notice} collapse />
       </form>
     </Card>
   )

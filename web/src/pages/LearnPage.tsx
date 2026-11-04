@@ -1,56 +1,64 @@
-import { GraduationCap } from 'lucide-react'
-import { useEffect } from 'react'
+import { GraduationCap, ListTree } from 'lucide-react'
+import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { CourseMap, Passport } from '@/components/learn/CourseMap'
+import { ChapterList } from '@/components/learn/ChapterList'
 import css from '@/components/learn/Learn.module.css'
-import { LessonView } from '@/components/learn/LessonView'
+import { Passport } from '@/components/learn/Passport'
+import { Tunnel } from '@/components/learn/Tunnel'
 import { Header, Kpi } from '@/components/layout/Header'
-import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { LESSON_BY_ID, LESSONS } from '@/lib/learn/lessons'
 import { progress } from '@/lib/learn/trials'
+import { buildSteps, stepIndex } from '@/lib/learn/tunnel'
 import { useLearnStore } from '@/stores/learnStore'
 
+/** Page d'accueil du tutoriel : le pitch, le sommaire des chapitres et le passeport. */
 function Welcome() {
   const done = useLearnStore((s) => s.lessonsDone)
   const first = LESSONS.find((l) => !done[l.id]) ?? LESSONS[0]
-  const reset = useLearnStore((s) => s.reset)
+  const started = Object.keys(done).length > 0
   return (
-    <div className={css.main}>
-      <div className={css.hero}>
-        <h2>Apprends à trader, sans risquer un centime</h2>
-        <div className={css.prose}>
-          <p>
-            Ici, tout est <b>simulé</b> : de l&apos;argent fictif, aucun compte, aucun ordre envoyé nulle part. Tu peux te tromper autant que tu veux.
-            On t&apos;explique chaque mot technique, pas à pas, comme si tu n&apos;avais jamais ouvert un graphique.
-          </p>
-          <ol className={css.steps}>
-            <li><b>Lis</b> une leçon courte : les mots difficiles sont cliquables et expliqués.</li>
-            <li><b>Réponds</b> à un petit quiz pour vérifier que c&apos;est clair.</li>
-            <li><b>Rejoue le marché</b> : on te montre un vrai moment passé, bougie par bougie, sans la suite. À toi de décider.</li>
-          </ol>
-          <p><b>Ta mission :</b> utiliser les 6 méthodes de trading. Chacune est une <b>épreuve</b> avec sa liste de validation à cocher. Quand les 6 sont validées, tu as fait le tour.</p>
-        </div>
-        <div className="row"><Link className="btn" to={`/learn/${first.id}`}>{Object.keys(done).length ? 'Continuer le parcours' : 'Commencer le parcours'} →</Link></div>
-      </div>
-      <Card title="Passeport des méthodes" icon={GraduationCap}>
-        <Passport />
-        {Object.keys(done).length > 0 && (
-          <div className="row">
-            <Button variant="sec" size="xs" onClick={() => window.confirm('Effacer toute ta progression (quiz et épreuves validées) ?') && void reset()}>Recommencer à zéro</Button>
+    <div className={css.welcome}>
+      <div className="col">
+        <div className={css.hero}>
+          <h2>Apprends à trader, sans risquer un centime</h2>
+          <div className={css.prose}>
+            <p>
+              Ici, tout est <b>simulé</b> : de l&apos;argent fictif, aucun compte, aucun ordre envoyé nulle part. On t&apos;explique chaque mot technique,
+              <b> une étape à la fois</b>, comme si tu n&apos;avais jamais ouvert un graphique.
+            </p>
+            <ol className={css.steps}>
+              <li><b>Lis</b> un chapitre, étape par étape : les mots difficiles sont cliquables.</li>
+              <li><b>Réponds</b> à un petit quiz pour vérifier que c&apos;est clair.</li>
+              <li><b>Rejoue le marché</b> : un vrai moment passé, bougie par bougie, sans la suite. À toi de décider.</li>
+            </ol>
+            <p><b>Ta mission :</b> valider les 6 méthodes de trading (une épreuve chacune).</p>
           </div>
-        )}
-      </Card>
-      <div className={css.callout + ' ' + css.warn}>
-        <strong>⚠ Honnêteté</strong>
-        <span className={css.prose}>Trader est risqué et la majorité des débutants perd de l&apos;argent. Ce tutoriel enseigne des méthodes et de la discipline : il ne promet aucun gain et n&apos;est pas un conseil financier.</span>
+          <div className="row">
+            <Link className="btn" to={`/learn/${first.id}/1`}>{started ? 'Reprendre là où tu en étais' : 'Commencer le parcours'} →</Link>
+            {started && <Link className="btn sec" to={`/learn/${LESSONS[0].id}/1`}>Reprendre depuis le début</Link>}
+          </div>
+        </div>
+        <Card title="Tous les chapitres" icon={ListTree}>
+          <ChapterList />
+        </Card>
+      </div>
+      <div className="col">
+        <Card title="Passeport des méthodes" icon={GraduationCap}>
+          <div className="hint" style={{ marginTop: 0 }}>Ta mission : valider les 6 épreuves, une par méthode.</div>
+          <Passport />
+        </Card>
+        <div className={`${css.callout} ${css.warn}`}>
+          <strong>⚠ Honnêteté</strong>
+          <span className={css.prose}>Trader est risqué et la majorité des débutants perd de l&apos;argent. Ce tutoriel enseigne des méthodes et de la discipline : il ne promet aucun gain et n&apos;est pas un conseil financier.</span>
+        </div>
       </div>
     </div>
   )
 }
 
 export function LearnPage() {
-  const { id } = useParams()
+  const { id, step } = useParams()
   const trials = useLearnStore((s) => s.trials)
   const lessonsDone = useLearnStore((s) => s.lessonsDone)
   const error = useLearnStore((s) => s.error)
@@ -58,11 +66,12 @@ export function LearnPage() {
   useEffect(() => { void load() }, [load])
   const p = progress(trials)
   const lesson = id ? LESSON_BY_ID[id] : undefined
+  const steps = useMemo(() => (lesson ? buildSteps(lesson) : []), [lesson])
 
   return (
     <>
       <Header title="Apprendre le trading" icon={GraduationCap}>
-        <Kpi label="Mode" tipRight={false} tip="Page 100 % simulation : aucun ordre n'est jamais envoyé, même si tu es en mode LIVE ailleurs.">
+        <Kpi bare label="Mode" tipRight={false} tip="Page 100 % simulation : aucun ordre n'est jamais envoyé, même si tu es en mode LIVE ailleurs.">
           <b className="t-ac">PAPER UNIQUEMENT</b>
         </Kpi>
         <Kpi label="Épreuves validées" tip="Une épreuve par méthode. Objectif : toutes les valider.">
@@ -72,10 +81,9 @@ export function LearnPage() {
           <b>{LESSONS.filter((l) => lessonsDone[l.id]).length} / {LESSONS.length}</b>
         </Kpi>
       </Header>
-      {error && <div className="warn danger" style={{ maxWidth: 1600, margin: '0 auto 12px' }}>{error}</div>}
-      <div className={css.page}>
-        <div className={css.map}><CourseMap /></div>
-        {lesson ? <LessonView key={lesson.id} lesson={lesson} /> : <Welcome />}
+      {error && <div className="warn danger" style={{ maxWidth: 1600, margin: '16px auto 0' }}>{error}</div>}
+      <div style={{ paddingTop: 16 }}>
+        {lesson ? <Tunnel key={lesson.id} lesson={lesson} steps={steps} index={stepIndex(step, steps.length)} /> : <Welcome />}
       </div>
     </>
   )

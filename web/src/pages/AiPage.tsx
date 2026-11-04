@@ -25,10 +25,10 @@ export function AiPage() {
   return (
     <>
       <Header title="Bot IA" icon={Bot}>
-        <Kpi label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>
+        <Kpi bare label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>
           <ModeSwitch mode={c?.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
-        <Kpi label="Statut" tip={AI_KPI_TIPS['Statut']}>
+        <Kpi bare label="Statut">
           <StatusBadge running={!!status?.running} runningLabel={status?.reviewing ? 'ANALYSE…' : 'EN COURS'} />
         </Kpi>
         <Kpi label="PnL réalisé" tip={AI_KPI_TIPS['PnL réalisé']}><Pnl v={status?.pnl} /></Kpi>

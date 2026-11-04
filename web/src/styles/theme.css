@@ -1,7 +1,7 @@
-/* ===== Thème « oldschool » : monospace, rayon 2 px, accent ambre, vert/rouge pour gains/pertes ===== */
+/* ===== Thème « oldschool » : monospace, rayon 2 px, accent orange chaud, vert/rouge pour gains/pertes ===== */
 :root {
   --bg: #050505; --card: #0b0b0b; --bd: #262626; --tx: #d4d0c0; --mu: #7d7a6c;
-  --ok: #3ddc84; --ko: #ff4d4d; --ac: #ffb000; --line: #444;
+  --ok: #3ddc84; --ko: #ff4d4d; --ac: #ff7a1a; --line: #444;
   --mono: ui-monospace, 'DejaVu Sans Mono', 'Courier New', monospace;
   color-scheme: dark;
 }
@@ -60,6 +60,7 @@ input[type='checkbox'], input[type='radio'] { width: auto; }
 
 /* ----- boutons ----- */
 .btn {
+  display: inline-block; text-decoration: none;
   background: var(--ac); color: #000; border: 1px solid var(--ac); border-radius: 2px; padding: 7px 12px; cursor: pointer;
   font: 700 12px var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
 }
@@ -71,16 +72,12 @@ input[type='checkbox'], input[type='radio'] { width: auto; }
 .btn.title { padding: 2px 9px; font-size: 11px; line-height: 16px; }
 .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
 
-/* ----- pastilles de choix (presets) ----- */
+/* ----- pastilles de choix ----- */
 .chip {
   display: inline-block; background: transparent; color: var(--tx); border: 1px solid var(--line); border-radius: 2px;
   padding: 3px 8px; margin: 0 4px 4px 0; font: 12px var(--mono); cursor: pointer;
 }
 .chip:hover { border-color: var(--ac); color: var(--ac); }
-.chipw { display: inline-flex; margin: 0 4px 4px 0; }
-.chipw .chip { margin: 0; }
-.chipw .chip.x { border-left: 0; color: var(--mu); padding: 3px 6px; }
-.chipw .chip.x:hover { color: var(--ko); border-color: var(--ko); }
 
 /* ----- badge de statut ----- */
 .badge { padding: 2px 8px; border-radius: 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; border: 1px solid var(--bd); }

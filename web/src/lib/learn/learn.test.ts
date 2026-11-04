@@ -118,7 +118,9 @@ describe('épreuves : liste de validation', () => {
   })
 })
 
+import { LESSONS } from './lessons'
 import { riskPlan } from './risk'
+import { buildSteps, stepIndex } from './tunnel'
 
 describe('calculette de risque', () => {
   it('taille de position pour ne risquer que 1 % du capital', () => {
@@ -168,5 +170,40 @@ describe('exercices guidés', () => {
     const after = advanceUntil(held, c, () => false)
     expect(after.cursor).toBe(8) // le stop loss a été touché : on s’arrête là
     expect(after.position).toBeNull()
+  })
+})
+
+describe('tunnel : une étape à la fois, sans perdre de contenu', () => {
+  it('aucun bloc n’est perdu et l’ordre est conservé, pour toutes les leçons', () => {
+    for (const l of LESSONS) {
+      const fromSteps = buildSteps(l).flatMap((s) => (s.kind === 'content' ? s.blocks : []))
+      const original = l.blocks.filter((b) => b.t !== 'h')
+      expect(fromSteps).toEqual(original)
+    }
+  })
+  it('structure : cours, puis quiz, puis (si prévu) épreuve, puis bilan', () => {
+    for (const l of LESSONS) {
+      const kinds = buildSteps(l).map((s) => s.kind)
+      expect(kinds[kinds.length - 1]).toBe('recap')
+      expect(kinds.filter((k) => k === 'quiz')).toHaveLength(1)
+      expect(kinds.includes('practice')).toBe(!!l.practice)
+      expect(kinds.indexOf('quiz')).toBeLessThan(kinds.length - 1 - (l.practice ? 1 : 0) + 1)
+      const firstNonContent = kinds.findIndex((k) => k !== 'content')
+      expect(kinds.slice(0, firstNonContent).every((k) => k === 'content')).toBe(true)
+    }
+  })
+  it('l’étape qui explique l’épreuve est repérée (leçons de méthode seulement)', () => {
+    for (const l of LESSONS) expect(buildSteps(l).some((s) => s.kind === 'content' && s.trial)).toBe(!!l.method)
+  })
+  it('une introduction d’un seul bloc est fusionnée avec la suivante', () => {
+    const rsi = LESSONS.find((l) => l.method === 'rsi')!
+    expect(buildSteps(rsi)[0]).toMatchObject({ kind: 'content', title: 'C\'est quoi, le RSI ?' })
+  })
+  it('numéro d’étape de l’URL borné', () => {
+    expect(stepIndex(undefined, 5)).toBe(0)
+    expect(stepIndex('3', 5)).toBe(2)
+    expect(stepIndex('99', 5)).toBe(4)
+    expect(stepIndex('0', 5)).toBe(0)
+    expect(stepIndex('abc', 5)).toBe(0)
   })
 })

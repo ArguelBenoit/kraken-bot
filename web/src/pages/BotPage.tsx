@@ -22,10 +22,10 @@ export function BotPage() {
   return (
     <>
       <Header title="Bot simple" icon={ChartCandlestick}>
-        <Kpi label="Mode" tip={KPI_TIPS['Mode']} tipRight={false}>
+        <Kpi bare label="Mode" tip={KPI_TIPS['Mode']} tipRight={false}>
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
-        <Kpi label="Statut" tip={KPI_TIPS['Statut']}><StatusBadge running={!!status?.running} /></Kpi>
+        <Kpi bare label="Statut"><StatusBadge running={!!status?.running} /></Kpi>
         <Kpi label="PnL réalisé" tip={KPI_TIPS['PnL réalisé']}>
           <b className={pnl >= 0 ? 't-ok' : 't-ko'}>{fm(status?.state.pnl)}</b>
         </Kpi>

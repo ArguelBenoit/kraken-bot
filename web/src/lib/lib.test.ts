@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { fm, signed } from './format'
 import { buildMarkers } from './markers'
-import { presetFor } from './presets'
 import { rowSignal, sortScan } from './scan'
+import { previewTicket, quickSizes } from './ticket'
 import { zapTone } from './activity'
 import { aiTradeInput, botTradeInput, computeOpenTrade, manualTradeInput } from './trade'
 import type { AiPosition, BotConfig, BotState, ManualPosition, ScanRow } from './types'
@@ -98,16 +98,6 @@ describe('markers', () => {
   })
 })
 
-describe('presets', () => {
-  it('choisit le preset le plus prudent pour une paire et une méthode', () => {
-    expect(presetFor('AVAXUSDC', 'rsi')?.[0]).toBe('avaxr') // seul AVAX avec stop <= 4
-    expect(presetFor('ADAUSDC', 'rsi')).toBeNull()
-    expect(presetFor('ADAUSDC', 'trend')?.[0]).toBe('adae')
-  })
-})
-
-import { previewTicket, quickSizes } from './ticket'
-
 describe('ticket', () => {
   const base = { price: 100, size: 100, feePct: 0, slPct: 2, tpPct: 4, type: 'market' as const, limitPrice: 0 }
   it('calcule quantité, prix des stops, risque et rapport gain/risque', () => {
@@ -144,5 +134,7 @@ describe('couleur de l’éclair du menu', () => {
     expect(zapTone(1, 4)).toBe('down')
     expect(zapTone(2, 2)).toBe('flat')
     expect(zapTone(0, 0)).toBe('flat') // ex. seulement un ordre limite en attente
+    expect(zapTone(undefined, undefined)).toBe('unknown') // serveur en retard : on ne ment pas avec un orange
+    expect(zapTone(2, undefined)).toBe('unknown')
   })
 })

@@ -7,6 +7,7 @@ import { Sidebar } from './Sidebar'
 /** Mise en page : barre latérale (menus) + zone de contenu (bandeau de la page puis cartes). */
 export function AppShell() {
   usePolling(useActivityStore((s) => s.refresh), 4000)
+  usePolling(useActivityStore((s) => s.loadConnections), 60_000)
   return (
     <div className={css.shell}>
       <Sidebar />

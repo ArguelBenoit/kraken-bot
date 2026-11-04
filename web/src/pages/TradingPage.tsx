@@ -31,7 +31,7 @@ function useChartLevels(): ChartLevel[] {
       out.push({ price: p.entry, color: '#d4d0c0', title: 'achat' })
       if (p.sl_price) out.push({ price: p.sl_price, color: '#ff4d4d', title: 'SL' })
       if (p.tp_price) out.push({ price: p.tp_price, color: '#3ddc84', title: 'TP' })
-      if (p.trail_price) out.push({ price: p.trail_price, color: '#ffb000', title: 'suiveur' })
+      if (p.trail_price) out.push({ price: p.trail_price, color: '#ff7a1a', title: 'suiveur' })
     }
     for (const o of status.pending.filter((x) => x.pair === chartPair)) out.push({ price: o.limit, color: '#4aa3ff', title: 'limite' })
     if (t.pair === chartPair && status.quote?.pair === chartPair) {
@@ -54,7 +54,7 @@ export function TradingPage() {
   return (
     <>
       <Header title="Trading" icon={Crosshair}>
-        <Kpi label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
+        <Kpi bare label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
         <Kpi label="PnL réalisé" tip="Gains/pertes cumulés des positions déjà vendues, frais inclus.">
