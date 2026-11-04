@@ -10,6 +10,7 @@ interface Props {
   children: ReactNode
 }
 
+/** Carte standard : titre avec icône (et actions à droite) puis contenu. */
 export function Card({ title, icon: Icon, actions, className = '', children }: Props) {
   return (
     <section className={`card ${className}`}>

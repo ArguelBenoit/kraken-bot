@@ -1,5 +1,5 @@
 import { ArrowLeftRight } from 'lucide-react'
-import { fm, signed } from '@/lib/format'
+import { fmPrice, gainClass, sideClass, signed } from '@/lib/format'
 import type { PairTrade } from '@/lib/types'
 import { Card } from './Card'
 
@@ -17,9 +17,9 @@ export function PairTradesCard({ trades }: { trades: PairTrade[] }) {
               <tr key={`${t.time}-${i}`}>
                 <td>{t.time}</td>
                 <td>{t.pair}</td>
-                <td className={t.side === 'BUY' ? 't-ok' : 't-ko'}>{t.side}</td>
-                <td>{fm(t.price, t.price < 1 ? 6 : 2)}</td>
-                <td>{t.side === 'SELL' && <span className={t.pnl >= 0 ? 't-ok' : 't-ko'}>{signed(t.pnl)}</span>}</td>
+                <td className={sideClass(t.side)}>{t.side}</td>
+                <td>{fmPrice(t.price)}</td>
+                <td>{t.side === 'SELL' && <span className={gainClass(t.pnl)}>{signed(t.pnl)}</span>}</td>
                 <td className="t-mu">{t.why}</td>
               </tr>
             ))}

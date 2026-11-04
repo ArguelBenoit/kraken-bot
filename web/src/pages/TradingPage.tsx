@@ -1,7 +1,7 @@
 import { Crosshair } from 'lucide-react'
 import { useMemo } from 'react'
 import { MarketCard } from '@/components/bot/MarketCard'
-import type { ChartLevel } from '@/components/chart/PriceChart'
+import type { ChartLevel } from '@/lib/chartTypes'
 import { Header, Kpi } from '@/components/layout/Header'
 import { LogCard } from '@/components/ui/LogCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
@@ -11,13 +11,11 @@ import { OrderTicketCard } from '@/components/trading/OrderTicketCard'
 import { ManualOpenTrades } from '@/components/trading/ManualOpenTrades'
 import { PendingOrdersCard } from '@/components/trading/PendingOrdersCard'
 import { useTradingSync } from '@/hooks/useTradingSync'
-import { fm, signed } from '@/lib/format'
+import { fm, gainClass, signed } from '@/lib/format'
 import { NEUTRAL_VIEW } from '@/lib/scan'
 import { previewTicket } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
-
-const tone = (v: number) => (v >= 0 ? 't-ok' : 't-ko')
 
 /** Lignes du graphique : positions ouvertes + ordres limites + aperçu de l'ordre en cours de saisie. */
 function useChartLevels(): ChartLevel[] {
@@ -43,6 +41,7 @@ function useChartLevels(): ChartLevel[] {
   }, [status, t, chartPair])
 }
 
+/** Page du trading manuel : ticket d'ordre, positions ouvertes, ordres en attente, marché et graphique. */
 export function TradingPage() {
   useTradingSync()
   const status = useManualStore((s) => s.status)
@@ -58,10 +57,10 @@ export function TradingPage() {
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
         <Kpi label="PnL réalisé" tip="Gains/pertes cumulés des positions déjà vendues, frais inclus.">
-          <b className={tone(status?.pnl ?? 0)}>{fm(status?.pnl)}</b>
+          <b className={gainClass(status?.pnl ?? 0)}>{fm(status?.pnl)}</b>
         </Kpi>
         <Kpi label="PnL latent" tip="Gain ou perte des positions encore ouvertes, au prix actuel, frais de vente déduits.">
-          <b className={tone(status?.unrealized ?? 0)}>{status ? signed(status.unrealized) : '–'}</b>
+          <b className={gainClass(status?.unrealized ?? 0)}>{status ? signed(status.unrealized) : '–'}</b>
         </Kpi>
         <Kpi label="Cash" tip={live ? 'Non suivi en live : voir ton solde Kraken.' : 'Stablecoin disponible (hors ordres limites en attente).'}>
           <b>{live ? 'n/a' : fm(status?.cash)}</b>

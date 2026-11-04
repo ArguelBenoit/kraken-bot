@@ -9,12 +9,13 @@ import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { usePolling } from '@/hooks/usePolling'
 import { POLL_MS } from '@/lib/constants'
-import { fm } from '@/lib/format'
+import { fm, gainClass } from '@/lib/format'
 import { AI_KPI_TIPS } from '@/lib/tips'
 import { useAiStore } from '@/stores/aiStore'
 
-const Pnl = ({ v }: { v: number | undefined }) => <b className={(v ?? 0) >= 0 ? 't-ok' : 't-ko'}>{fm(v)}</b>
+const Pnl = ({ v }: { v: number | undefined }) => <b className={gainClass(v ?? 0)}>{fm(v)}</b>
 
+/** Page du Bot IA : Claude analyse le marché et gère jusqu'à 5 positions en parallèle. */
 export function AiPage() {
   const refresh = useAiStore((s) => s.refresh)
   const status = useAiStore((s) => s.status)

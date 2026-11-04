@@ -4,23 +4,10 @@ import {
 import { useEffect, useRef } from 'react'
 import { buildMarkers } from '@/lib/markers'
 import type { ChartData } from '@/lib/types'
-
-const OPTIONS = {
-  layout: { background: { color: '#0b0b0b' }, textColor: '#7d7a6c', fontFamily: 'ui-monospace,DejaVu Sans Mono,monospace' },
-  grid: { vertLines: { color: '#161616' }, horzLines: { color: '#161616' } },
-  timeScale: { timeVisible: true, borderColor: '#262626' },
-  rightPriceScale: { borderColor: '#262626' },
-  autoSize: true,
-} as const
+import type { ChartLevel } from '@/lib/chartTypes'
+import { CANDLE_STYLE, CHART_OPTIONS, indicatorLine, levelLineOptions } from './chartTheme'
 
 const asTime = (t: number) => t as Time
-const lineOpts = (color: string) => ({ color, lineWidth: 1 as const, priceLineVisible: false, lastValueVisible: false })
-
-export interface ChartLevel {
-  price: number
-  color: string
-  title: string
-}
 
 interface Series {
   price: IChartApi
@@ -41,14 +28,12 @@ export function PriceChart({ data, levels = [] }: { data: ChartData | null; leve
 
   useEffect(() => {
     if (!priceEl.current || !rsiEl.current) return
-    const price = createChart(priceEl.current, OPTIONS)
-    const rsi = createChart(rsiEl.current, OPTIONS)
-    const candles = price.addCandlestickSeries({
-      upColor: '#3ddc84', downColor: '#ff4d4d', borderVisible: false, wickUpColor: '#3ddc84', wickDownColor: '#ff4d4d',
-    })
+    const price = createChart(priceEl.current, CHART_OPTIONS)
+    const rsi = createChart(rsiEl.current, CHART_OPTIONS)
+    const candles = price.addCandlestickSeries(CANDLE_STYLE)
     const rsiLine = rsi.addLineSeries({ color: '#ff7a1a', lineWidth: 2 })
-    const fast = price.addLineSeries(lineOpts('#4aa3ff'))
-    const slow = price.addLineSeries(lineOpts('#d58bff'))
+    const fast = price.addLineSeries(indicatorLine('#4aa3ff'))
+    const slow = price.addLineSeries(indicatorLine('#d58bff'))
     price.timeScale().subscribeVisibleLogicalRangeChange((r) => r && rsi.timeScale().setVisibleLogicalRange(r))
     rsi.timeScale().subscribeVisibleLogicalRangeChange((r) => r && price.timeScale().setVisibleLogicalRange(r))
     chart.current = { price, rsi, candles, rsiLine, fast, slow, levels: [], custom: [] }
@@ -68,10 +53,12 @@ export function PriceChart({ data, levels = [] }: { data: ChartData | null; leve
     c.slow.setData((data.ma.slow ?? []).map((p) => ({ ...p, time: asTime(p.time) })))
     c.candles.setMarkers(buildMarkers(data.candles, data.marks).map((m) => ({ ...m, time: asTime(m.time) })))
     c.levels.forEach((l) => c.rsiLine.removePriceLine(l))
-    c.levels = [
-      [data.rsi_buy, '#3ddc84'],
-      [data.rsi_sell, '#ff4d4d'],
-    ].map(([price, color]) => c.rsiLine.createPriceLine({ price: price as number, color: color as string, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: '' }))
+    // seuils d'achat / de vente du RSI
+    const thresholds: ChartLevel[] = [
+      { price: data.rsi_buy, color: '#3ddc84', title: '' },
+      { price: data.rsi_sell, color: '#ff4d4d', title: '' },
+    ]
+    c.levels = thresholds.map((l) => c.rsiLine.createPriceLine(levelLineOptions(l)))
   }, [data])
 
   // lignes horizontales sur le graphique des prix (positions ouvertes, aperçu d'un ordre…)
@@ -80,7 +67,7 @@ export function PriceChart({ data, levels = [] }: { data: ChartData | null; leve
     const c = chart.current
     if (!c) return
     c.custom.forEach((l) => c.candles.removePriceLine(l))
-    c.custom = levels.map((l) => c.candles.createPriceLine({ price: l.price, color: l.color, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: l.title }))
+    c.custom = levels.map((l) => c.candles.createPriceLine(levelLineOptions(l)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levelsKey, data])
 

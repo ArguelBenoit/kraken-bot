@@ -5,7 +5,7 @@ import { fm, signed } from '@/lib/format'
 import { ReplayChart } from './ReplayChart'
 
 /** Décrit une bougie en mots simples. */
-export function describeCandle(c: Candle): string {
+function describeCandle(c: Candle): string {
   const change = (c.close / c.open - 1) * 100
   const up = c.close >= c.open
   const range = ((c.high - c.low) / c.low) * 100

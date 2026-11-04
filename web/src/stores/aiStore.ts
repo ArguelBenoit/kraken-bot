@@ -1,27 +1,23 @@
 import { create } from 'zustand'
-import { api, errMsg } from '@/lib/api'
-import type { AiConfig, AiStatus, Mode } from '@/lib/types'
+import { api } from '@/lib/api'
+import { AI_NUMERIC_KEYS, type AiNumericKey } from '@/lib/aiForm'
+import type { AiConfig, AiStatus, Mode, Notice } from '@/lib/types'
+import { runAction } from './runAction'
 
-export type AiDraft = Omit<AiConfig, 'mode'>
-export interface Notice {
-  kind: 'error' | 'ok'
-  text: string
-}
+/** Brouillon du formulaire : les champs numériques restent du texte tant que l'utilisateur tape. */
+type AiDraft = Omit<AiConfig, 'mode' | AiNumericKey> & Record<AiNumericKey, number | string>
 
+/** Réglages enregistrés -> brouillon du formulaire. */
 const toDraft = (c: AiConfig): AiDraft => {
   const { mode: _mode, ...rest } = c
   void _mode
   return { ...rest, strategies: [...c.strategies], pairs: [...c.pairs] }
 }
 
-/** Valeurs de formulaire (texte) -> corps JSON. Les listes restent des listes. */
-const NUMERIC: (keyof AiDraft)[] = [
-  'timeframe', 'interval_min', 'check_every', 'max_positions', 'order_size', 'budget', 'max_exposure_pct',
-  'max_daily_loss_pct', 'max_calls_per_day', 'fee_pct', 'price_in', 'price_out', 'credit_base',
-]
-export const toAiPayload = (d: AiDraft) => {
+/** Brouillon -> corps JSON : champs numériques convertis, listes inchangées. */
+const toAiPayload = (d: AiDraft) => {
   const out: Record<string, unknown> = { ...d }
-  for (const k of NUMERIC) out[k] = Number(d[k])
+  for (const k of AI_NUMERIC_KEYS) out[k] = Number(d[k])
   return out
 }
 
@@ -38,22 +34,11 @@ interface AiStore {
   setMode: (mode: Mode) => Promise<void>
   control: (action: 'start' | 'stop' | 'analyze' | 'liquidate' | 'reset') => Promise<void>
   closePosition: (id: string) => Promise<void>
-  notify: (n: Notice | null) => void
 }
 
+/** État de la page Bot IA : statut du serveur, brouillon du formulaire et actions. */
 export const useAiStore = create<AiStore>((set, get) => {
-  const run = async (fn: () => Promise<unknown>, okText?: string): Promise<boolean> => {
-    try {
-      await fn()
-      set({ notice: okText ? { kind: 'ok', text: okText } : null })
-      return true
-    } catch (e) {
-      set({ notice: { kind: 'error', text: errMsg(e) } })
-      return false
-    } finally {
-      await get().refresh()
-    }
-  }
+  const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, (notice) => set({ notice }), get().refresh)
 
   return {
     status: null,
@@ -102,7 +87,5 @@ export const useAiStore = create<AiStore>((set, get) => {
       const ok = await run(() => api.post(`/api/ai/close-${id}`))
       if (!ok) alert(get().notice?.text)
     },
-
-    notify: (notice) => set({ notice }),
   }
 })

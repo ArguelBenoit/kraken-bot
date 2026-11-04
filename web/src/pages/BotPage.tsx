@@ -8,10 +8,11 @@ import { LogCard } from '@/components/ui/LogCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useBotSync } from '@/hooks/useBotSync'
-import { fm } from '@/lib/format'
+import { fm, gainClass } from '@/lib/format'
 import { KPI_TIPS } from '@/lib/tips'
 import { useBotStore } from '@/stores/botStore'
 
+/** Page du bot simple : réglages, position en cours, tableau Marché et graphique. */
 export function BotPage() {
   useBotSync()
   const status = useBotStore((s) => s.status)
@@ -27,7 +28,7 @@ export function BotPage() {
         </Kpi>
         <Kpi bare label="Statut"><StatusBadge running={!!status?.running} /></Kpi>
         <Kpi label="PnL réalisé" tip={KPI_TIPS['PnL réalisé']}>
-          <b className={pnl >= 0 ? 't-ok' : 't-ko'}>{fm(status?.state.pnl)}</b>
+          <b className={gainClass(pnl)}>{fm(status?.state.pnl)}</b>
         </Kpi>
         <Kpi label="Équité (paper)" tip={KPI_TIPS['Équité (paper)']} hidden={!paper}>
           <b>{fm(status?.state.equity)}</b>

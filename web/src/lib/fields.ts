@@ -43,6 +43,7 @@ export const FORM_ROWS: FieldDef[][] = [
   [num('paper_balance', 'Capital paper', { mode: 'paper' })],
 ]
 
+/** Tous les champs du formulaire, à plat. */
 export const ALL_FIELDS: FieldDef[] = FORM_ROWS.flat()
 
 /** Valeurs du formulaire de réglages (texte tant que l'utilisateur tape). */
@@ -51,6 +52,7 @@ export type FormValues = Partial<Record<keyof BotConfig, string | number>>
 const FORM_NAMES = new Set<string>(ALL_FIELDS.map((f) => f.name))
 /** Ne garde, d'une config / d'une proposition de Claude, que les champs présents dans le formulaire. */
 export const formValues = (c: object): FormValues => Object.fromEntries(Object.entries(c).filter(([k]) => FORM_NAMES.has(k))) as FormValues
+/** Un champ est-il affiché pour cette méthode et ce mode ? */
 export const isVisible = (f: FieldDef, strategy: Strategy, mode: Mode) =>
   (!f.only || f.only.includes(strategy)) && (!f.mode || f.mode === mode)
 

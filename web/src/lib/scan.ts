@@ -1,8 +1,8 @@
 import { SIGNAL_STRATEGIES } from './constants'
 import type { BotConfig, ScanRow } from './types'
 
-export type SignalKind = 'buy' | 'bull' | 'bear' | 'overbought' | 'neutral' | 'info' | 'none'
-export interface RowSignal {
+type SignalKind = 'buy' | 'bull' | 'bear' | 'overbought' | 'neutral' | 'info' | 'none'
+interface RowSignal {
   kind: SignalKind
   /** Texte principal (ex. « Croisement · achat »). */
   text: string

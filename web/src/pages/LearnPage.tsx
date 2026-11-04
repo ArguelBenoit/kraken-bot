@@ -57,6 +57,7 @@ function Welcome() {
   )
 }
 
+/** Page du tutoriel : sommaire ou chapitre en tunnel selon l'URL. */
 export function LearnPage() {
   const { id, step } = useParams()
   const trials = useLearnStore((s) => s.trials)

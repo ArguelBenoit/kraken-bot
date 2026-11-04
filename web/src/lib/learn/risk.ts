@@ -1,4 +1,4 @@
-export interface RiskInput {
+interface RiskInput {
   capital: number
   /** % du capital qu'on accepte de perdre sur ce trade. */
   riskPct: number
@@ -6,7 +6,7 @@ export interface RiskInput {
   tpPct: number
 }
 
-export interface RiskPlan {
+interface RiskPlan {
   /** Perte maximale acceptée, en monnaie. */
   riskAmount: number
   /** Montant à engager pour que le stop loss coûte exactement `riskAmount` (plafonné au capital). */

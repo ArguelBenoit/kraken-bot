@@ -13,6 +13,7 @@ const FIELDS = [
   { k: 'paper_balance', label: 'Capital paper', tip: 'Capital fictif de départ en mode Paper. Pris en compte au « Reset paper ».' },
 ] as const
 
+/** Réglages du trading manuel : montant maximum par ordre, frais, fréquence de contrôle des stops, capital paper. */
 export function ManualSettingsCard() {
   const status = useManualStore((s) => s.status)
   const notice = useManualStore((s) => s.notice)

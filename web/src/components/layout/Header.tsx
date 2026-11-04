@@ -48,6 +48,7 @@ interface KpiProps {
   children: ReactNode
 }
 
+/** Un indicateur du bandeau : libellé + infobulle + valeur, ou (`bare`) seulement la valeur et son aide. */
 export function Kpi({ label, tip, tipRight = true, hidden, bare, children }: KpiProps) {
   if (hidden) return null
   if (bare)

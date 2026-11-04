@@ -4,13 +4,12 @@ import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Notice } from '@/components/ui/Notice'
 import { PAIRS, pairLabel } from '@/lib/constants'
-import { fm, signed } from '@/lib/format'
+import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { previewTicket, quickSizes } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
 
 const clean = (n: number) => String(Number(n.toPrecision(6)))
-const dp = (p: number) => (p < 1 ? 6 : 2)
 
 /** Ticket d'ordre : achat au marché ou limite, avec stop loss / take profit / stop suiveur et aperçu du risque. */
 export function OrderTicketCard() {
@@ -61,8 +60,8 @@ export function OrderTicketCard() {
         <div className="field">
           <span>Prix actuel</span>
           <b>
-            {price == null ? '–' : fm(price, dp(price))}
-            {row?.chg24 != null && <span className={row.chg24 >= 0 ? 't-ok' : 't-ko'}> {signed(row.chg24)}%</span>}
+            {price == null ? '–' : fmPrice(price)}
+            {row?.chg24 != null && <span className={gainClass(row.chg24)}> {signed(row.chg24)}%</span>}
           </b>
         </div>
 
@@ -111,10 +110,10 @@ export function OrderTicketCard() {
 
         {preview ? (
           <div className="summary">
-            <span>Prix d&apos;entrée</span><span>{fm(preview.entry, dp(preview.entry))}</span>
+            <span>Prix d&apos;entrée</span><span>{fmPrice(preview.entry)}</span>
             <span>Quantité ≈</span><span>{fm(preview.qty, 6)}</span>
-            <span>Stop loss</span><span>{preview.slPrice == null ? 'aucun' : `${fm(preview.slPrice, dp(preview.entry))} (${signed(preview.lossAtSl ?? 0)})`}</span>
-            <span>Take profit</span><span>{preview.tpPrice == null ? 'aucun' : `${fm(preview.tpPrice, dp(preview.entry))} (${signed(preview.gainAtTp ?? 0)})`}</span>
+            <span>Stop loss</span><span>{preview.slPrice == null ? 'aucun' : `${fmPrice(preview.slPrice, preview.entry)} (${signed(preview.lossAtSl ?? 0)})`}</span>
+            <span>Take profit</span><span>{preview.tpPrice == null ? 'aucun' : `${fmPrice(preview.tpPrice, preview.entry)} (${signed(preview.gainAtTp ?? 0)})`}</span>
             <span>Gain / risque</span><span>{preview.ratio == null ? '–' : `${fm(preview.ratio, 2)} : 1`}</span>
             <span>Frais aller-retour</span><span>≈ {fm(preview.fees)}</span>
           </div>

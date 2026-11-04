@@ -1,8 +1,3 @@
-.wrap { overflow-y: auto; }
-.table th { position: sticky; top: 0; z-index: 5; background: var(--card); }
-.sel td, .sel:hover td { background: #2e1606; }
-.sel td:first-child { box-shadow: inset 3px 0 0 var(--ac); }
-.table tbody tr { cursor: pointer; }
 .tf { width: 90px; }
 .info { color: var(--mu); }
 .chartTitle { margin-top: 18px !important; }

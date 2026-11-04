@@ -1,8 +1,10 @@
 import type { Candle } from './methods'
 
 /** Simulateur de replay : on rejoue un moment passé du marché, bougie par bougie, sans connaître la suite. Paper uniquement. */
-export const FEE = 0.0026
+const FEE = 0.0026
+/** Capital fictif de départ de chaque exercice (€). */
 export const START_CASH = 1000
+/** Nombre de bougies d'un exercice. */
 export const EXERCISE_LEN = 80
 
 export interface Position {
@@ -43,8 +45,10 @@ export interface Sim {
   finished: boolean
 }
 
+/** Nouvel exercice : de la bougie `start` à la bougie `end`, tout le capital en cash. */
 export const createSim = (start: number, end: number): Sim => ({ start, cursor: start, end, cash: START_CASH, position: null, trades: [], finished: false })
 
+/** Valeur totale du portefeuille à la dernière bougie visible (cash + position, frais de vente déduits). */
 export function equity(s: Sim, candles: Candle[]): number {
   const p = s.position
   return s.cash + (p ? p.qty * candles[s.cursor].close * (1 - FEE) : 0)
@@ -129,6 +133,7 @@ export interface Summary {
   buys: number
 }
 
+/** Bilan d'un exercice : résultat, comparaison avec « acheter et attendre », trades gagnants, respect des signaux. */
 export function summarize(s: Sim, candles: Candle[]): Summary {
   const final = equity(s, candles)
   const first = candles[s.start].close

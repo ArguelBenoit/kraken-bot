@@ -6,6 +6,7 @@ interface Props {
   runningLabel?: string
 }
 
+/** Badge de statut d'un bot : vert clignotant quand il tourne, rouge quand il est arrêté. */
 export function StatusBadge({ running, runningLabel = 'EN COURS' }: Props) {
   return (
     <span className={`badge ${running ? 'on' : 'off'}`}>

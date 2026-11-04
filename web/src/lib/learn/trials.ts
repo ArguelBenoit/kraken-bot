@@ -46,7 +46,9 @@ export interface TrialRecord {
   validatedAt?: string
 }
 
+/** Épreuve vierge (rien de validé). */
 export const emptyRecord = (): TrialRecord => ({ quiz: false, trade: false, attempts: 0 })
+/** Une épreuve est validée quand le quiz ET le trade modèle sont acquis. */
 export const isValidated = (r?: TrialRecord) => !!r && r.quiz && r.trade
 
 export interface Checklist {
@@ -67,6 +69,7 @@ export function checklist(rec: TrialRecord | undefined, steps: TrialSteps | null
   ]
 }
 
+/** Avancement global : nombre d'épreuves validées sur le total. */
 export function progress(records: Partial<Record<MethodId, TrialRecord>>) {
   const done = TRIAL_METHODS.filter((m) => isValidated(records[m])).length
   return { done, total: TRIAL_METHODS.length, percent: Math.round((done / TRIAL_METHODS.length) * 100), complete: done === TRIAL_METHODS.length }

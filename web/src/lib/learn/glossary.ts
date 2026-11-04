@@ -6,7 +6,7 @@ export interface Term {
   def: string
 }
 
-export const GLOSSARY: Term[] = [
+const GLOSSARY: Term[] = [
   { id: 'crypto', term: 'Cryptomonnaie', def: `Une monnaie numérique (Bitcoin, Ethereum…) qui s'échange sur Internet, jour et nuit. Son prix monte et descend en permanence : c'est ce qui permet de gagner… ou de perdre.` },
   { id: 'stablecoin', term: 'Stablecoin', def: `Une cryptomonnaie conçue pour valoir toujours environ 1 dollar (USDC, USDT). C'est notre « monnaie de base » : on achète une crypto avec des USDC, puis on revient en USDC en revendant.` },
   { id: 'paire', term: 'Paire', def: `Deux monnaies échangées l'une contre l'autre. « BTC/USDC » = le prix d'un Bitcoin exprimé en USDC. Si BTC/USDC vaut 80 000, alors 1 Bitcoin coûte 80 000 USDC.` },

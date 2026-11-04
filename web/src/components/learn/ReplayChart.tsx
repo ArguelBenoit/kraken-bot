@@ -2,28 +2,9 @@ import {
   createChart, type IChartApi, type IPriceLine, type ISeriesApi, type SeriesMarker, type Time,
 } from 'lightweight-charts'
 import { useEffect, useMemo, useRef } from 'react'
+import { CANDLE_STYLE, CHART_OPTIONS, indicatorLine, levelLineOptions } from '@/components/chart/chartTheme'
+import type { ChartLevel, ChartMarker } from '@/lib/chartTypes'
 import type { Candle, LineSpec, SubSpec } from '@/lib/learn/methods'
-
-const OPTIONS = {
-  layout: { background: { color: '#0b0b0b' }, textColor: '#7d7a6c', fontFamily: 'ui-monospace,DejaVu Sans Mono,monospace' },
-  grid: { vertLines: { color: '#161616' }, horzLines: { color: '#161616' } },
-  timeScale: { timeVisible: true, borderColor: '#262626' },
-  rightPriceScale: { borderColor: '#262626' },
-  autoSize: true,
-} as const
-
-export interface ChartMarker {
-  time: number
-  position: 'aboveBar' | 'belowBar'
-  color: string
-  shape: 'arrowUp' | 'arrowDown' | 'circle'
-  text?: string
-}
-export interface PriceLevel {
-  price: number
-  color: string
-  title: string
-}
 
 interface Props {
   /** Bougies visibles (le futur n'est jamais passé au graphique). */
@@ -32,7 +13,7 @@ interface Props {
   lines?: LineSpec[]
   sub?: SubSpec
   markers?: ChartMarker[]
-  levels?: PriceLevel[]
+  levels?: ChartLevel[]
   /** Nombre de bougies affichées d'un coup (0 = tout ajuster). */
   window?: number
   onHover?: (index: number | null) => void
@@ -63,21 +44,21 @@ export function ReplayChart({ candles, lines = [], sub, markers = [], levels = [
 
   useEffect(() => {
     if (!mainEl.current) return
-    const main = createChart(mainEl.current, OPTIONS)
-    const cs = main.addCandlestickSeries({ upColor: '#3ddc84', downColor: '#ff4d4d', borderVisible: false, wickUpColor: '#3ddc84', wickDownColor: '#ff4d4d' })
+    const main = createChart(mainEl.current, CHART_OPTIONS)
+    const cs = main.addCandlestickSeries(CANDLE_STYLE)
     const lineMap = new Map<string, ISeriesApi<'Line'>>()
-    for (const l of lines) lineMap.set(l.id, main.addLineSeries({ color: l.color, lineWidth: 1, lineStyle: l.dashed ? 2 : 0, priceLineVisible: false, lastValueVisible: false }))
+    for (const l of lines) lineMap.set(l.id, main.addLineSeries(indicatorLine(l.color, l.dashed)))
 
     let subChart: IChartApi | null = null
     const subLines = new Map<string, ISeriesApi<'Line'>>()
     let hist: ISeriesApi<'Histogram'> | null = null
     const subLevels: IPriceLine[] = []
     if (sub && subEl.current) {
-      subChart = createChart(subEl.current, OPTIONS)
+      subChart = createChart(subEl.current, CHART_OPTIONS)
       if (sub.histogram) hist = subChart.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false })
       for (const l of sub.lines) subLines.set(l.id, subChart.addLineSeries({ color: l.color, lineWidth: 2, priceLineVisible: false, lastValueVisible: false }))
       const anchor = subLines.values().next().value ?? hist
-      if (anchor) for (const lv of sub.levels) subLevels.push(anchor.createPriceLine({ price: lv.value, color: lv.color, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: lv.label }))
+      if (anchor) for (const lv of sub.levels) subLevels.push(anchor.createPriceLine(levelLineOptions({ price: lv.value, color: lv.color, title: lv.label })))
       main.timeScale().subscribeVisibleLogicalRangeChange((r) => r && subChart?.timeScale().setVisibleLogicalRange(r))
       subChart.timeScale().subscribeVisibleLogicalRangeChange((r) => r && main.timeScale().setVisibleLogicalRange(r))
     }
@@ -124,7 +105,7 @@ export function ReplayChart({ candles, lines = [], sub, markers = [], levels = [
     const r = refs.current
     if (!r) return
     r.levels.forEach((l) => r.candles.removePriceLine(l))
-    r.levels = levels.map((l) => r.candles.createPriceLine({ price: l.price, color: l.color, lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: l.title }))
+    r.levels = levels.map((l) => r.candles.createPriceLine(levelLineOptions(l)))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [levelKey])
 

@@ -7,7 +7,6 @@
     "dev": "concurrently -k -n api,web -c yellow,cyan \"node scripts/api.mjs\" \"vite\"",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -24,7 +23,6 @@
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.2.5",
     "typescript": "^5.9.3",
-    "vite": "^6.4.5",
-    "vitest": "^3.2.7"
+    "vite": "^6.4.5"
   }
 }

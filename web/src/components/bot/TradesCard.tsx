@@ -1,8 +1,9 @@
 import { ArrowLeftRight } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { fm } from '@/lib/format'
+import { fm, sideClass } from '@/lib/format'
 import type { Trade } from '@/lib/types'
 
+/** Historique des trades du bot simple dans le mode courant. */
 export function TradesCard({ trades }: { trades: Trade[] }) {
   return (
     <Card title="Trades" icon={ArrowLeftRight}>
@@ -18,7 +19,7 @@ export function TradesCard({ trades }: { trades: Trade[] }) {
               {trades.map((t, i) => (
                 <tr key={`${t.ts ?? t.time}-${i}`}>
                   <td>{t.time}</td>
-                  <td className={t.side === 'BUY' ? 't-ok' : 't-ko'}>{t.side}</td>
+                  <td className={sideClass(t.side)}>{t.side}</td>
                   <td>{fm(t.price)}</td>
                   <td>{fm(t.qty, 6)}</td>
                   <td>{fm(t.qty * t.price)}</td>

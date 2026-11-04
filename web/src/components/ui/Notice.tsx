@@ -1,5 +1,7 @@
+import type { Notice as NoticeData } from '@/lib/types'
+
 interface Props {
-  notice: { kind: 'error' | 'ok'; text: string } | null
+  notice: NoticeData | null
   /** Ne rien afficher (et ne pas réserver de place) quand il n'y a pas de message. Par défaut la hauteur est réservée pour éviter les sauts de mise en page. */
   collapse?: boolean
 }

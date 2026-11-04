@@ -5,6 +5,7 @@ import { BotPage } from '@/pages/BotPage'
 import { LearnPage } from '@/pages/LearnPage'
 import { TradingPage } from '@/pages/TradingPage'
 
+/** Routes de l'application : chaque page s'affiche dans la mise en page commune (barre latérale + contenu). */
 export function App() {
   return (
     <Routes>

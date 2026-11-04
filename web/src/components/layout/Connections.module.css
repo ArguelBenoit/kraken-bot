@@ -1,0 +1,15 @@
+/* Bas du menu : variables d'environnement définies ou non. */
+.conn { margin-top: auto; padding: 0 16px; display: grid; gap: 8px; }
+.title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--mu); }
+.note { font-size: 10px; color: var(--ko); line-height: 1.4; }
+.group { position: relative; display: grid; gap: 2px; cursor: help; outline: none; }
+.name { font-size: 11px; color: var(--tx); letter-spacing: 0.06em; text-transform: uppercase; }
+.var { display: flex; justify-content: space-between; gap: 6px; font-size: 10px; color: var(--mu); }
+.set { color: var(--ok); white-space: nowrap; }
+.unset { color: var(--ko); white-space: nowrap; }
+/* infobulle : s'ouvre à droite du menu, ancrée en bas de la ligne pour ne pas sortir de l'écran */
+.group:hover::after, .group:focus-visible::after {
+  content: attr(data-tip); position: absolute; left: calc(100% + 26px); bottom: 0; z-index: 50; width: 280px; padding: 9px 11px;
+  background: #000; border: 1px solid var(--ac); color: var(--tx); font: 400 12px/1.5 var(--mono); text-transform: none;
+  letter-spacing: 0; white-space: normal; box-shadow: 0 8px 24px #000c;
+}

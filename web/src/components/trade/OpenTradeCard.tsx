@@ -1,7 +1,7 @@
 import { Ban, ChevronLeft, ChevronRight, Target, Zap } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Card } from '@/components/ui/Card'
-import { fm, signed, tone } from '@/lib/format'
+import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { computeOpenTrade, type OpenTradeInput, type OpenTradeView } from '@/lib/trade'
 import css from './OpenTradeCard.module.css'
 
@@ -17,9 +17,8 @@ function Gauge({ v }: { v: OpenTradeView }) {
 }
 
 function Body({ pair, v, info }: { pair: string; v: OpenTradeView; info?: ReactNode }) {
-  const dp = v.entry < 1 ? 6 : 2
-  const pr = (x: number) => fm(x, dp)
-  const cls = tone(v.chg) === 'ok' ? 't-ok' : 't-ko'
+  const pr = (x: number) => fmPrice(x, v.entry)         // même précision partout, selon le prix d'achat
+  const cls = gainClass(v.chg)
   return (
     <>
       <div className={css.top}>
@@ -32,7 +31,7 @@ function Body({ pair, v, info }: { pair: string; v: OpenTradeView; info?: ReactN
         <div><small>Valeur d&apos;achat</small>{fm(v.cost)}</div>
         <div><small>Valeur actuelle</small>{fm(v.value)}</div>
         <div><small>Gain brut</small><span className={cls}>{signed(v.grossGain)}</span></div>
-        <div><small>Gain net estimé (frais de vente)</small><span className={v.netGain >= 0 ? 't-ok' : 't-ko'}>{signed(v.netGain)}</span></div>
+        <div><small>Gain net estimé (frais de vente)</small><span className={gainClass(v.netGain)}>{signed(v.netGain)}</span></div>
       </div>
       <Gauge v={v} />
       <div className={css.labels}>

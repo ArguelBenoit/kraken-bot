@@ -1,4 +1,4 @@
-export interface TicketInput {
+interface TicketInput {
   /** Prix actuel de la paire. */
   price: number | null
   size: number
@@ -9,7 +9,7 @@ export interface TicketInput {
   limitPrice: number
 }
 
-export interface TicketPreview {
+interface TicketPreview {
   entry: number
   qty: number
   slPrice: number | null

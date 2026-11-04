@@ -30,6 +30,7 @@ function Control({ def }: { def: FieldDef }) {
   )
 }
 
+/** Réglages du bot simple : mode IA, formulaire piloté par `FORM_ROWS`, enregistrement, démarrage / arrêt et reset paper. */
 export function SettingsCard() {
   const status = useBotStore((s) => s.status)
   const strategy = useBotStore((s) => String(s.draft.strategy ?? 'rsi')) as Strategy

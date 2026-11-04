@@ -25,6 +25,7 @@ interface MarketStore {
   followConfig: (timeframe: number) => void
 }
 
+/** Tableau Marché et graphique, partagés par la page du bot simple et celle du trading manuel. */
 export const useMarketStore = create<MarketStore>((set, get) => ({
   tf: 240,
   rows: [],

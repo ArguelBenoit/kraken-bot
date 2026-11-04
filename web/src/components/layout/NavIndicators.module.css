@@ -1,0 +1,9 @@
+/* Pastilles d'activité en bout de ligne du menu. */
+.badges { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.zap { filter: drop-shadow(0 0 4px currentColor); }
+.up { color: var(--ok); }
+.down { color: var(--ko); }
+.flat { color: #ff8a00; }
+.unknown { color: #6b6b60; }
+.play { color: var(--ok); }
+.stopped { color: #5a5a50; }

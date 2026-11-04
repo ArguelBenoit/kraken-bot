@@ -13,6 +13,7 @@ export const LEARN_PAIRS: [string, string][] = [
   ['XBTUSDC', 'Bitcoin (BTC)'], ['ETHUSDC', 'Ethereum (ETH)'], ['SOLUSDC', 'Solana (SOL)'], ['XRPUSDC', 'Ripple (XRP)'],
   ['ADAUSDC', 'Cardano (ADA)'], ['LINKUSDC', 'Chainlink (LINK)'], ['XDGUSDC', 'Dogecoin (DOGE)'],
 ]
+/** Durées de bougie proposées aux exercices, en langage simple. */
 export const LEARN_TFS = [
   { value: 60, label: 'Bougies de 1 heure' },
   { value: 240, label: 'Bougies de 4 heures (recommandé)' },

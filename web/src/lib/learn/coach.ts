@@ -1,5 +1,5 @@
 /** Le coach commente l'exercice en direct, en langage simple : où on en est et quoi faire ensuite. */
-export interface CoachContext {
+interface CoachContext {
   method: { name: string; buyRule: string; sellRule: string } | null
   signalBuy: boolean
   signalSell: boolean
@@ -11,12 +11,13 @@ export interface CoachContext {
   finished: boolean
 }
 
-export interface Coach {
+interface Coach {
   tone: 'info' | 'good' | 'warn'
   title: string
   text: string
 }
 
+/** Message du coach pour l'état courant de l'exercice : où on en est, quoi faire ensuite. */
 export function coach(c: CoachContext): Coach {
   if (c.finished) return { tone: 'info', title: 'Exercice terminé', text: `Regarde le bilan ci-dessous : il compare ton résultat au simple fait d'acheter et d'attendre, et vérifie si tu as respecté la méthode.` }
 

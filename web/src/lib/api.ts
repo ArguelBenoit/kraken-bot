@@ -1,5 +1,5 @@
 /** Client HTTP de l'API Flask. Toute réponse `ok:false` ou HTTP d'erreur devient une exception avec le message du serveur. */
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(message: string, readonly status?: number) {
     super(message)
   }
@@ -16,6 +16,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   return data as T
 }
 
+/** Appels HTTP typés vers l'API Python (même origine ; en développement, Vite proxifie /api). */
 export const api = {
   get: <T>(url: string) => request<T>('GET', url),
   put: <T>(url: string, body: unknown) => request<T>('PUT', url, body),
@@ -26,4 +27,5 @@ export const api = {
 /** 404 sur une route /api : le serveur Python tourne encore avec une ancienne version du code. */
 export const isMissingRoute = (e: unknown) => e instanceof ApiError && e.status === 404
 
+/** Message affichable d'une erreur inconnue. */
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e))

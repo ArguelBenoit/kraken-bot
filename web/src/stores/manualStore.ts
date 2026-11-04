@@ -1,12 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { api, errMsg } from '@/lib/api'
-import type { ManualConfig, ManualStatus, Mode } from '@/lib/types'
-
-export interface Notice {
-  kind: 'error' | 'ok'
-  text: string
-}
+import { api } from '@/lib/api'
+import type { ManualConfig, ManualStatus, Mode, Notice } from '@/lib/types'
+import { runAction } from './runAction'
 
 /** Formulaire d'ordre (valeurs en texte tant que l'utilisateur tape). */
 export interface Ticket {
@@ -35,24 +31,13 @@ interface ManualStore {
   setMode: (mode: Mode) => Promise<void>
   saveConfig: (c: Partial<ManualConfig>) => Promise<boolean>
   reset: () => Promise<void>
-  notify: (n: Notice | null) => void
 }
 
+/** État de la page Trading : portefeuille du serveur, ticket d'ordre (conservé dans le navigateur) et actions. */
 export const useManualStore = create<ManualStore>()(
   persist(
     (set, get) => {
-      const run = async (fn: () => Promise<unknown>, okText?: string): Promise<boolean> => {
-        try {
-          await fn()
-          set({ notice: okText ? { kind: 'ok', text: okText } : null })
-          return true
-        } catch (e) {
-          set({ notice: { kind: 'error', text: errMsg(e) } })
-          return false
-        } finally {
-          await get().refresh()
-        }
-      }
+      const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, (notice) => set({ notice }), get().refresh)
 
       return {
         status: null,
@@ -100,8 +85,6 @@ export const useManualStore = create<ManualStore>()(
         reset: async () => {
           await run(() => api.post('/api/manual/reset'), 'Portefeuille paper réinitialisé')
         },
-
-        notify: (notice) => set({ notice }),
       }
     },
     { name: 'manual-ticket', partialize: (s) => ({ ticket: s.ticket }) },

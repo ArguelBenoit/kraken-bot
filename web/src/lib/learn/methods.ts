@@ -34,7 +34,7 @@ export interface MethodRun {
   sub?: SubSpec
 }
 
-export interface MethodMeta {
+interface MethodMeta {
   id: MethodId
   name: string
   /** Propositions de réglages simples pour débuter (en %). */
@@ -43,6 +43,7 @@ export interface MethodMeta {
   sellRule: string
 }
 
+/** Fiche de chaque méthode : nom, stop / objectif conseillés pour débuter, règles d'achat et de vente en mots simples. */
 export const METHODS: Record<MethodId, MethodMeta> = {
   rsi: { id: 'rsi', name: 'RSI (acheter les creux)', stops: { sl: 3, tp: 5 }, buyRule: 'le RSI descend à 30 ou moins (le prix a trop baissé)', sellRule: 'le RSI monte à 70 ou plus (le prix a trop monté)' },
   bollinger: { id: 'bollinger', name: 'Bandes de Bollinger', stops: { sl: 3, tp: 5 }, buyRule: 'le prix clôture sous la bande basse (étirement excessif vers le bas)', sellRule: 'le prix revient à la moyenne (ligne du milieu)' },

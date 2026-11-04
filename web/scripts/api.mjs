@@ -1,4 +1,4 @@
-// Lance l'API Flask (app.py) avec le Python du venv ; crée le venv et installe requirements.txt si besoin.
+// Lance l'API Flask (`python -m server`) avec le Python du venv ; crée le venv et installe requirements.txt si besoin.
 import { spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -17,6 +17,6 @@ if (!existsSync(py)) {
   run(process.platform === 'win32' ? 'python' : 'python3', ['-m', 'venv', '.venv'])
   run(py, ['-m', 'pip', 'install', '-q', '-r', 'requirements.txt'])
 }
-const child = spawn(py, ['app.py'], { cwd: root, stdio: 'inherit', env: { ...process.env, FLASK_DEBUG: '0' } })
+const child = spawn(py, ['-m', 'server'], { cwd: root, stdio: 'inherit', env: { ...process.env, FLASK_DEBUG: '0' } })
 child.on('exit', (code) => process.exit(code ?? 0))
 for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, () => child.kill(sig))

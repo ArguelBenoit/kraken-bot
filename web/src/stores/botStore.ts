@@ -2,14 +2,10 @@ import { create } from 'zustand'
 import { api, errMsg } from '@/lib/api'
 import { pairLabel } from '@/lib/constants'
 import { ALL_FIELDS, formValues, toPayload, type FormValues } from '@/lib/fields'
-import type { BotConfig, BotStatus, Mode, Suggestion } from '@/lib/types'
+import type { BotConfig, BotStatus, Mode, Notice, Suggestion } from '@/lib/types'
+import { runAction } from './runAction'
 
-export type Draft = FormValues
-export interface Notice {
-  kind: 'error' | 'ok'
-  text: string
-}
-
+type Draft = FormValues
 const toDraft = (c: BotConfig): Draft => Object.fromEntries(ALL_FIELDS.map((f) => [f.name, c[f.name]]))
 
 interface BotStore {
@@ -34,22 +30,11 @@ interface BotStore {
   control: (action: 'start' | 'stop' | 'liquidate' | 'reset') => Promise<void>
   setMode: (mode: Mode) => Promise<void>
   tradeThis: (pair: string, tf: number) => void
-  notify: (n: Notice | null) => void
 }
 
+/** État de la page du bot simple : statut du serveur, brouillon du formulaire, proposition de Claude et actions. */
 export const useBotStore = create<BotStore>((set, get) => {
-  const run = async (fn: () => Promise<unknown>, okText?: string): Promise<boolean> => {
-    try {
-      await fn()
-      set({ notice: okText ? { kind: 'ok', text: okText } : null })
-      return true
-    } catch (e) {
-      set({ notice: { kind: 'error', text: errMsg(e) } })
-      return false
-    } finally {
-      await get().refresh()
-    }
-  }
+  const run = (fn: () => Promise<unknown>, okText?: string) => runAction(fn, okText, (notice) => set({ notice }), get().refresh)
 
   return {
     status: null,
@@ -111,8 +96,6 @@ export const useBotStore = create<BotStore>((set, get) => {
         kind: 'ok', text: `Paire ${pairLabel(pair)} et bougie ${tf} min chargées dans le formulaire : règle le reste (ou demande à Claude), puis Enregistrer.`,
       })
     },
-
-    notify: (notice) => set({ notice }),
   }
 })
 

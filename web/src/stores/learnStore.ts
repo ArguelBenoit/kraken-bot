@@ -38,6 +38,7 @@ const failure = (what: string, e: unknown) =>
     ? `${what} : le serveur Python n'a pas la route de progression. Il tourne avec une ancienne version : arrête-le (Ctrl+C) et relance ./run.sh.`
     : `${what} : ${errMsg(e)}`
 
+/** Progression du tutoriel (quiz réussis, épreuves) : appliquée tout de suite à l'écran puis enregistrée sur le serveur. */
 export const useLearnStore = create<LearnStore>((set, get) => {
   /** Applique tout de suite le changement à l'écran, puis l'enregistre sur le serveur. */
   const mutate = async (fn: (p: Progress) => Progress) => {
