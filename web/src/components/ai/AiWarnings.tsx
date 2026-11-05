@@ -15,8 +15,8 @@ export function AiWarnings({ keyOk, live, liveOk, creditLow }: Props) {
       {!keyOk && <div className="warn">ANTHROPIC_API_KEY absente : ajoute-la dans .env puis relance le serveur.</div>}
       {live && (
         <div className="warn">
-          Mode LIVE : Claude passe de vrais ordres au marché. Jamais testé avec de l&apos;argent réel. Aucun stop n&apos;existe chez Kraken : si ce
-          programme s&apos;arrête, rien ne vend.{liveOk ? '' : ' Clés Kraken absentes.'}
+          Mode LIVE : Claude passe de vrais ordres au marché. Jamais testé avec de l&apos;argent réel. Le stop loss (ou à défaut le stop suiveur) est posé chez Kraken, jamais
+          vérifié en réel ; l&apos;objectif reste local : s&apos;il s&apos;arrête, il ne se déclenche pas.{liveOk ? '' : ' Clés Kraken absentes.'}
         </div>
       )}
       {creditLow && (

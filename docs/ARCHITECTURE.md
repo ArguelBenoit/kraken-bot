@@ -38,7 +38,7 @@ Lancé par `python -m server` (voir `__main__.py`). Découpé par fonction :
 - **Concurrence** : chaque bot a un thread et un verrou (`lock`) : un seul cycle / ordre / liquidation à la fois.
 - **Persistance** : un JSON par bot (`config` + `state`), écrit de façon atomique. Paper et live partagent le fichier d'état d'un bot ; le
   changement de mode est refusé si le bot tourne ou si une position est ouverte.
-- **Stops** : en paper, simulés par le programme. En live (Trading manuel), le stop loss est posé chez Kraken (`bots/live.py`) ; objectif, ordres limites et Bot IA restent surveillés localement.
+- **Stops** : en paper, simulés par le programme. En live (Trading manuel et Bot IA), le stop loss est posé chez Kraken (`bots/live.py`) ; objectif et ordres limites restent surveillés localement.
 
 ### Fichiers de données (racine, ignorés par git)
 

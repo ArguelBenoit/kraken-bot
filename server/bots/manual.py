@@ -167,11 +167,8 @@ class ManualTrader:
             self._protect(p)
 
     def _protect(self, p, replace=False):
-        """Pose (ou remplace) le stop chez Kraken ; en cas d'échec, la position reste ouverte SANS stop Kraken et l'alerte est écrite au journal."""
-        try:
-            live.replace_stop(p) if replace else live.place_stop(p)
-        except Exception as e:
-            self.log(f"ALERTE : stop non posé chez Kraken pour {LABELS.get(p['pair'], p['pair'])} ({e}) — nouvel essai au prochain contrôle")
+        """Pose (ou remplace) le stop chez Kraken (`live.protect`) puis sauvegarde l'identifiant."""
+        live.protect(p, self.log, replace)
         self._save()
 
     def _close(self, p, price, fraction, why, settled=None):
@@ -295,21 +292,8 @@ class ManualTrader:
         self._save()
 
     def _reconcile(self, p, price):
-        """Live : suit le stop posé chez Kraken. Renvoie True si la position vient d'être fermée par ce stop. Repose un stop manquant."""
-        try:
-            if p.get("stop_id"):
-                state, fill = live.check_stop(p)
-                if state == "filled":
-                    self._close(p, price, 1.0, "stop déclenché chez Kraken", settled=fill)
-                    return True
-                if state == "gone":
-                    self.log(f"ALERTE : le stop Kraken de {LABELS.get(p['pair'], p['pair'])} a disparu sans s'exécuter — il est reposé")
-                    p["stop_id"] = p["stop_kind"] = None
-            if not p.get("stop_id") and live.stop_plan(p):
-                live.place_stop(p)
-        except Exception as e:
-            self.log(f"ALERTE : suivi du stop Kraken impossible ({LABELS.get(p['pair'], p['pair'])}) : {e}")
-        return False
+        """Live : suit le stop posé chez Kraken. Renvoie True si la position vient d'être fermée par ce stop."""
+        return live.reconcile(p, lambda fill: self._close(p, price, 1.0, "stop déclenché chez Kraken", settled=fill), self.log)
 
     # ---------- état pour l'UI ----------
     def _position_view(self, p):

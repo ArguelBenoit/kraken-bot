@@ -1,7 +1,9 @@
 """Bot IA : Claude analyse régulièrement le marché et ouvre / ferme jusqu'à 5 positions en parallèle.
 
 Claude ne fait que PROPOSER (outil `decide`). Les garde-fous (guards.py) sont appliqués par le code ; les stops et objectifs sont
-surveillés localement toutes les `check_every` secondes. Aucun stop n'est posé chez Kraken.
+surveillés localement toutes les `check_every` secondes en paper. En **live**, comme pour le trading manuel, le stop loss (ou à défaut
+le stop suiveur) est posé CHEZ KRAKEN (`bots/live.py`) : il protège la position même si ce programme s'arrête ; l'objectif et, quand il y a
+un stop loss, le stop suiveur restent surveillés ici. Jamais exécuté sur un compte réel. Le Bot IA est long uniquement.
 """
 import threading
 import time
@@ -16,6 +18,7 @@ from server.market import kraken
 from server.market.pairs import LABELS, WATCH
 from server.market.prices import last_price, try_last_price
 from server.market.snapshot import market_snapshot
+from server.bots import live, positions as pos
 from . import config as cfgmod
 from . import cost, guards, prompt
 
@@ -78,7 +81,7 @@ class AIBot:
     def stop(self):
         if self.running:
             self.running = False
-            self.log("Bot IA arrêté (les positions ouvertes restent ouvertes, plus aucun stop n'est surveillé)")
+            self.log("Bot IA arrêté (les positions ouvertes restent ouvertes : en live le stop reste posé chez Kraken, en paper plus rien n'est surveillé)")
 
     def _loop(self):
         while self.running:
@@ -128,16 +131,15 @@ class AIBot:
             except Exception as e:
                 self.log(f"Prix {p['pair']} indisponible: {e}")
                 continue
-            p["peak"] = max(p["peak"], price)
-            why = None
-            if p["sl"] and price <= p["entry"] * (1 - p["sl"] / 100):
-                why = f"Stop loss −{p['sl']}%"
-            elif p["tp"] and price >= p["entry"] * (1 + p["tp"] / 100):
-                why = f"Take profit +{p['tp']}%"
-            elif p["trail"] and price <= p["peak"] * (1 - p["trail"] / 100):
-                why = f"Stop suiveur −{p['trail']}%"
+            if self.config["mode"] == "live" and live.reconcile(p, lambda fill: self._sell(p, price, "stop déclenché chez Kraken", settled=fill), self.log):
+                continue
+            p["peak"] = pos.best_price(p, price)
+            why = pos.trigger_reason(p, price, p.get("stop_kind") if self.config["mode"] == "live" else None)
             if why:
-                self._sell(p, price, why)
+                try:
+                    self._sell(p, price, why)
+                except Exception as e:
+                    self.log(f"Fermeture automatique impossible ({p['pair']}) : {e}")
         self._save()
 
     def _price(self, position):
@@ -210,6 +212,8 @@ class AIBot:
                 self._sell(position, last_price(pair, 0), "IA : " + str(action.get("reason", ""))[:120])
                 return result(True, "fermée")
             guards.adjust(self.config, position, action)
+            if self.config["mode"] == "live":
+                live.protect(position, self.log, replace=True)           # le stop Kraken suit les nouveaux niveaux
             return result(True, f"SL {position['sl']}% · TP {position['tp']}% · suiveur {position['trail']}%")
         except Exception as e:
             return result(False, "erreur : " + str(e)[:150])
@@ -220,20 +224,32 @@ class AIBot:
         price = last_price(pair, 0)
         if c["mode"] == "paper":
             s["cash"] -= size
+            qty, cost = size * (1 - c["fee_pct"] / 100) / price, size
         else:
-            kraken.market_order(pair, "buy", size / price)
+            fill = live.enter(pair, "long", size / price, 1.0)          # prix et volume RÉELS de l'exécution
+            price = fill["price"] or price
+            qty, cost = fill["volume"], fill["cost"] + fill["fee"]
         position = {"id": uuid.uuid4().hex[:8], "pair": pair, "strategy": params["strategy"],
-                    "qty": size * (1 - c["fee_pct"] / 100) / price, "entry": price, "cost": size, "peak": price,
+                    "qty": qty, "entry": price, "cost": cost, "peak": price,
                     "sl": params["sl"], "tp": params["tp"], "trail": params["trail"], "reason": params["reason"], "conf": params["conf"],
                     "ts": int(time.time()), "opened": datetime.now().strftime("%d/%m %H:%M")}
         s["positions"].append(position)
         self._record("BUY", position, price, 0, params["reason"])
-
-    def _sell(self, position, price, why):
-        c, s = self.config, self.state
         if c["mode"] == "live":
-            kraken.market_order(position["pair"], "sell", position["qty"])
-        proceeds = position["qty"] * price * (1 - c["fee_pct"] / 100)
+            live.protect(position, self.log)
+            self._save()
+
+    def _sell(self, position, price, why, settled=None):
+        """Ferme la position. `settled` = exécution d'un stop déjà déclenché par Kraken (rien à envoyer, on enregistre)."""
+        c, s = self.config, self.state
+        fill = settled
+        if fill is None and c["mode"] == "live":
+            fill = live.exit_market(position, position["qty"])
+        if fill:
+            price = fill["price"] or price
+            proceeds = fill["cost"] - fill["fee"]
+        else:
+            proceeds = position["qty"] * price * (1 - c["fee_pct"] / 100)
         pnl = proceeds - position["cost"]
         if c["mode"] == "paper":
             s["cash"] += proceeds
@@ -271,7 +287,8 @@ class AIBot:
             for p in s["positions"]:
                 px = self._price(p)
                 positions.append({**p, "label": LABELS.get(p["pair"], p["pair"]), "price": px, "pnl_pct": (px / p["entry"] - 1) * 100,
-                                  "pnl": p["qty"] * px * (1 - fee) - p["cost"]})
+                                  "pnl": p["qty"] * px * (1 - fee) - p["cost"],
+                                  "exchange_stop": bool(p.get("stop_id")) if c["mode"] == "live" else None})
             next_review = max(0, int(c["interval_min"] * 60 - (time.time() - self.last_review))) if self.running else None
             return {"config": c, "running": self.running, "reviewing": self.reviewing, "next_review_s": next_review,
                     "key_ok": settings.claude_configured(), "live_ok": settings.kraken_configured(),

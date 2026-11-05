@@ -31,5 +31,5 @@ Objectif (take profit), stop suiveur d'une position qui a aussi un stop loss, or
 
 - **Jamais exécuté sur un compte réel**, pas même en `validate=true` (aucune clé disponible) : lance `python -m server.check_kraken` avant le live.
 - Frais d'achat supposés en monnaie de cotation (comportement par défaut de Kraken à l'achat) ; le gain affiché reste une estimation.
-- Le Bot IA garde ses stops locaux.
+- Le Bot IA utilise les mêmes fonctions (`live.enter`, `protect`, `reconcile`, `exit_market`) : prix et volume d'entrée réels, stop posé après l'ouverture, remplacé quand Claude ajuste les niveaux. Même limite : jamais exécuté en réel.
 - Un stop `trailing-stop` a pour seul réglage l'écart ; sa mise à jour avec un stop loss simultané n'est pas gérée (le stop loss est prioritaire).

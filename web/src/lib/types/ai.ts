@@ -40,6 +40,8 @@ export interface AiPosition {
   tp: number
   trail: number
   peak?: number
+  /** Live : un stop est posé chez Kraken pour cette position ? null en paper. */
+  exchange_stop: boolean | null
   conf: number
   reason: string
   opened: string

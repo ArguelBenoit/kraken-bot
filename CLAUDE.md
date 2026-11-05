@@ -25,7 +25,7 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 - **Claude propose, le code dispose** : Bot IA et propositions de trade (`features/proposals.py`, qui ne font que pré-remplir le ticket) passent par des garde-fous codés ; Claude ne règle jamais montant, frais, mode.
 - Les six méthodes ne sont plus exécutées par un bot : tutoriel (`lib/learn/methods.ts`) et backtest (`market/strategies.py`) en ont chacun une copie, à modifier ensemble.
 - **Short** (Trading manuel seulement) : paper simulé, live désactivé par défaut (`allow_live_short`), marge Kraken jamais validée ; stop loss obligatoire. Détails : `docs/SHORT.md`. Le Bot IA reste long uniquement.
-- **Stops** : en paper tout est simulé localement. En live (Trading manuel), `bots/live.py` pose le stop loss (sinon le stop suiveur) chez Kraken (`stop-loss` / `trailing-stop`, `reduce_only` en marge), le suit et le repose s'il disparaît ; objectif et ordres limites restent locaux. **Jamais exécuté sur un compte réel** : vérifier avec `python -m server.check_kraken` (`validate=true`). Bot IA : stops encore locaux. Live : `confirm:true` exigé côté serveur pour les ordres manuels.
+- **Stops** : en paper tout est simulé localement. En live (Trading manuel et Bot IA), `bots/live.py` pose le stop loss (sinon le stop suiveur) chez Kraken (`stop-loss` / `trailing-stop`, `reduce_only` en marge), le suit et le repose s'il disparaît ; objectif et ordres limites restent locaux. **Jamais exécuté sur un compte réel** : vérifier avec `python -m server.check_kraken` (`validate=true`). Live : `confirm:true` exigé côté serveur pour les ordres manuels.
 - `/api/connections` n'expose jamais les valeurs des variables d'environnement.
 - Le Trading est la page d'accueil (`/`) ; le bot simple a été supprimé (voir l'historique git si besoin).
 - Interface : pas de `alert` / `window.confirm`. Retours d'action en toast (`stores/uiStore.ts` : `toast.ok/error/info`, via `runAction`) ; actions sensibles derrière `await confirmAction({...})` (`danger: true` pour le live / irréversible).
@@ -44,5 +44,5 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 
 ## Limites connues
 
-Live jamais testé en réel ; Bot IA : prix d'entrée approximatif, `ordermin` ignoré (le client Kraken arrondit les volumes et refuse sous `ordermin`), stops locaux ; bots non redémarrés automatiquement et non coordonnés entre eux ;
-720 bougies max par durée (backtests courts, biais de sélection). Idées : stops Kraken pour le Bot IA, short pour le Bot IA, service systemd, état paper/live séparé.
+Live jamais testé en réel ; Bot IA : ordres refusés sous `ordermin` (le client Kraken arrondit les volumes) ; bots non redémarrés automatiquement et non coordonnés entre eux ;
+720 bougies max par durée (backtests courts, biais de sélection). Idées : short pour le Bot IA, service systemd, état paper/live séparé.

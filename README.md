@@ -5,7 +5,7 @@ assisté par Claude**, un bot piloté par **Claude**, et un **tutoriel interacti
 en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 > ⚠ Trader est risqué. Ce projet est une expérimentation personnelle : aucune rentabilité n'est garantie, ce n'est pas un conseil financier.
-> Le mode **live** n'a jamais été testé avec de l'argent réel et **aucun stop n'est posé chez Kraken** : si le programme s'arrête, rien ne vend.
+> Le mode **live** n'a jamais été testé avec de l'argent réel et les stops loss (ou suiveurs) posés chez Kraken n'ont jamais été vérifiés en réel ; les objectifs et ordres limites restent locaux.
 
 ## Ce que fait le projet
 

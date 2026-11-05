@@ -28,11 +28,14 @@ export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; f
             ['Stratégie', p.strategy], ['Confiance', fm(p.conf)], ['Ouvert le', p.opened],
             ['Stop loss', p.sl > 0 ? `${p.sl} %` : 'aucun'], ['Stop suiveur', p.trail > 0 ? `${p.trail} %` : 'aucun'],
             ['Objectif', p.tp > 0 ? `${p.tp} %` : 'aucun'],
+            ...(p.exchange_stop != null ? [['Stop chez Kraken', p.exchange_stop ? 'posé ✓' : 'NON POSÉ'] as [string, string]] : []),
           ]}
           info={
             <>
               <b>{p.strategy}</b> · confiance {fm(p.conf)} · ouvert le {p.opened}
               {p.trail > 0 && <> · suiveur {p.trail}%</>}
+              {p.exchange_stop === true && <> · <span className="t-ok">stop posé chez Kraken ✓</span></>}
+              {p.exchange_stop === false && (p.sl > 0 || p.trail > 0) && <> · <b className="t-ko">STOP NON POSÉ chez Kraken</b></>}
               <br />
               {p.reason}
             </>

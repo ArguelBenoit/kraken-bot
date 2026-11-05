@@ -8,6 +8,7 @@ chez Kraken comme ordre de fermeture distinct (`reduce_only` en marge) : un seul
 Un stop déclenché par Kraken est détecté par `check_stop`. **Rien ici n'a jamais été exécuté sur un compte réel.**
 """
 from server.market import kraken
+from server.market.pairs import LABELS
 from . import positions as pos
 
 STOP_KINDS = {"sl": "stop-loss", "trail": "trailing-stop"}
@@ -83,3 +84,30 @@ def check_stop(p):
     if info["status"] in ("canceled", "expired"):
         return "gone", None
     return "open", None
+
+
+def protect(p, log, replace=False):
+    """Pose (ou remplace) le stop chez Kraken ; en cas d'échec la position reste ouverte SANS stop Kraken et l'alerte est écrite au journal."""
+    try:
+        replace_stop(p) if replace else place_stop(p)
+    except Exception as e:
+        log(f"ALERTE : stop non posé chez Kraken pour {LABELS.get(p['pair'], p['pair'])} ({e}) — nouvel essai au prochain contrôle")
+
+
+def reconcile(p, on_filled, log):
+    """Suit le stop posé chez Kraken et repose un stop manquant. `on_filled(exécution)` est appelé si Kraken l'a déclenché : renvoie alors True."""
+    name = LABELS.get(p["pair"], p["pair"])
+    try:
+        if p.get("stop_id"):
+            state, fill = check_stop(p)
+            if state == "filled":
+                on_filled(fill)
+                return True
+            if state == "gone":
+                log(f"ALERTE : le stop Kraken de {name} a disparu sans s'exécuter — il est reposé")
+                p["stop_id"] = p["stop_kind"] = None
+        if not p.get("stop_id") and stop_plan(p):
+            place_stop(p)
+    except Exception as e:
+        log(f"ALERTE : suivi du stop Kraken impossible ({name}) : {e}")
+    return False

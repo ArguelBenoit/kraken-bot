@@ -26,7 +26,7 @@ export const LIMIT_FIELDS: NumberField[] = [
   { name: 'interval_min', label: 'Analyse Claude toutes les (min)', step: '1',
     tip: "Délai entre deux analyses du marché par Claude. Chaque analyse est un appel payant : plus c'est court, plus ça coûte. Le bouton « Analyser maintenant » en déclenche une à la demande." },
   { name: 'check_every', label: 'Contrôle des stops (sec)', step: '1',
-    tip: "Fréquence à laquelle le programme vérifie localement stop loss, objectifs et stops suiveurs. Claude n'est pas appelé à ces contrôles. Aucun stop n'est posé chez Kraken : si le programme s'arrête, rien ne se déclenche." },
+    tip: "Fréquence à laquelle le programme vérifie localement stop loss, objectifs et stops suiveurs. Claude n'est pas appelé à ces contrôles. En live, le stop loss (ou à défaut le stop suiveur) est aussi posé chez Kraken et protège la position même si le programme s'arrête ; l'objectif reste local." },
   { name: 'order_size', label: 'Montant par trade',
     tip: "Montant de base engagé par trade (en stablecoin). Claude peut le moduler selon sa confiance, dans la limite imposée par l'agressivité (de 0,6× à 1,5×)." },
   { name: 'budget', label: 'Budget alloué',
