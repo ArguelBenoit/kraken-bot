@@ -6,11 +6,14 @@ import css from './Header.module.css'
 interface HeaderProps {
   title: string
   icon: LucideIcon
+  /** Indicateurs essentiels, en première ligne. */
   children: ReactNode
+  /** Indicateurs secondaires, en seconde ligne. */
+  more?: ReactNode
 }
 
-/** Bandeau de page : titre à gauche, indicateurs alignés à droite (la navigation est dans la barre latérale). */
-export function Header({ title, icon: Icon, children }: HeaderProps) {
+/** Bandeau de page : titre à gauche, indicateurs alignés à droite : l'essentiel en première ligne, le reste (`more`) en seconde (la navigation est dans la barre latérale). */
+export function Header({ title, icon: Icon, children, more }: HeaderProps) {
   const ref = useRef<HTMLElement>(null)
 
   // le bandeau est collant : on publie sa hauteur réelle (qui varie si les indicateurs passent à la ligne) pour les autres éléments collants
@@ -31,7 +34,10 @@ export function Header({ title, icon: Icon, children }: HeaderProps) {
           <Icon className="ic" />
           {title}
         </h1>
-        <div className={css.kpis}>{children}</div>
+        <div className={css.right}>
+          <div className={css.kpis}>{children}</div>
+          {more && <div className={css.kpis}>{more}</div>}
+        </div>
       </div>
     </header>
   )

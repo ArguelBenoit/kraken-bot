@@ -1,7 +1,7 @@
-import { Coins } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { readActivity } from '@/lib/activity'
 import { useActivityStore } from '@/stores/activityStore'
+import { Kraken } from '@/components/ui/Kraken'
 import { Connections } from './Connections'
 import { NavIndicators } from './NavIndicators'
 import { NAV_GROUPS } from './navigation'
@@ -13,7 +13,7 @@ export function Sidebar() {
   return (
     <aside className={css.sidebar}>
       <div className={css.brand}>
-        <Coins className="ic" />
+        <Kraken className={css.logo} />
         Kraken Bot
       </div>
       <nav className={css.nav} aria-label="Menu principal">

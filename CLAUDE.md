@@ -30,7 +30,7 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 - Le Trading est la page d'accueil (`/`) ; le bot simple a été supprimé (voir l'historique git si besoin).
 - Interface : pas de `alert` / `window.confirm`. Retours d'action en toast (`stores/uiStore.ts` : `toast.ok/error/info`, via `runAction`) ; actions sensibles derrière `await confirmAction({...})` (`danger: true` pour le live / irréversible).
 - Ne jamais renvoyer le résultat de `window.scrollTo(...)` depuis un `useEffect` (écran noir).
-- Interface : thème sombre monospace, accent `--ac` orange chaud, largeur minimale 1400 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`, qui compense aussi les unités `vh`). Icônes `lucide-react`.
+- Interface : thème sombre monospace, accent `--ac` orange chaud, largeur minimale 1300 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`, qui compense aussi les unités `vh`). Icônes `lucide-react`.
 - Code propre : pas de code mort, pas de gros fichiers (découper par fonction), un commentaire sur chaque symbole exporté, **pas de tests** (retirés volontairement, voir commit `888267d`).
 
 ## Conventions de travail avec l'utilisateur

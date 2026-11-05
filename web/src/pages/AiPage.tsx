@@ -25,21 +25,22 @@ export function AiPage() {
 
   return (
     <>
-      <Header title="Bot IA" icon={Bot}>
+      <Header title="Bot IA" icon={Bot} more={<>
+        <Kpi label="PnL réalisé" tip={AI_KPI_TIPS['PnL réalisé']}><Pnl v={status?.pnl} /></Kpi>
+        <Kpi label="PnL du jour" tip={AI_KPI_TIPS['PnL du jour']}><Pnl v={status?.day_pnl} /></Kpi>
+        <Kpi label="Équité" tip={AI_KPI_TIPS['Équité']}><b>{fm(status?.equity)}</b></Kpi>
+        <Kpi label="Appels Claude" tip={AI_KPI_TIPS['Appels Claude']}>
+          <b>{status ? `${status.usage.calls} / ${c?.max_calls_per_day}` : '–'}</b>
+        </Kpi>
+      </>}>
         <Kpi bare label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>
           <ModeSwitch mode={c?.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
         <Kpi bare label="Statut">
           <StatusBadge running={!!status?.running} runningLabel={status?.reviewing ? 'ANALYSE…' : 'EN COURS'} />
         </Kpi>
-        <Kpi label="PnL réalisé" tip={AI_KPI_TIPS['PnL réalisé']}><Pnl v={status?.pnl} /></Kpi>
-        <Kpi label="PnL du jour" tip={AI_KPI_TIPS['PnL du jour']}><Pnl v={status?.day_pnl} /></Kpi>
-        <Kpi label="Équité" tip={AI_KPI_TIPS['Équité']}><b>{fm(status?.equity)}</b></Kpi>
         <Kpi label="Positions" tip={AI_KPI_TIPS['Positions']}>
           <b>{status ? `${status.positions.length} / ${c?.max_positions}` : '–'}</b>
-        </Kpi>
-        <Kpi label="Appels Claude" tip={AI_KPI_TIPS['Appels Claude']}>
-          <b>{status ? `${status.usage.calls} / ${c?.max_calls_per_day}` : '–'}</b>
         </Kpi>
       </Header>
       <main className="layout">

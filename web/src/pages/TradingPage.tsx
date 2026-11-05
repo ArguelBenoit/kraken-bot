@@ -52,10 +52,7 @@ export function TradingPage() {
 
   return (
     <>
-      <Header title="Trading" icon={Crosshair}>
-        <Kpi bare label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
-          <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
-        </Kpi>
+      <Header title="Trading" icon={Crosshair} more={<>
         <Kpi label="PnL réalisé" tip="Gains/pertes cumulés des positions déjà vendues, frais inclus.">
           <b className={gainClass(status?.pnl ?? 0)}>{fm(status?.pnl)}</b>
         </Kpi>
@@ -67,6 +64,10 @@ export function TradingPage() {
         </Kpi>
         <Kpi label="Équité" tip="Cash + valeur des positions ouvertes au prix actuel.">
           <b>{live ? 'n/a' : fm(status?.equity)}</b>
+        </Kpi>
+      </>}>
+        <Kpi bare label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
+          <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
         <Kpi label="Positions" tip="Positions ouvertes. En paper, leurs stops sont simulés par ce programme ; en live, le stop loss est posé chez Kraken (objectif et stop suiveur restent surveillés ici).">
           <b>{status ? status.positions.length : '–'}</b>

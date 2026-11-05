@@ -48,10 +48,6 @@ function Welcome() {
           <div className="hint" style={{ marginTop: 0 }}>Ta mission : valider les 6 épreuves, une par méthode.</div>
           <Passport />
         </Card>
-        <div className={`${css.callout} ${css.warn}`}>
-          <strong>⚠ Honnêteté</strong>
-          <span className={css.prose}>Trader est risqué et la majorité des débutants perd de l&apos;argent. Ce tutoriel enseigne des méthodes et de la discipline : il ne promet aucun gain et n&apos;est pas un conseil financier.</span>
-        </div>
       </div>
     </div>
   )
@@ -70,20 +66,19 @@ export function LearnPage() {
 
   return (
     <>
-      <Header title="Apprendre le trading" icon={GraduationCap}>
-        <Kpi bare label="Mode" tipRight={false} tip="Page 100 % simulation : aucun ordre n'est jamais envoyé, même si tu es en mode LIVE ailleurs.">
-          <b className="t-ac">PAPER UNIQUEMENT</b>
-        </Kpi>
+      <Header title="Apprendre le trading" icon={GraduationCap} more={<>
         <Kpi label="Épreuves validées" tip="Une épreuve par méthode. Objectif : toutes les valider.">
           <b className={p.complete ? 't-ok' : ''}>{p.done} / {p.total}</b>
         </Kpi>
         <Kpi label="Leçons terminées" tip="Leçons dont le quiz est réussi.">
           <b>{LESSONS.filter((l) => lessonsDone[l.id]).length} / {LESSONS.length}</b>
         </Kpi>
+      </>}>
+        <Kpi bare label="Mode" tipRight={false} tip="Page 100 % simulation : aucun ordre n'est jamais envoyé, même si tu es en mode LIVE ailleurs.">
+          <b className="t-ac">PAPER UNIQUEMENT</b>
+        </Kpi>
       </Header>
-      <div style={{ paddingTop: 16 }}>
-        {lesson ? <Tunnel key={lesson.id} lesson={lesson} steps={steps} index={stepIndex(step, steps.length)} /> : <Welcome />}
-      </div>
+      {lesson ? <Tunnel key={lesson.id} lesson={lesson} steps={steps} index={stepIndex(step, steps.length)} /> : <Welcome />}
     </>
   )
 }
