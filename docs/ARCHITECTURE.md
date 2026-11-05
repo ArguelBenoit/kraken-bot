@@ -47,7 +47,7 @@ Lancé par `python -m server` (voir `__main__.py`). Découpé par fonction :
 ## Frontend — `web/src/`
 
 React 19 + TypeScript + Vite. Un thème sombre (`styles/theme.css`) et des CSS modules pour les composants complexes. Largeur minimale
-1600 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`).
+1400 px, aucun responsive, échelle globale 110 % (`--zoom` dans `theme.css`).
 
 | Dossier | Contenu |
 |---|---|
