@@ -3,10 +3,12 @@
 .card.dn { border-color: var(--ko); background: linear-gradient(180deg, #260909, var(--card) 90px); box-shadow: 0 0 16px #ff4d4d44; }
 .card :global(.card-title) { margin-bottom: 8px; font-size: 15px; letter-spacing: 0.06em; color: var(--tx); }
 .pct { font-size: 20px; line-height: 1; letter-spacing: 0; margin-right: 6px; }
-.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 14px; margin: 6px 0 10px; font-size: 13px; }
-.grid small { display: block; color: var(--mu); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
-.gaugeWrap { position: relative; padding-top: 16px; }
+.gaugeWrap { position: relative; margin: 8px 0 6px; padding: 18px 0 24px; }
 .nowLabel { position: absolute; top: 0; font-size: 12px; font-weight: 700; color: var(--ac); white-space: nowrap; }
+.entryLabel { position: absolute; bottom: 0; font-size: 12px; font-weight: 700; color: var(--tx); white-space: nowrap; }
+.entryLabel.mid { transform: translateX(-50%); }
+.entryLabel.left { left: 0; }
+.entryLabel.right { right: 0; }
 .nowLabel.mid { transform: translateX(-50%); }
 .nowLabel.left { left: 0; }
 .nowLabel.right { right: 0; }
@@ -14,7 +16,7 @@
 .fill { position: absolute; top: 0; bottom: 0; }
 .entry { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--tx); }
 .now { position: absolute; top: -4px; bottom: -4px; width: 4px; margin-left: -2px; background: var(--ac); box-shadow: 0 0 0 1px #000; }
-.labels { display: flex; justify-content: space-between; font-size: 11px; margin-top: 6px; color: var(--mu); }
+.labels { display: flex; justify-content: space-between; font-size: 11px; margin-top: 2px; color: var(--mu); }
 .zone { margin-top: 6px; color: var(--ac); font-size: 12px; }
 .rule { margin-top: 4px; color: var(--mu); font-size: 11px; }
 .rule b { color: var(--tx); }

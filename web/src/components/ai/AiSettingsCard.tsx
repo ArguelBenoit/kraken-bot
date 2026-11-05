@@ -1,5 +1,6 @@
 import { RotateCcw, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Accordion } from '@/components/ui/Accordion'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Tip } from '@/components/ui/Tip'
@@ -57,34 +58,31 @@ export function AiSettingsCard() {
         </Field>
         {LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
 
-        <details className="group">
-          <summary>Coût Claude (estimation)<Tip text="Estimation du coût des appels à Claude d'après les tokens consommés et les prix saisis ici. Elle n'est qu'indicative : seule la console Anthropic fait foi." /></summary>
+        <Accordion id="ai-cost" title={<>Coût Claude (estimation)<Tip text="Estimation du coût des appels à Claude d'après les tokens consommés et les prix saisis ici. Elle n'est qu'indicative : seule la console Anthropic fait foi." /></>}>
           {COST_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
           <div className="hint">
             Les prix dépendent du modèle : copie-les depuis la console Anthropic. Saisis ton solde actuel pour recaler l&apos;estimation
             (l&apos;API ne donne pas le solde).
           </div>
-        </details>
+        </Accordion>
 
-        <details className="group" open>
-          <summary>Stratégies autorisées<Tip text="Les approches que Claude a le droit d'utiliser pour ouvrir un trade. Décoche celles que tu ne veux pas ; il en faut au moins une." /></summary>
+        <Accordion id="ai-strategies" title={<>Stratégies autorisées<Tip text="Les approches que Claude a le droit d'utiliser pour ouvrir un trade. Décoche celles que tu ne veux pas ; il en faut au moins une." /></>}>
           {Object.entries(options.strategies).map(([k, desc]) => (
             <label className="check" key={k}>
               <input type="checkbox" checked={draft.strategies.includes(k)} onChange={() => toggleIn('strategies', k)} />
               <span><b>{k}</b><br /><small>{desc}</small></span>
             </label>
           ))}
-        </details>
+        </Accordion>
 
-        <details className="group">
-          <summary>Paires surveillées<Tip text="Les cryptos que Claude peut analyser et trader. Moins de paires = moins de tokens par analyse, donc moins cher." /></summary>
+        <Accordion id="ai-pairs" title={<>Paires surveillées<Tip text="Les cryptos que Claude peut analyser et trader. Moins de paires = moins de tokens par analyse, donc moins cher." /></>}>
           {options.pairs.map((p) => (
             <label className="check" key={p.pair}>
               <input type="checkbox" checked={draft.pairs.includes(p.pair)} onChange={() => toggleIn('pairs', p.pair)} />
               {p.label}
             </label>
           ))}
-        </details>
+        </Accordion>
 
         <label className="field block">
           <span>Consignes libres pour Claude (optionnel)<Tip text="Texte ajouté au prompt de Claude (500 caractères max). Il ne peut pas lever les garde-fous du code : stop loss obligatoire, exposition, perte journalière…" /></span>

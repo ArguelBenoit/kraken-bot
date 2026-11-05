@@ -5,10 +5,9 @@ import { Tip } from '@/components/ui/Tip'
 import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { computeOpenTrade, type OpenTradeInput, type OpenTradeView } from '@/lib/trade'
 import css from './OpenTradeCard.module.css'
+import { TradeDetails, type DetailRow } from './TradeDetails'
 
 const LONG_TIPS = {
-  value: "Valeur d'achat = ce que tu as dépensé pour ce trade (le montant du ticket, frais d'achat compris). Valeur actuelle = ce que vaut l'actif maintenant (quantité × prix actuel), avant les frais de vente.",
-  gain: "Gain brut = quantité × (prix actuel − prix d'achat), sans frais. Gain net estimé = ce que tu récupérerais en vendant maintenant, frais d'achat et de vente déduits.",
   stop: "Prix de déclenchement du stop (le plus haut entre le stop loss et le stop suiveur) et sa distance par rapport à l'achat. Si le prix l'atteint, la position est vendue.",
   entry: "Prix auquel tu as acheté. Au-dessus, le trade gagne ; en dessous, il perd.",
   exit: "Objectif (take profit) : la position est vendue s'il est atteint. Sans objectif, c'est le plus haut atteint depuis l'achat (pic), que le stop suiveur utilise comme repère.",
@@ -16,17 +15,18 @@ const LONG_TIPS = {
 
 /** Infobulles d'un short : tout est inversé (gain quand le prix baisse) et la position peut être liquidée. */
 const SHORT_TIPS = {
-  value: "Valeur de vente = ce que tu as vendu à découvert (quantité × prix d'entrée). Valeur de rachat = ce qu'il faudrait payer pour racheter maintenant (quantité × prix actuel).",
-  gain: "Gain brut = quantité × (prix de vente − prix actuel), sans frais. Gain net estimé = ce que tu garderais en rachetant maintenant, frais d'ouverture, de rachat et de report déduits.",
   stop: "Prix de déclenchement du stop (le plus bas entre le stop loss et le stop suiveur) et sa distance par rapport à la vente. Si le prix MONTE jusque-là, la position est rachetée pour limiter la perte.",
   entry: "Prix auquel tu as vendu à découvert. En dessous, le trade gagne ; au-dessus, il perd.",
   exit: "Objectif (take profit) : la position est rachetée s'il est atteint. Sans objectif, c'est le plus bas atteint depuis la vente (creux), que le stop suiveur utilise comme repère.",
 } as const
 
+const TIPS_ENTRY = { long: LONG_TIPS.entry, short: SHORT_TIPS.entry } as const
+
 /** Barre stop → objectif ; le prix actuel est écrit au-dessus du repère orange (décalé pour rester dans la barre aux extrémités). */
-function Gauge({ v, price }: { v: OpenTradeView; price: string }) {
+function Gauge({ v, price, entry }: { v: OpenTradeView; price: ReactNode; entry: ReactNode }) {
   const { gauge: g } = v
   const edge = g.pos < 12 ? 'left' : g.pos > 88 ? 'right' : 'mid'
+  const entryEdge = g.entry < 12 ? 'left' : g.entry > 88 ? 'right' : 'mid'
   return (
     <div className={css.gaugeWrap}>
       <span className={`${css.nowLabel} ${css[edge]}`} style={edge === 'mid' ? { left: `${g.pos}%` } : undefined}>{price}</span>
@@ -35,36 +35,29 @@ function Gauge({ v, price }: { v: OpenTradeView; price: string }) {
         <div className={css.entry} style={{ left: `${g.entry}%` }} />
         <div className={css.now} style={{ left: `${g.pos}%` }} />
       </div>
+      <span className={`${css.entryLabel} ${css[entryEdge]}`} style={entryEdge === 'mid' ? { left: `${g.entry}%` } : undefined}>{entry}<Tip text={TIPS_ENTRY[v.side]} /></span>
     </div>
   )
 }
 
-function Body({ v, info }: { v: OpenTradeView; info?: ReactNode }) {
+function Body({ v, info, quote }: { v: OpenTradeView; info?: ReactNode; quote: string }) {
   const short = v.side === 'short'
   const TIPS = short ? SHORT_TIPS : LONG_TIPS
   const pr = (x: number) => fmPrice(x, v.entry).replace(/\s/g, '')         // même précision partout, selon le prix d'achat ; sans séparateur de milliers (carte compacte)
-  const cls = gainClass(v.chg)
+  const gain = (x: number) => <b className={gainClass(x)}>{signed(x)}{quote}</b>        // gain ou perte en monnaie de la paire
   return (
     <>
-      <div className={css.grid}>
-        <div><small>{short ? 'Valeur de vente / de rachat' : 'Valeur d’achat / actuelle'}<Tip text={TIPS.value} /></small><b>{fm(v.cost)}</b> / <b>{fm(v.value)}</b></div>
-        <div>
-          <small>Gain brut / net estimé<Tip text={TIPS.gain} right /></small>
-          <b className={cls}>{signed(v.grossGain)}</b> / <b className={gainClass(v.netGain)}>{signed(v.netGain)}</b>
-        </div>
-      </div>
-      <Gauge v={v} price={pr(v.px)} />
+      <Gauge v={v} price={<>{pr(v.px)} · {gain(v.netGain)}</>} entry={<>{short ? 'vente' : 'achat'} {pr(v.entry)} · {fm(v.cost)}{quote}</>} />
       <div className={css.labels}>
         {v.stopPrice != null && v.stopChg != null ? (
-          <span className="t-ko"><ChevronLeft className="ic" />STOP {signed(v.stopChg)}% · {pr(v.stopPrice)}<Tip text={TIPS.stop} /></span>
+          <span className="t-ko"><ChevronLeft className="ic" />STOP {signed(v.stopChg)}% · {pr(v.stopPrice)} · {gain(v.stopGain ?? 0)}<Tip text={TIPS.stop} /></span>
         ) : (
           <span className="t-ko"><ChevronLeft className="ic" />aucun stop<Tip text={TIPS.stop} /></span>
         )}
-        <span>│ {short ? 'vente' : 'achat'} {pr(v.entry)}<Tip text={TIPS.entry} /></span>
         {v.tpPrice != null && v.tpChg != null ? (
-          <span className="t-ok">{short ? 'RACHAT' : 'VENTE'} {signed(v.tpChg)}% · {pr(v.tpPrice)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
+          <span className="t-ok">{short ? 'RACHAT' : 'VENTE'} {signed(v.tpChg)}% · {pr(v.tpPrice)} · {gain(v.exitGain)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
         ) : (
-          <span className="t-ok">{short ? 'creux' : 'pic'} {signed(v.peakPct)}% · {pr(v.peak)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
+          <span className="t-ok">{short ? 'creux' : 'pic'} {signed(v.peakPct)}% · {pr(v.peak)} · {gain(v.exitGain)}<Tip text={TIPS.exit} right /><ChevronRight className="ic m0" /></span>
         )}
       </div>
       {v.zone && (
@@ -78,6 +71,31 @@ function Body({ v, info }: { v: OpenTradeView; info?: ReactNode }) {
   )
 }
 
+const SEP: DetailRow = ['-', null]
+
+/** Toutes les valeurs calculées d'une position, pour l'infobulle de détail. */
+function detailRows(v: OpenTradeView, extra: DetailRow[]): DetailRow[] {
+  const short = v.side === 'short'
+  const pr = (x: number) => fmPrice(x, v.entry)
+  return [
+    ['Sens', short ? 'SHORT (vente à découvert)' : 'LONG (achat)'],
+    ['Quantité', v.qty],
+    [short ? 'Prix de vente (entrée)' : "Prix d'achat (entrée)", pr(v.entry)],
+    ['Prix actuel', pr(v.px)],
+    ['Variation', <span className={gainClass(v.chg)}>{signed(v.chg)} %</span>],
+    SEP,
+    [short ? 'Valeur de vente' : "Valeur d'achat", fm(v.cost)],
+    [short ? 'Valeur de rachat' : 'Valeur actuelle', fm(v.value)],
+    ['Gain brut', <span className={gainClass(v.grossGain)}>{signed(v.grossGain)}</span>],
+    ['Gain net estimé', <span className={gainClass(v.netGain)}>{signed(v.netGain)}</span>],
+    SEP,
+    ['Stop', v.stopPrice != null && v.stopChg != null ? `${pr(v.stopPrice)} (${signed(v.stopChg)} %)` : 'aucun'],
+    ['Objectif', v.tpPrice != null && v.tpChg != null ? `${pr(v.tpPrice)} (${signed(v.tpChg)} %)` : 'aucun'],
+    [short ? 'Creux atteint' : 'Pic atteint', `${pr(v.peak)} (${signed(v.peakPct)} %)`],
+    ...(extra.length ? [SEP, ...extra] : []),
+  ]
+}
+
 interface Props {
   /** Libellé de la paire (ex. « ETH/USDC »). */
   pair: string
@@ -86,6 +104,8 @@ interface Props {
   actions?: ReactNode
   /** Ligne de contexte sous la jauge (règle de sortie, stratégie, raison d'entrée…). */
   info?: ReactNode
+  /** Lignes ajoutées à l'infobulle de détail (levier, frais, date d'ouverture…). */
+  details?: DetailRow[]
   /** Contenu supplémentaire en bas de carte (édition des stops…). */
   children?: ReactNode
 }
@@ -95,14 +115,15 @@ interface Props {
  * Commune au Bot IA et au Trading manuel : chaque page fournit une position et ses actions.
  * Verte ou rouge selon que le prix est au-dessus ou sous l'entrée.
  */
-export function OpenTradeCard({ pair, input, actions, info, children }: Props) {
+export function OpenTradeCard({ pair, input, actions, info, details = [], children }: Props) {
   const v = input ? computeOpenTrade(input) : null
+  const quote = pair.split(' ')[0].split('/')[1] ?? ''           // monnaie de la paire (« ETH/USDC » → USDC)
   return (
     <Card
       title={pair} icon={Zap} className={`${css.card} ${v ? css[v.tone] : ''}`}
-      actions={<>{v && <b className={`${css.pct} ${gainClass(v.chg)}`}>{signed(v.chg)}%</b>}{actions}</>}
+      actions={<>{v && <b className={`${css.pct} ${gainClass(v.chg)}`}>{signed(v.chg)}%</b>}{actions}{v && <TradeDetails rows={detailRows(v, details)} />}</>}
     >
-      {v ? <Body v={v} info={info} /> : <div>Prix indisponible pour {pair}</div>}
+      {v ? <Body v={v} info={info} quote={quote} /> : <div>Prix indisponible pour {pair}</div>}
       {children}
     </Card>
   )

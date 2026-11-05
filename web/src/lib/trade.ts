@@ -36,6 +36,9 @@ export interface OpenTradeView {
   stopPrice: number | null
   /** Variation favorable (%) au niveau du stop, depuis l'entrée (négative, ou positive si un suiveur protège déjà un gain). */
   stopChg: number | null
+  /** Gain net estimé (négatif = perte) si la position sort au prix du stop / de l'objectif / du pic. */
+  stopGain: number | null
+  exitGain: number
   tpPrice: number | null
   tpChg: number | null
   peak: number
@@ -64,6 +67,9 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
   const value = qty * px
   const peak = short ? Math.min(i.peak ?? entry, px) : Math.max(i.peak ?? entry, px)
   const peakPct = fav(peak)
+  // gain net si la position était fermée à `price` (frais de fermeture et frais fixes déduits)
+  const netAt = (price: number) =>
+    short ? qty * (entry - price) - qty * price * fee - (i.fixedFees ?? 0) : qty * price * (1 - fee) - i.cost
   const stopChg = i.stopPrice == null ? null : fav(i.stopPrice)
   const tpChg = i.tpPrice == null ? null : fav(i.tpPrice)
 
@@ -80,9 +86,9 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
 
   return {
     side, entry, px, qty, cost: i.cost, value, chg, peak, peakPct, lo, hi, zone,
-    stopPrice: i.stopPrice, stopChg, tpPrice: i.tpPrice, tpChg,
+    stopPrice: i.stopPrice, stopChg, stopGain: i.stopPrice == null ? null : netAt(i.stopPrice), exitGain: netAt(i.tpPrice ?? peak), tpPrice: i.tpPrice, tpChg,
     grossGain: short ? qty * (entry - px) : value - qty * entry,
-    netGain: short ? qty * (entry - px) - value * fee - (i.fixedFees ?? 0) : value * (1 - fee) - i.cost,
+    netGain: netAt(px),
     tone: chg >= 0 ? 'up' : 'dn',
     gauge: chg >= 0
       ? { pos, entry: ent, fillLeft: ent, fillWidth: Math.max(0, pos - ent), positive: true }

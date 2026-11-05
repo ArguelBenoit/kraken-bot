@@ -49,6 +49,18 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
     <OpenTradeCard
       pair={short ? `${p.label} · SHORT ×${p.leverage}` : p.label}
       input={manualTradeInput(p, feePct)}
+      details={[
+        ['Ouvert le', p.opened],
+        short ? ['Levier', `×${p.leverage}`] : null,
+        short ? ['Garantie immobilisée', fm(p.collateral ?? 0)] : null,
+        short ? ["Frais d'ouverture", fm(p.open_fees ?? 0)] : null,
+        short ? ['Frais de report cumulés', fm(p.rollover)] : null,
+        short && p.liq_price != null ? ['Liquidation estimée', fmPrice(p.liq_price, p.entry)] : null,
+        ['Stop loss', p.sl > 0 ? `${p.sl} %` : 'aucun'],
+        ['Stop suiveur', p.trail > 0 ? `${p.trail} % depuis le ${short ? 'creux' : 'pic'}` : 'aucun'],
+        ['Objectif', p.tp > 0 ? `${p.tp} %` : 'aucun'],
+        p.exchange_stop != null ? ['Stop chez Kraken', p.exchange_stop ? 'posé ✓' : 'NON POSÉ'] : null,
+      ]}
       info={
         <>
           ouvert le {p.opened}{p.trail > 0 && <> · suiveur {p.trail}% depuis le {short ? 'creux' : 'pic'}</>}
@@ -59,9 +71,9 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
       }
       actions={
         <>
+          <Button size="title" variant="sec" onClick={() => setEditing((e) => !e)}>Stops</Button>
           <Button size="title" variant="sec" onClick={() => void sell(0.25)}>25%</Button>
           <Button size="title" variant="sec" onClick={() => void sell(0.5)}>50%</Button>
-          <Button size="title" variant="sec" onClick={() => setEditing((e) => !e)}>Stops</Button>
           <Button size="title" variant="ko" onClick={() => void sell(1)}>
             <LogOut className="ic mr" />
             {short ? 'Tout racheter' : 'Tout vendre'}

@@ -1,0 +1,13 @@
+.wrap { position: relative; display: inline-flex; align-items: center; margin-left: 6px; }
+.btn { display: inline-flex; padding: 0; background: none; border: 0; color: var(--mu); cursor: help; }
+.wrap:hover .btn, .btn:focus-visible { color: var(--ac); }
+.pop {
+  display: none; position: absolute; right: 0; top: 28px; z-index: 80; width: 360px; padding: 10px 12px;
+  background: #000; border: 1px solid var(--ac); box-shadow: 0 8px 24px #000c;
+  font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--tx); text-align: left;
+}
+.wrap:hover .pop, .wrap:focus-within .pop { display: block; }
+.row { display: flex; justify-content: space-between; gap: 14px; padding: 2px 0; }
+.row span { color: var(--mu); }
+.row b { text-align: right; }
+.sep { margin: 6px 0; border-top: 1px solid var(--bd); }

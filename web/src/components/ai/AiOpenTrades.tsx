@@ -24,6 +24,11 @@ export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; f
           key={p.id}
           pair={p.label}
           input={aiTradeInput(p, feePct)}
+          details={[
+            ['Stratégie', p.strategy], ['Confiance', fm(p.conf)], ['Ouvert le', p.opened],
+            ['Stop loss', p.sl > 0 ? `${p.sl} %` : 'aucun'], ['Stop suiveur', p.trail > 0 ? `${p.trail} %` : 'aucun'],
+            ['Objectif', p.tp > 0 ? `${p.tp} %` : 'aucun'],
+          ]}
           info={
             <>
               <b>{p.strategy}</b> · confiance {fm(p.conf)} · ouvert le {p.opened}
