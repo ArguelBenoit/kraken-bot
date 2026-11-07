@@ -12,4 +12,6 @@ interface EnvVar {
 export interface Connections {
   models: EnvVar[]
   kraken: EnvVar[]
+  /** Ollama local : serveur actif et modèles installés. */
+  ollama: { up: boolean; models: string[] }
 }

@@ -43,6 +43,7 @@ class AIBot:
             saved["max_calls_per_day"] = None
         self.config = {**cfgmod.DEFAULT_CONFIG, **{k: v for k, v in saved.items() if k in cfgmod.DEFAULT_CONFIG}}
         self.state = load_json(STATE_FILE) or self._fresh_state()
+        self._follow_budget(self.config["budget"], self.config["budget"])      # recale un cash resté sur un ancien budget
 
     # ---------- persistance et réglages ----------
     def _fresh_state(self):
@@ -58,9 +59,18 @@ class AIBot:
             cfg = cfgmod.validate(self.config, new, busy=self.running or bool(self.state["positions"]))
             if (cfg["provider"], cfg["model"]) != (self.config["provider"], self.config["model"]):
                 self.state["credit_low"] = False         # autre modèle ou autre compte : on réessaie
+            self._follow_budget(self.config["budget"], cfg["budget"])
             self.config = cfg
             save_json(CONFIG_FILE, cfg)
+            self._save()
         self.log("Réglages IA enregistrés")
+
+    def _follow_budget(self, old, new):
+        """Le cash suit le budget : sans position il vaut budget + PnL réalisé (cela corrige aussi un ancien écart) ; avec des positions, on ajoute la différence."""
+        if not self.state["positions"]:
+            self.state["cash"] = new + self.state["pnl"]
+        elif new != old:
+            self.state["cash"] += new - old
 
     def reset_paper(self):
         with self.tlock, self.lock:

@@ -13,3 +13,4 @@
   background: #000; border: 1px solid var(--ac); color: var(--tx); font: 400 13px/1.5 var(--mono); text-transform: none;
   letter-spacing: 0; white-space: normal; box-shadow: 0 8px 24px #000c;
 }
+.model { min-width: 0; font-size: 12px; color: var(--mu); padding-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

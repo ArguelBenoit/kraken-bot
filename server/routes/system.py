@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify
 from server import settings
 from server.core.llm import LlmError
 from server.core.models import list_models
-from server.core.providers import PROVIDERS
+from server.core.providers import PROVIDERS, connected
 from server.market.prices import try_last_price
 from server.services import ai, manual
 
@@ -37,9 +37,14 @@ def activity():
 
 @bp.get("/connections")
 def connections():
-    """Variables d'environnement définies ou non : seulement un booléen par variable, jamais sa valeur."""
+    """Variables d'environnement définies ou non (jamais leur valeur) et état d'Ollama (serveur actif ? modèles installés)."""
     var = lambda name: {"name": name, "set": settings.is_set(name)}
-    return jsonify(models=[var(p["env"]) for p in PROVIDERS.values() if not p.get("keyless")], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")])
+    try:
+        ollama = {"up": True, "models": list_models("ollama")}
+    except LlmError:      # serveur éteint, ou aucun modèle installé
+        ollama = {"up": connected("ollama"), "models": []}
+    return jsonify(models=[var(p["env"]) for p in PROVIDERS.values() if not p.get("keyless")], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")],
+                   ollama=ollama)
 
 
 @bp.get("/models/<provider>")
