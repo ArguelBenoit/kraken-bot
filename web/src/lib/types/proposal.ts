@@ -1,4 +1,4 @@
-/** Propositions de trade de Claude pour la page Trading. */
+/** Propositions de trade du modèle pour la page Trading. */
 import type { Side } from './manual'
 
 /** Un preset : un trade à pré-remplir dans le ticket (le montant n'est jamais proposé). */
@@ -31,9 +31,10 @@ export interface TradeProposal {
 
 export interface ProposalSet {
   trades: TradeProposal[]
+  provider: string
   model: string
   market_view: string
-  /** Claude ne voit aucun avantage net maintenant. */
+  /** Le modèle ne voit aucun avantage net maintenant. */
   no_edge: boolean
   /** Horodatage (s) de la réponse. */
   at: number

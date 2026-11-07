@@ -56,6 +56,7 @@ input, select, textarea {
   border: 1px solid var(--bd); border-radius: 2px; padding: 6px;
 }
 textarea { width: 100%; resize: vertical; }
+.wide { width: 250px; }
 input[type='checkbox'], input[type='radio'] { width: auto; }
 .check { display: flex; justify-content: flex-start; align-items: flex-start; gap: 8px; color: var(--tx); margin: 4px 0; }
 .check small { color: var(--mu); }

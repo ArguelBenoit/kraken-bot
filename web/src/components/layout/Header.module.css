@@ -1,11 +1,13 @@
-/* Bandeau de page : collant en haut, pleine largeur, sans trait de séparation. */
+/* Bandeau de page : collant en haut, pleine largeur, trait du bas transparent (réserve la place, pas de décalage) qui apparaît au défilement. */
 .header {
   position: sticky; top: 0; z-index: 50; margin: -16px -16px 0; padding: 18px 16px;
   /* noir translucide + flou : le contenu qui défile dessous reste devinable sans gêner la lecture */
   background: rgba(5, 5, 5, 0.4);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent; transition: border-color 150ms ease;
 }
+.scrolled { border-bottom-color: var(--bd); }
 .inner { max-width: 1600px; margin: 0 auto; display: flex; align-items: center; gap: 10px 32px; padding: 0 2px; }
 .title { flex: none; font-size: 22px; margin: 0; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ac); white-space: nowrap; }
 .title :global(.ic) { margin-right: 12px; }

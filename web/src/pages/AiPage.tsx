@@ -15,7 +15,7 @@ import { useAiStore } from '@/stores/aiStore'
 
 const Pnl = ({ v }: { v: number | undefined }) => <b className={gainClass(v ?? 0)}>{fm(v)}</b>
 
-/** Page du Bot IA : Claude analyse le marché et gère jusqu'à 5 positions en parallèle. */
+/** Page du Bot IA : Le modèle analyse le marché et gère jusqu'à 5 positions en parallèle. */
 export function AiPage() {
   const refresh = useAiStore((s) => s.refresh)
   const status = useAiStore((s) => s.status)
@@ -29,8 +29,8 @@ export function AiPage() {
         <Kpi label="PnL réalisé" tip={AI_KPI_TIPS['PnL réalisé']}><Pnl v={status?.pnl} /></Kpi>
         <Kpi label="PnL du jour" tip={AI_KPI_TIPS['PnL du jour']}><Pnl v={status?.day_pnl} /></Kpi>
         <Kpi label="Équité" tip={AI_KPI_TIPS['Équité']}><b>{fm(status?.equity)}</b></Kpi>
-        <Kpi label="Appels Claude" tip={AI_KPI_TIPS['Appels Claude']}>
-          <b>{status ? `${status.usage.calls} / ${c?.max_calls_per_day}` : '–'}</b>
+        <Kpi label="Appels IA" tip={AI_KPI_TIPS['Appels IA']}>
+          <b>{status ? `${status.usage.calls} / ${c?.limit_calls ? c.max_calls_per_day : '∞'}` : '–'}</b>
         </Kpi>
       </>}>
         <Kpi bare label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>

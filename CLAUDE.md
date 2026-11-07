@@ -15,14 +15,15 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 
 ## Structure (résumé — voir docs/ARCHITECTURE.md)
 
-- `server/` : `settings`, `app`, `services` (singletons Bot IA + trader manuel), `core/` (storage, journal, cache, claude, limits), `market/` (kraken, indicators, strategies [backtest], pairs, prices, scan, chart, snapshot),
-  `bots/ai/` (config, prompt, guards, cost, bot), `bots/manual.py` (+ `manual_config.py`), `bots/positions.py` (calculs long/short), `bots/live.py` (ordres et stops Kraken), `features/` (proposals, learn), `routes/` (un blueprint par domaine), `backtest.py`.
+- `server/` : `settings`, `app`, `services` (singletons Bot IA + trader manuel), `core/` (storage, journal, cache, llm, providers, limits), `market/` (kraken, indicators, strategies [backtest], pairs, prices, scan, chart, snapshot),
+  `bots/ai/` (config, prompt, guards, bot), `bots/manual.py` (+ `manual_config.py`), `bots/positions.py` (calculs long/short), `bots/live.py` (ordres et stops Kraken), `features/` (proposals, learn), `routes/` (un blueprint par domaine), `backtest.py`.
 - `web/src/` : `lib/` (logique pure, `types/`, `learn/`), `stores/` (zustand), `hooks/`, `components/` (ui, layout, chart, trade, bot, ai, trading, learn), `pages/`, `styles/theme.css`.
 - Données à la racine, ignorées par git : `ai_*.json`, `manual_*.json`, `learn_state.json`.
 
 ## Règles de conception
 
-- **Claude propose, le code dispose** : Bot IA et propositions de trade (`features/proposals.py`, qui ne font que pré-remplir le ticket) passent par des garde-fous codés ; Claude ne règle jamais montant, frais, mode.
+- **Modèles** : `core/llm.py` (`call_tool(provider, model, …)`) gère deux formats, Anthropic et compatible OpenAI (OpenAI, Gemini, Mistral, Groq, DeepSeek, xAI, OpenRouter) ; `core/providers.py` liste les fournisseurs (clé `.env`, URL, modèles d'exemple). Le Bot IA (`ai_config.json`) et les propositions du Trading (`manual_config.json`) ont chacun `provider` + `model`, mémorisés côté serveur. Liste des modèles demandée à l'API du fournisseur (`GET /api/models/<fournisseur>`, select dans `ModelPicker`). Pas de suivi de prix : compteur d'appels/tokens seulement, plafond journalier désactivable (`limit_calls`). Ollama / modèles locaux : pas encore (prévu : URL de base libre + repli JSON si l'outil n'est pas appelé).
+- **Le modèle propose, le code dispose** : Bot IA et propositions de trade (`features/proposals.py`, qui ne font que pré-remplir le ticket) passent par des garde-fous codés ; Le modèle ne règle jamais montant, frais, mode.
 - Les six méthodes ne sont plus exécutées par un bot : tutoriel (`lib/learn/methods.ts`) et backtest (`market/strategies.py`) en ont chacun une copie, à modifier ensemble.
 - **Short** (Trading manuel seulement) : paper simulé, live désactivé par défaut (`allow_live_short`), marge Kraken jamais validée ; stop loss obligatoire. Détails : `docs/SHORT.md`. Le Bot IA reste long uniquement.
 - **Stops** : en paper tout est simulé localement. En live (Trading manuel et Bot IA), `bots/live.py` pose le stop loss (sinon le stop suiveur) chez Kraken (`stop-loss` / `trailing-stop`, `reduce_only` en marge), le suit et le repose s'il disparaît ; objectif et ordres limites restent locaux. **Jamais exécuté sur un compte réel** : vérifier avec `python -m server.check_kraken` (`validate=true`). Live : `confirm:true` exigé côté serveur pour les ordres manuels.

@@ -1,16 +1,17 @@
 import { Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { ModelPicker } from '@/components/ui/ModelPicker'
 import { Tip } from '@/components/ui/Tip'
 import { fmPrice } from '@/lib/format'
 import type { TradeProposal } from '@/lib/types'
 import { useManualStore } from '@/stores/manualStore'
 import { useProposalStore } from '@/stores/proposalStore'
-import css from './ClaudeProposals.module.css'
+import css from './Proposals.module.css'
 
 const text = (n: number) => String(Number(n.toPrecision(6)))
 const minutesAgo = (at: number) => Math.max(0, Math.round((Date.now() / 1000 - at) / 60))
 
-/** Un preset de Claude : ses niveaux, sa justification et le bouton qui pré-remplit le ticket (rien n'est envoyé). */
+/** Un preset du modèle : ses niveaux, sa justification et le bouton qui pré-remplit le ticket (rien n'est envoyé). */
 function Preset({ p, onUse }: { p: TradeProposal; onUse: (p: TradeProposal) => void }) {
   return (
     <div className={css.item}>
@@ -36,12 +37,14 @@ function Preset({ p, onUse }: { p: TradeProposal; onUse: (p: TradeProposal) => v
   )
 }
 
-/** Bloc Claude du ticket d'ordre : quelques trades à prendre maintenant. « Pré-remplir » copie le preset dans le ticket ; le montant reste à ton choix. */
-export function ClaudeProposals() {
-  const claudeOk = useManualStore((s) => s.status?.claude_ok)
+/** Bloc de propositions du ticket d'ordre : quelques trades à prendre maintenant. « Pré-remplir » copie le preset dans le ticket ; le montant reste à ton choix. */
+export function Proposals() {
+  const status = useManualStore((s) => s.status)
   const { result, loading } = useProposalStore()
   const { ask, dismiss } = useProposalStore.getState()
-  const { setTicket } = useManualStore.getState()
+  const { setTicket, saveConfig } = useManualStore.getState()
+  const config = status?.config
+  const provider = status?.providers[config?.provider ?? '']
 
   const use = (p: TradeProposal) => {
     setTicket({
@@ -54,28 +57,34 @@ export function ClaudeProposals() {
   return (
     <div className={css.box}>
       <div className={css.head}>
-        <span className={css.name}><Sparkles className="ic" />Claude<Tip text="Claude regarde le marché en bougies de 4 h et propose des trades à prendre maintenant. Il ne passe aucun ordre et ne choisit pas le montant : « Pré-remplir » remplit seulement le ticket. Chaque demande est un appel payant." /></span>
+        <span className={css.name}><Sparkles className="ic" />Propositions<Tip text="Le modèle choisi regarde le marché en bougies de 4 h et propose des trades à prendre maintenant. Il ne passe aucun ordre et ne choisit pas le montant : « Pré-remplir » remplit seulement le ticket. Chaque demande est un appel au fournisseur (payant sauf modèle local). Le choix du modèle est mémorisé ; celui du Bot IA est indépendant." /></span>
         <span className={css.actions}>
           {result && <Button variant="sec" size="xs" title="Fermer les propositions" onClick={dismiss}><X className="ic m0" /></Button>}
-          <Button size="title" disabled={loading || claudeOk === false} onClick={() => void ask()}>
-            {loading ? 'Claude analyse…' : result ? 'Redemander' : 'Demander à Claude'}
+          <Button size="title" disabled={loading || status?.llm_ok === false} onClick={() => void ask()}>
+            {loading ? 'Analyse…' : result ? 'Redemander' : 'Demander'}
           </Button>
         </span>
       </div>
+      {status && config && (
+        <div className={css.model}>
+          <ModelPicker compact providers={status.providers} provider={config.provider} model={config.model}
+            onChange={(p, m) => void saveConfig({ provider: p, model: m })} />
+        </div>
+      )}
       {!result && !loading && (
         <div className="hint">
-          Claude regarde le marché (bougies de 4 h) et propose quelques trades à prendre maintenant, avec leurs stops. Il ne passe aucun ordre
+          Le modèle regarde le marché (bougies de 4 h) et propose quelques trades à prendre maintenant, avec leurs stops. Il ne passe aucun ordre
           et ne choisit pas le montant : tu pré-remplis le ticket, tu vérifies, tu valides.
-          {claudeOk === false && ' Clé ANTHROPIC_API_KEY absente (.env) : ajoute-la puis relance le serveur.'}
+          {status?.llm_ok === false && ` Clé ${provider?.env ?? ''} absente (.env) : ajoute-la puis relance le serveur.`}
         </div>
       )}
       {result && (
         <>
           <div className={css.view}>{result.market_view}</div>
-          {result.no_edge && <div className="warn">Claude ne voit pas d&apos;avantage net maintenant : attendre est une option valable.</div>}
+          {result.no_edge && <div className="warn">Le modèle ne voit pas d&apos;avantage net maintenant : attendre est une option valable.</div>}
           {result.trades.map((p) => <Preset key={p.pair} p={p} onUse={use} />)}
           <div className={css.stale}>
-            Proposé il y a {minutesAgo(result.at)} min ({result.model}) — les prix bougent, vérifie le prix actuel avant d&apos;envoyer.
+            Proposé il y a {minutesAgo(result.at)} min ({result.provider} · {result.model}) — les prix bougent, vérifie le prix actuel avant d&apos;envoyer.
           </div>
         </>
       )}

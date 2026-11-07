@@ -2,14 +2,14 @@ import { useActivityStore } from '@/stores/activityStore'
 import css from './Connections.module.css'
 
 const TIPS = {
-  Claude: "Clé de l'API Anthropic. Nécessaire pour le Bot IA et pour les propositions de trade de la page Trading (bouton « Demander à Claude »). À mettre dans .env, puis relancer le serveur.",
+  Modèles: "Clés des fournisseurs de modèles (Claude, OpenAI, Gemini…). Une seule suffit : celle du fournisseur choisi pour le Bot IA et pour les propositions de la page Trading. À mettre dans .env, puis relancer le serveur.",
   Kraken: "Clés de l'API Kraken : nécessaires seulement pour le mode LIVE (droits Query Funds + Create Orders, jamais de retrait). Le paper trading n'en a pas besoin.",
 } as const
 
 /** Bas du menu : quelles variables d'environnement sont définies (« set ») ou non. Le serveur n'envoie jamais leurs valeurs. */
 export function Connections() {
   const c = useActivityStore((s) => s.connections)
-  const groups = c && c !== 'unavailable' ? ([['Claude', c.claude], ['Kraken', c.kraken]] as const) : []
+  const groups = c && c !== 'unavailable' ? ([['Modèles', c.models], ['Kraken', c.kraken]] as const) : []
   return (
     <div className={css.conn}>
       <div className={css.title}>Connexions</div>

@@ -1,7 +1,7 @@
 # Kraken Bot
 
 Plateforme locale de trading crypto sur **Kraken** (spot, paire contre stablecoin USDC/USDT ; long, et short en marge) : du **trading manuel
-assisté par Claude**, un bot piloté par **Claude**, et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
+assisté par un modèle d'IA**, un bot piloté par un modèle d'IA (Claude, GPT, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter…), et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
 en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 > ⚠ Trader est risqué. Ce projet est une expérimentation personnelle : aucune rentabilité n'est garantie, ce n'est pas un conseil financier.
@@ -12,7 +12,7 @@ en **paper trading** (vrais prix, ordres simulés) par défaut.
 | Page | Rôle |
 |---|---|
 | **Trading** (accueil) | Tu passes tes ordres à la main, **long** (achat) ou **short** (vente à découvert en marge, levier ×2 à ×5), au marché ou en limite, avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
-| **Bot IA** | Claude analyse le marché à intervalle régulier et gère jusqu'à 5 positions en parallèle. Claude ne fait que *proposer* : stops, tailles, exposition et perte journalière sont imposés par le code. |
+| **Bot IA** | Le modèle analyse le marché à intervalle régulier et gère jusqu'à 5 positions en parallèle. Il ne fait que *proposer* : stops, tailles, exposition et perte journalière sont imposés par le code. |
 | **Tutoriel** | 100 % simulation, pour débutant complet : leçons en « tunnel », glossaire cliquable, quiz, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves (une par méthode) à valider. |
 
 Le menu latéral montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
@@ -36,7 +36,7 @@ Copie `.env.example` en `.env`. Toutes les variables sont facultatives : sans cl
 
 | Variable | Pour quoi faire |
 |---|---|
-| `ANTHROPIC_API_KEY` | Bot IA et propositions de trade de la page Trading (appels payants à l'API Anthropic). |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY` | Clé du fournisseur de modèle choisi (une seule suffit). Le Bot IA et les propositions de la page Trading ont chacun leur choix de fournisseur et de modèle, mémorisé. Appels payants chez le fournisseur ; plafond d'appels par jour désactivable. |
 | `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` | Mode **live** uniquement. Droits *Query Funds* + *Create Orders*, **jamais de retrait**. |
 | `HOST`, `PORT` | Adresse d'écoute (défaut `127.0.0.1:5000`). |
 | `APP_PASSWORD` | Mot de passe (HTTP Basic) exigé hors localhost. À définir dès que `HOST=0.0.0.0`. |

@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 
 from server import settings
+from server.core.providers import PROVIDERS, key_set
 from server.services import ai
 from .helpers import run
 
@@ -18,20 +19,21 @@ def config():
     return run(lambda: ai.update_config(request.get_json()))
 
 
-def _require_claude():
-    if not settings.claude_configured():
-        raise ValueError("ANTHROPIC_API_KEY absente (.env)")
+def _require_key():
+    provider = ai.config["provider"]
+    if not key_set(provider):
+        raise ValueError(f"{PROVIDERS[provider]['env']} absente (.env)")
 
 
 def _start():
-    _require_claude()
+    _require_key()
     if ai.config["mode"] == "live" and not settings.kraken_configured():
         raise ValueError("Clés Kraken absentes (.env)")
     ai.start()
 
 
 def _analyze():
-    _require_claude()
+    _require_key()
     ai.analyze_now()
 
 

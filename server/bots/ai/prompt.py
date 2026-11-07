@@ -1,4 +1,4 @@
-"""Prompt du Bot IA et schéma de l'outil `decide` : Claude ne fait que PROPOSER, le code applique les garde-fous."""
+"""Prompt du Bot IA et schéma de l'outil `decide` : Le modèle ne fait que PROPOSER, le code applique les garde-fous."""
 import json
 import time
 from datetime import datetime

@@ -1,10 +1,14 @@
-/** Types du Bot IA (Claude). */
+/** Types du Bot IA. */
 import type { Mode } from './market'
+
+/** Fournisseurs de modèles proposés par le serveur : libellé, modèles d'exemple, variable de la clé et clé définie ou non. */
+export type Providers = Record<string, { label: string; models: string[]; env: string; key_ok: boolean }>
 
 export type Aggressiveness = 'prudent' | 'equilibre' | 'agressif'
 
 export interface AiConfig {
   mode: Mode
+  provider: string
   model: string
   timeframe: number
   interval_min: number
@@ -17,11 +21,9 @@ export interface AiConfig {
   budget: number
   max_exposure_pct: number
   max_daily_loss_pct: number
+  limit_calls: boolean
   max_calls_per_day: number
   fee_pct: number
-  price_in: number
-  price_out: number
-  credit_base: number
   notes: string
 }
 
@@ -79,12 +81,13 @@ export interface AiStatus {
   day_pnl: number
   positions: AiPosition[]
   usage: { day: string; calls: number; in: number; out: number }
-  cost: { total: number; today: number; left: number | null; low: boolean }
+  /** Crédit ou quota du fournisseur épuisé : le bot a été arrêté. */
+  credit_low: boolean
   trades: AiTrade[]
   decisions: AiDecision[]
   logs: string[]
   options: {
-    models: Record<string, string>
+    providers: Providers
     strategies: Record<string, string>
     pairs: { pair: string; label: string }[]
     profiles: Record<Aggressiveness, string>

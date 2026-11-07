@@ -1,4 +1,4 @@
-"""Résumé chiffré du marché envoyé à Claude (Bot IA et propositions de trade) : uniquement des nombres, jamais de texte libre."""
+"""Résumé chiffré du marché envoyé au modèle (Bot IA et propositions de trade) : uniquement des nombres, jamais de texte libre."""
 import time
 
 from . import kraken

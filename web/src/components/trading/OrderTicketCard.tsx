@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { Tip } from '@/components/ui/Tip'
-import { ClaudeProposals } from './ClaudeProposals'
+import { Proposals } from './Proposals'
 import { PAIRS, pairLabel } from '@/lib/constants'
 import { fm, fmPrice, gainClass, signed } from '@/lib/format'
 import { liqDistance, previewFromTicket, quickSizes } from '@/lib/ticket'
@@ -13,7 +13,7 @@ import { confirmAction, toast } from '@/stores/uiStore'
 
 const clean = (n: number) => String(Number(n.toPrecision(6)))
 
-/** Ticket d'ordre : propositions de Claude en tête, puis long (achat) ou short (vente à découvert), au marché ou limite, avec stop loss / take profit / stop suiveur et aperçu du risque. */
+/** Ticket d'ordre : propositions du modèle en tête, puis long (achat) ou short (vente à découvert), au marché ou limite, avec stop loss / take profit / stop suiveur et aperçu du risque. */
 export function OrderTicketCard() {
   const status = useManualStore((s) => s.status)
   const t = useManualStore((s) => s.ticket)
@@ -83,7 +83,7 @@ export function OrderTicketCard() {
           (s&apos;il s&apos;arrête, ils ne se déclenchent pas).{status && !status.live_ok && ' Clés Kraken absentes.'}
         </div>
       )}
-      <ClaudeProposals />
+      <Proposals />
       <form onSubmit={onSubmit}>
         <Field label="Paire" tip="La crypto à acheter, cotée contre un stablecoin (≈ 1 $). Le graphique et le prix actuel suivent ton choix.">
           <select value={t.pair} onChange={(e) => setTicket({ pair: e.target.value })}>

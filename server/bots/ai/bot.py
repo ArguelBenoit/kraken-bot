@@ -1,6 +1,6 @@
-"""Bot IA : Claude analyse régulièrement le marché et ouvre / ferme jusqu'à 5 positions en parallèle.
+"""Bot IA : Le modèle analyse régulièrement le marché et ouvre / ferme jusqu'à 5 positions en parallèle.
 
-Claude ne fait que PROPOSER (outil `decide`). Les garde-fous (guards.py) sont appliqués par le code ; les stops et objectifs sont
+Le modèle ne fait que PROPOSER (outil `decide`). Les garde-fous (guards.py) sont appliqués par le code ; les stops et objectifs sont
 surveillés localement toutes les `check_every` secondes en paper. En **live**, comme pour le trading manuel, le stop loss (ou à défaut
 le stop suiveur) est posé CHEZ KRAKEN (`bots/live.py`) : il protège la position même si ce programme s'arrête ; l'objectif et, quand il y a
 un stop loss, le stop suiveur restent surveillés ici. Jamais exécuté sur un compte réel. Le Bot IA est long uniquement.
@@ -11,7 +11,8 @@ import uuid
 from datetime import datetime
 
 from server import settings
-from server.core.claude import ClaudeError, CreditError, call_tool
+from server.core.llm import CreditError, LlmError, call_tool
+from server.core.providers import key_set, public
 from server.core.journal import Journal
 from server.core.storage import load_json, save_json
 from server.market import kraken
@@ -20,7 +21,7 @@ from server.market.prices import last_price, try_last_price
 from server.market.snapshot import market_snapshot
 from server.bots import live, positions as pos
 from . import config as cfgmod
-from . import cost, guards, prompt
+from . import guards, prompt
 
 CONFIG_FILE, STATE_FILE = settings.data_file("ai_config.json"), settings.data_file("ai_state.json")
 MAX_ACTIONS = 10             # actions traitées par analyse
@@ -37,13 +38,13 @@ class AIBot:
         self.log = self.journal.add
         self.last_review = 0.0
         self.reviewing = False
-        self.config = {**cfgmod.DEFAULT_CONFIG, **load_json(CONFIG_FILE, {})}
+        self.config = {**cfgmod.DEFAULT_CONFIG, **{k: v for k, v in load_json(CONFIG_FILE, {}).items() if k in cfgmod.DEFAULT_CONFIG}}
         self.state = load_json(STATE_FILE) or self._fresh_state()
 
     # ---------- persistance et réglages ----------
     def _fresh_state(self):
         return {"cash": self.config["budget"], "positions": [], "trades": [], "pnl": 0.0, "decisions": [],
-                "usage": {"day": "", "calls": 0, "in": 0, "out": 0, "tin": 0, "tout": 0}, "credit_ref": 0.0, "credit_low": False,
+                "usage": {"day": "", "calls": 0, "in": 0, "out": 0}, "credit_low": False,
                 "day": "", "day_pnl": 0.0}
 
     def _save(self):
@@ -52,9 +53,8 @@ class AIBot:
     def update_config(self, new):
         with self.tlock, self.lock:
             cfg = cfgmod.validate(self.config, new, busy=self.running or bool(self.state["positions"]))
-            if cfg["credit_base"] != self.config["credit_base"]:       # recalage : on repart du solde lu dans la console
-                self.state["credit_ref"] = cost.spent_total(self.state["usage"], cfg)
-                self.state["credit_low"] = False
+            if (cfg["provider"], cfg["model"]) != (self.config["provider"], self.config["model"]):
+                self.state["credit_low"] = False         # autre modèle ou autre compte : on réessaie
             self.config = cfg
             save_json(CONFIG_FILE, cfg)
         self.log("Réglages IA enregistrés")
@@ -114,7 +114,7 @@ class AIBot:
 
     # ---------- suivi local des positions ----------
     def _day_rollover(self):
-        """Remet à zéro le PnL et le compteur d'appels Claude du jour quand la date change."""
+        """Remet à zéro le PnL et le compteur d'appels du jour quand la date change."""
         today = datetime.now().strftime("%Y-%m-%d")
         if self.state["day"] != today:
             self.state["day"], self.state["day_pnl"] = today, 0.0
@@ -146,13 +146,12 @@ class AIBot:
         """Prix actuel d'une position (dernière valeur connue, sinon son prix d'entrée)."""
         return try_last_price(position["pair"]) or position["entry"]
 
-    # ---------- analyse par Claude ----------
+    # ---------- analyse par le modèle ----------
     def _count_usage(self, tokens):
         usage = self.state["usage"]
         usage["calls"] += 1
-        for key, total in (("in", "tin"), ("out", "tout")):
+        for key in ("in", "out"):
             usage[key] += tokens[key]
-            usage[total] = usage.get(total, 0) + tokens[key]
 
     def _record_decision(self, view, actions):
         entry = {"time": datetime.now().strftime("%d/%m %H:%M"), "view": view[:600], "actions": actions, "mode": self.config["mode"]}
@@ -161,19 +160,19 @@ class AIBot:
     def _review(self):
         c, s = self.config, self.state
         self._day_rollover()
-        if s["usage"]["calls"] >= c["max_calls_per_day"]:
-            return self.log("Plafond d'appels Claude du jour atteint : analyse sautée")
+        if c["limit_calls"] and s["usage"]["calls"] >= c["max_calls_per_day"]:
+            return self.log("Plafond d'appels du jour atteint : analyse sautée")
         self.reviewing = True
         try:
             pairs = list(dict.fromkeys(c["pairs"] + [p["pair"] for p in s["positions"]]))
             market = [r for r in market_snapshot(c["timeframe"], pairs) if "error" not in r]
             system, user = prompt.build(c, s, self._price, market)
-            decision, tokens = call_tool(c["model"], system, user, prompt.DECIDE_TOOL)
+            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL)
             self._count_usage(tokens)
             results = [self._apply(a) for a in decision.get("actions", [])[:MAX_ACTIONS]]
             self._record_decision(str(decision.get("market_view", "")), results)
-            self.log(f"Analyse Claude : {len(results)} action(s) proposée(s)")
-        except ClaudeError as e:
+            self.log(f"Analyse du modèle : {len(results)} action(s) proposée(s)")
+        except LlmError as e:
             if e.usage["in"] or e.usage["out"]:
                 self._count_usage(e.usage)
             self._record_decision("", [{"text": "Erreur : " + str(e)[:300], "ok": False}])
@@ -190,7 +189,7 @@ class AIBot:
 
     # ---------- exécution des actions proposées ----------
     def _apply(self, action):
-        """Exécute une action de Claude après contrôle ; renvoie {ok, text, reason} pour l'historique des décisions."""
+        """Exécute une action du modèle après contrôle ; renvoie {ok, text, reason} pour l'historique des décisions."""
         kind, pair = action.get("type"), action.get("pair")
         position = next((p for p in self.state["positions"] if p["pair"] == pair), None)
 
@@ -291,11 +290,11 @@ class AIBot:
                                   "exchange_stop": bool(p.get("stop_id")) if c["mode"] == "live" else None})
             next_review = max(0, int(c["interval_min"] * 60 - (time.time() - self.last_review))) if self.running else None
             return {"config": c, "running": self.running, "reviewing": self.reviewing, "next_review_s": next_review,
-                    "key_ok": settings.claude_configured(), "live_ok": settings.kraken_configured(),
+                    "key_ok": key_set(c["provider"]), "live_ok": settings.kraken_configured(),
                     "cash": s["cash"], "equity": s["cash"] + sum(p["qty"] * p["price"] for p in positions),
                     "pnl": s["pnl"], "day_pnl": s["day_pnl"], "positions": positions, "usage": s["usage"],
-                    "cost": cost.summary(s, c),
+                    "credit_low": bool(s.get("credit_low")),
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-40:][::-1],
                     "decisions": s["decisions"][-15:][::-1], "logs": self.journal.recent(30),
-                    "options": {"models": cfgmod.MODELS, "strategies": cfgmod.STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
+                    "options": {"providers": public(), "strategies": cfgmod.STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
                                 "profiles": {k: v["desc"] for k, v in cfgmod.PROFILES.items()}}}

@@ -1,4 +1,4 @@
-"""Garde-fous du Bot IA, appliqués par le code : Claude ne peut pas les contourner (fonctions pures)."""
+"""Garde-fous du Bot IA, appliqués par le code : Le modèle ne peut pas les contourner (fonctions pures)."""
 from .config import PROFILES
 
 MIN_STOP_PCT = 0.5

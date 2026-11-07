@@ -5,7 +5,7 @@ export const AI_KPI_TIPS: Record<string, string> = {
   "PnL du jour": "Gains/pertes réalisés aujourd'hui. Si la perte dépasse le plafond réglé, plus aucune ouverture jusqu'à demain.",
   "Équité": "Cash restant + valeur des positions ouvertes au prix actuel.",
   "Positions": "Positions ouvertes / nombre maximum de trades en parallèle réglé.",
-  "Appels Claude": "Analyses faites aujourd'hui / plafond journalier. Chaque appel consomme des tokens facturés."
+  "Appels IA": "Appels au modèle faits aujourd'hui / plafond journalier (∞ si le plafond est désactivé). Chaque appel consomme des tokens, facturés par le fournisseur sauf modèle local."
 }
 
 export const MARKET_TIPS: Record<string, string> = {

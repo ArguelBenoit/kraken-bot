@@ -1,7 +1,7 @@
 """Routes du trading manuel. Tout ordre ou vente LIVE exige `confirm: true` dans la requête (filet de sécurité côté serveur)."""
 from flask import Blueprint, jsonify, request
 
-from server.core.claude import ClaudeError
+from server.core.llm import LlmError
 from server.features import proposals
 from server.services import ai, manual
 from .helpers import run
@@ -55,8 +55,8 @@ def reset():
 
 @bp.post("/propose")
 def propose():
-    """Claude propose quelques trades à prendre maintenant. Ne passe aucun ordre : l'interface pré-remplit le ticket."""
+    """Le modèle propose quelques trades à prendre maintenant. Ne passe aucun ordre : l'interface pré-remplit le ticket."""
     try:
-        return jsonify(ok=True, **proposals.propose(manual, ai.config["model"]))
-    except ClaudeError as e:
+        return jsonify(ok=True, **proposals.propose(manual, manual.config["provider"], manual.config["model"]))
+    except LlmError as e:
         return jsonify(ok=False, error=str(e)), e.status

@@ -31,10 +31,6 @@ def is_set(name):
     return bool(os.getenv(name))
 
 
-def claude_configured():
-    return is_set("ANTHROPIC_API_KEY")
-
-
 def kraken_configured():
     """Clés Kraken complètes (nécessaires seulement pour le mode live)."""
     return is_set("KRAKEN_API_KEY") and is_set("KRAKEN_API_SECRET")

@@ -1,14 +1,14 @@
-"""Propositions de trade de Claude pour la page Trading : quelques « presets » à prendre MAINTENANT (paire, long ou short, entrée au marché ou limite, stops).
+"""Propositions de trade du modèle pour la page Trading : quelques « presets » à prendre MAINTENANT (paire, long ou short, entrée au marché ou limite, stops).
 
-Claude ne fait que proposer : chaque preset est nettoyé et borné par le code, puis renvoyé à l'interface qui se contente de pré-remplir le
-ticket d'ordre. Rien n'est envoyé sans clic de l'utilisateur, et Claude ne choisit jamais le montant engagé, les frais ni le mode.
+Le modèle ne fait que proposer : chaque preset est nettoyé et borné par le code, puis renvoyé à l'interface qui se contente de pré-remplir le
+ticket d'ordre. Rien n'est envoyé sans clic de l'utilisateur, et le modèle ne choisit jamais le montant engagé, les frais ni le mode.
 """
 import json
 import threading
 import time
 
 from server.bots import positions as pos
-from server.core.claude import ClaudeError, call_tool
+from server.core.llm import LlmError, call_tool
 from server.market.pairs import LABELS, WATCH
 from server.market.snapshot import market_snapshot
 
@@ -22,8 +22,8 @@ _lock = threading.Lock()
 _last = 0.0
 
 
-class ProposalError(ClaudeError):
-    """Demande refusée par le serveur (déjà en cours, trop rapprochée) — et non échec de l'API Claude."""
+class ProposalError(LlmError):
+    """Demande refusée par le serveur (déjà en cours, trop rapprochée) — et non échec de l'API du modèle."""
 
 
 TOOL = {
@@ -75,7 +75,7 @@ def _clamp(value, key):
 
 
 def sanitize(raw, prices, held, shorts_ok=False, max_leverage=3.0):
-    """Presets bruts de Claude -> presets valides : paires connues et libres, bornes respectées, prix limite et ratio calculés par le code.
+    """Presets bruts du modèle -> presets valides : paires connues et libres, bornes respectées, prix limite et ratio calculés par le code.
 
     Un short n'est gardé que si les shorts sont autorisés ; son levier est borné et son stop loss reste sous la distance de liquidation.
     """
@@ -116,8 +116,8 @@ def sanitize(raw, prices, held, shorts_ok=False, max_leverage=3.0):
     return out
 
 
-def propose(manual, model):
-    """Demande à Claude des trades pour maintenant. `manual` = le trader manuel (positions déjà ouvertes ou en attente à exclure)."""
+def propose(manual, provider, model):
+    """Demande au modèle des trades pour maintenant. `manual` = le trader manuel (positions déjà ouvertes ou en attente à exclure)."""
     global _last
     if not _lock.acquire(blocking=False):
         raise ProposalError("Une analyse est déjà en cours.", 429)
@@ -130,11 +130,11 @@ def propose(manual, model):
         max_lev = manual.config["max_leverage"]
         context = {"now": time.strftime("%Y-%m-%d %H:%M"), "bougies_min": TIMEFRAME, "paires_deja_detenues": held,
                    "shorts_autorises": shorts_ok, "levier_max": max_lev, "marche": market}
-        raw, _tokens = call_tool(model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500)
+        raw, _tokens = call_tool(provider, model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500)
         _last = time.time()
         prices = {r["pair"]: r["price"] for r in market}
         trades = sanitize(raw.get("trades"), prices, held, shorts_ok, max_lev)
-        return {"trades": trades, "model": model, "market_view": str(raw.get("market_view", ""))[:400],
+        return {"trades": trades, "provider": provider, "model": model, "market_view": str(raw.get("market_view", ""))[:400],
                 "no_edge": bool(raw.get("no_edge")) or not trades, "at": int(time.time())}
     finally:
         _lock.release()

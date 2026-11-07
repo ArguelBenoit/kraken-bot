@@ -14,6 +14,7 @@ from datetime import datetime
 
 from server import settings
 from server.core.journal import Journal
+from server.core.providers import key_set, public
 from server.core.storage import load_json, save_json
 from server.market.pairs import LABELS
 from server.market.prices import last_price
@@ -28,7 +29,7 @@ class ManualTrader:
         self.lock = threading.RLock()      # un seul ordre / cycle à la fois
         self.journal = Journal()
         self.log = self.journal.add
-        self.config = {**DEFAULT_CONFIG, **load_json(CONFIG_FILE, {})}
+        self.config = {**DEFAULT_CONFIG, **{k: v for k, v in load_json(CONFIG_FILE, {}).items() if k in DEFAULT_CONFIG}}
         self.state = load_json(STATE_FILE) or self._fresh_state()
         for o in self.state["pending"]:          # ordres limites créés avant l'arrivée du short
             o.setdefault("side", "long")
@@ -328,4 +329,4 @@ class ManualTrader:
                     "equity": s["cash"] + reserved + sum(v["equity_value"] for v in views), "shorts_allowed": self.shorts_allowed,
                     "positions": views, "pending": [{**o, "label": LABELS.get(o["pair"], o["pair"])} for o in s["pending"]],
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-60:][::-1], "logs": self.journal.recent(40),
-                    "live_ok": settings.kraken_configured(), "claude_ok": settings.claude_configured(), "quote": quote}
+                    "live_ok": settings.kraken_configured(), "llm_ok": key_set(c["provider"]), "providers": public(), "quote": quote}

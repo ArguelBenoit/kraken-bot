@@ -10,6 +10,6 @@ interface EnvVar {
   set: boolean
 }
 export interface Connections {
-  claude: EnvVar[]
+  models: EnvVar[]
   kraken: EnvVar[]
 }

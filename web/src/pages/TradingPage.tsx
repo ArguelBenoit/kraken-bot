@@ -41,7 +41,7 @@ function useChartLevels(): ChartLevel[] {
   }, [status, t, chartPair])
 }
 
-/** Page d'accueil — trading manuel : ticket d'ordre (avec les propositions de Claude), positions ouvertes, ordres en attente, marché et graphique. */
+/** Page d'accueil — trading manuel : ticket d'ordre (avec les propositions du modèle), positions ouvertes, ordres en attente, marché et graphique. */
 export function TradingPage() {
   useTradingSync()
   const status = useManualStore((s) => s.status)

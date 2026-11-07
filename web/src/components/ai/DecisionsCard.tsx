@@ -3,10 +3,10 @@ import { Card } from '@/components/ui/Card'
 import type { AiDecision } from '@/lib/types'
 import css from './DecisionsCard.module.css'
 
-/** Historique des analyses de Claude : sa lecture du marché et, pour chaque action proposée, si le code l'a acceptée ou refusée (et pourquoi). */
+/** Historique des analyses du modèle : sa lecture du marché et, pour chaque action proposée, si le code l'a acceptée ou refusée (et pourquoi). */
 export function DecisionsCard({ decisions }: { decisions: AiDecision[] }) {
   return (
-    <Card title="Décisions de Claude" icon={Bot}>
+    <Card title="Décisions du modèle" icon={Bot}>
       {decisions.length === 0 && <span className="t-mu">Aucune analyse pour l&apos;instant.</span>}
       {decisions.map((d, i) => (
         <div className={css.decision} key={`${d.time}-${i}`}>

@@ -6,12 +6,12 @@ import { toast } from './uiStore'
 interface ProposalStore {
   result: ProposalSet | null
   loading: boolean
-  /** Demande à Claude des trades pour maintenant (aucun ordre n'est passé). */
+  /** Demande au modèle des trades pour maintenant (aucun ordre n'est passé). */
   ask: () => Promise<void>
   dismiss: () => void
 }
 
-/** Propositions de trade de Claude : dernière réponse, chargement et erreur. Elles restent affichées tant qu'on ne les ferme pas. */
+/** Propositions de trade du modèle : dernière réponse, chargement et erreur. Elles restent affichées tant qu'on ne les ferme pas. */
 export const useProposalStore = create<ProposalStore>((set, get) => ({
   result: null,
   loading: false,

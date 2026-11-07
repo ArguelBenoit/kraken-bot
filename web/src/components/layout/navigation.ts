@@ -17,11 +17,11 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     items: [
       {
         to: '/', label: 'Trading', icon: Crosshair, activity: 'manual',
-        tip: "La page d'accueil : tu observes le marché et tu passes toi-même tes ordres (marché ou limite), avec stop loss, take profit et stop suiveur par position. Claude peut te proposer des trades à prendre maintenant ; rien n'est envoyé sans ton clic.",
+        tip: "La page d'accueil : tu observes le marché et tu passes toi-même tes ordres (marché ou limite), avec stop loss, take profit et stop suiveur par position. Le modèle (Claude, GPT, Gemini…) peut te proposer des trades à prendre maintenant ; rien n'est envoyé sans ton clic.",
       },
       {
         to: '/ai', label: 'Bot IA', icon: Bot, activity: 'ai',
-        tip: "Claude analyse régulièrement le marché et ouvre jusqu'à 5 trades en parallèle, avec les stratégies que tu autorises. Le code impose les garde-fous : stop loss, exposition max, perte journalière max.",
+        tip: "Le modèle de ton choix analyse régulièrement le marché et ouvre jusqu'à 5 trades en parallèle, avec les stratégies que tu autorises. Le code impose les garde-fous : stop loss, exposition max, perte journalière max.",
       },
     ],
   },

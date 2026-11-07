@@ -1,6 +1,8 @@
 """Réglages du trading manuel : valeurs par défaut, bornes, validation et lecture des nombres saisis."""
 import re
 
+from server.core.providers import DEFAULT_MODEL, DEFAULT_PROVIDER, check_choice
+
 DEFAULT_CONFIG = {
     "mode": "paper",          # paper | live
     "fee_pct": 0.26,          # frais taker Kraken (estimation)
@@ -10,6 +12,8 @@ DEFAULT_CONFIG = {
     "max_leverage": 3.0,      # levier maximum d'un short (2 à 5)
     "margin_fee_pct": 0.02,   # frais d'ouverture d'une position en marge (estimation)
     "rollover_pct": 0.02,     # frais de report d'une position en marge, par période de 4 h (estimation)
+    "provider": DEFAULT_PROVIDER,  # modèle des propositions de trade (voir core/providers.py)
+    "model": DEFAULT_MODEL,
     "allow_live_short": False,  # autorise les shorts en LIVE (marge Kraken jamais validée : à activer en connaissance de cause)
 }
 LIMITS = {"fee_pct": (0, 2), "paper_balance": (10, 10_000_000), "check_every": (5, 300), "max_order": (5, 1_000_000),
@@ -39,6 +43,7 @@ def validate(current, new, busy):
         raise ValueError("mode invalide")
     if c["mode"] != current["mode"] and busy:
         raise ValueError("Changement de mode impossible : ferme les positions et annule les ordres en attente")
+    c["model"] = check_choice(c["provider"], c["model"])
     c["allow_live_short"] = bool(c["allow_live_short"])
     for k, (lo, hi) in LIMITS.items():
         c[k] = int(c[k]) if k == "check_every" else float(c[k])

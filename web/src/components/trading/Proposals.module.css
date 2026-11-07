@@ -10,3 +10,5 @@
 .levels { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 6px 0; font-size: 12px; }
 .why { color: var(--mu); font-size: 12px; line-height: 1.5; margin: 6px 0 8px; }
 .stale { color: var(--mu); font-size: 11px; margin-top: 8px; }
+.model { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.model select, .model input { width: 100%; }

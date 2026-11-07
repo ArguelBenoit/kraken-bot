@@ -8,7 +8,8 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 | Route | Rôle |
 |---|---|
 | `GET /api/activity` | Bot IA et trading manuel : positions ouvertes, ordres en attente, combien en gain / en perte (pastilles du menu, sondé toutes les 4 s). |
-| `GET /api/connections` | Pour chaque variable d'environnement (`ANTHROPIC_API_KEY`, `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`) : `set` vrai/faux. **Jamais la valeur.** |
+| `GET /api/models/<fournisseur>` | Modèles utilisables avec la clé du fournisseur (API `/models`, mémorisée 10 min, modèles non conversationnels écartés). Sans clé ou en échec : quelques exemples, `source: "examples"` et `notice`. |
+| `GET /api/connections` | Pour chaque variable d'environnement (clés des fournisseurs de modèles, `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`) : `set` vrai/faux. **Jamais la valeur.** |
 
 ## Marché (lecture seule, données publiques Kraken)
 
@@ -21,7 +22,7 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 
 | Route | Rôle |
 |---|---|
-| `GET /api/ai/status` | Réglages, positions, décisions de Claude, coût et appels du jour. |
+| `GET /api/ai/status` | Réglages, positions, décisions du modèle, appels et tokens du jour, `options.providers` (fournisseurs, modèles d'exemple, clé définie ou non). |
 | `POST /api/ai/config` | Enregistre les réglages (modèle, agressivité, budget, limites…). |
 | `POST /api/ai/start` · `/stop` | Démarre / arrête la surveillance et les analyses. |
 | `POST /api/ai/analyze` | Lance une analyse tout de suite. |
@@ -33,14 +34,14 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 
 | Route | Rôle |
 |---|---|
-| `GET /api/manual/status?pair=` | Réglages, positions, ordres en attente, journal, cotation (`quote`) de la paire, `claude_ok` (clé Anthropic définie). |
+| `GET /api/manual/status?pair=` | Réglages, positions, ordres en attente, journal, cotation (`quote`) de la paire, `llm_ok` (clé du fournisseur choisi définie), `providers`. Le fournisseur et le modèle des propositions sont dans `config` (`provider`, `model`). |
 | `POST /api/manual/config` | Réglages (mode, solde paper, montant max, levier max, frais de marge et de report, `allow_live_short`…). |
 | `POST /api/manual/order` | Ordre d'ouverture : `side` (`long` par défaut ou `short`), `leverage` (short : 2 à `max_leverage`), `type` marché ou limite (`limit_price`), `size`, `sl_pct` / `tp_pct` / `trail_pct`. Un short exige un stop loss inférieur à la distance de liquidation ; en live il exige aussi `allow_live_short`. En **live**, `confirm: true` est exigé par le serveur. |
 | `POST /api/manual/positions/<id>/close` | Fermeture totale ou partielle (`fraction`) : vente d'un long, rachat d'un short. |
 | `POST /api/manual/positions/<id>/adjust` | Modifie stop loss / objectif / stop suiveur. |
 | `DELETE /api/manual/pending/<id>` | Annule un ordre limite en attente. |
 | `POST /api/manual/reset` | Remet l'état à zéro. |
-| `POST /api/manual/propose` | Claude propose 0 à 4 presets de trade à prendre maintenant (paire, long ou short, levier, marché/limite, SL, TP, suiveur, justification). **Rien n'est exécuté** : l'interface pré-remplit le ticket. Un appel à la fois, 10 s entre deux demandes ; le montant n'est jamais proposé. |
+| `POST /api/manual/propose` | Le modèle choisi (config manuelle) propose 0 à 4 presets de trade à prendre maintenant (paire, long ou short, levier, marché/limite, SL, TP, suiveur, justification). **Rien n'est exécuté** : l'interface pré-remplit le ticket. Un appel à la fois, 10 s entre deux demandes ; le montant n'est jamais proposé. |
 
 ## Tutoriel
 

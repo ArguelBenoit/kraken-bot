@@ -19,13 +19,13 @@ Lancé par `python -m server` (voir `__main__.py`). Découpé par fonction :
 | `settings.py` | Chemins (racine, `web/dist`), lecture de `.env`, présence des clés d'API. |
 | `app.py` | Fabrique Flask : mot de passe optionnel, enregistrement des routes. |
 | `services.py` | Le Bot IA et le trader manuel, instanciés une seule fois et partagés par les routes. |
-| `core/` | Utilitaires transverses : `storage` (JSON atomique), `journal` (derniers événements), `cache` (mémoïsation courte), `claude` (client Anthropic avec outil), `limits` (bornes). |
+| `core/` | Utilitaires transverses : `storage` (JSON atomique), `journal` (derniers événements), `cache` (mémoïsation courte), `llm` (appel d'un modèle avec un outil : formats Anthropic et compatible OpenAI) et `providers` (fournisseurs, clés, modèles d'exemple), `limits` (bornes). |
 | `market/` | `kraken` (client), `indicators` (EMA, RSI), `strategies` (signaux des 6 méthodes, pour le backtest), `pairs` (paires suivies), `prices` (dernier prix en cache), `scan` (tableau Marché), `chart` (bougies + RSI + repères des trades), `snapshot` (résumé chiffré envoyé à Claude). |
-| `bots/ai/` | `config`, `prompt` (outil `decide` + prompt), `guards` (garde-fous, fonctions pures), `cost` (estimation du coût), `bot`. |
+| `bots/ai/` | `config`, `prompt` (outil `decide` + prompt), `guards` (garde-fous, fonctions pures), `bot`. |
 | `bots/manual.py` | Trading manuel (page d'accueil) : ordres long ou short, marché / limite, stops par position, surveillance. |
 | `bots/live.py` | Exécution LIVE du Trading : ordres au marché avec exécution réelle, stop posé chez Kraken, suivi et pose de remplacement. Jamais exécuté en réel. |
 | `bots/positions.py` | Calculs purs d'une position selon son sens (stops, liquidation, gains, frais de report) : voir [SHORT](SHORT.md). |
-| `features/` | `proposals` (Claude propose des trades à prendre maintenant), `learn` (progression du tutoriel). |
+| `features/` | `proposals` (le modèle propose des trades à prendre maintenant), `learn` (progression du tutoriel). |
 | `routes/` | Un *blueprint* Flask par domaine : `market`, `ai`, `manual`, `learn`, `system`, `spa`. |
 | `backtest.py` | Backtest d'une méthode sur l'historique Kraken. |
 
@@ -56,14 +56,14 @@ React 19 + TypeScript + Vite. Un thème sombre (`styles/theme.css`) et des CSS m
 | `lib/learn/` | Tout le tutoriel : `methods`/`indicators` (signaux), `sim` (simulateur), `trials` (épreuves), `tunnel` (découpage en étapes), `coach`, `glossary`, `content/` (leçons par module). |
 | `stores/` | État global (zustand) : `aiStore`, `manualStore`, `proposalStore`, `marketStore`, `learnStore`, `activityStore`, `uiStore` (notifications et confirmations) ; `runAction` factorise « appeler l'API, notifier le résultat, recharger ». |
 | `hooks/` | `usePolling`, `useTradingSync`, `useReplaySession`, `useDismiss`, `useMaxRowsHeight`. |
-| `components/` | `ui/` (Card, Field, Button, Tip…), `layout/` (barre latérale, bandeau), `chart/`, `trade/` (carte « Trade en cours » commune), `market/` (tableau + graphique), `ai/`, `trading/` (ticket, propositions de Claude), `learn/`. |
+| `components/` | `ui/` (Card, Field, Button, Tip…), `layout/` (barre latérale, bandeau), `chart/`, `trade/` (carte « Trade en cours » commune), `market/` (tableau + graphique), `ai/`, `trading/` (ticket, propositions du modèle), `learn/`. |
 | `pages/` | Une page par route : `TradingPage` (accueil, route `/`), `AiPage`, `LearnPage`. |
 
 ### Conventions
 
 - **Retours d'action** : jamais de `alert` ni `window.confirm`. Succès et échecs d'une action serveur s'affichent en **toast** (`toast.ok / error / info`, `ToastHost`, déjà géré par `runAction`) ; toute action sensible ou irréversible (ordre live, liquidation, reset, passage en live, effacement) demande une **confirmation** (`await confirmAction({ title, message, lines, danger })`, `ConfirmDialog`, focus sur « Annuler » si `danger`). Les messages de validation d'un formulaire restent en ligne.
 - **Formulaires** : le brouillon vit dans le store et n'est rempli qu'une fois depuis la config enregistrée (le sondage ne l'écrase jamais) ;
-  les propositions de Claude et le bouton « Acheter » du tableau Marché ne font que *pré-remplir* le ticket.
+  les propositions du modèle et le bouton « Acheter » du tableau Marché ne font que *pré-remplir* le ticket.
 - **« Trade en cours »** : un composant unique (`components/trade/OpenTradeCard`) alimenté par un adaptateur par page
   (`aiTradeInput`, `manualTradeInput` dans `lib/trade.ts`).
 - **Pas de calcul dans les composants** quand il peut être pur : on le met dans `lib/` (testable, réutilisable).
@@ -72,6 +72,6 @@ React 19 + TypeScript + Vite. Un thème sombre (`styles/theme.css`) et des CSS m
 ## Ajouter…
 
 - **un réglage du trading manuel** : `DEFAULT_CONFIG` / `LIMITS` dans `server/bots/manual.py` → `web/src/lib/types/manual.ts` → `components/trading/ManualSettingsCard.tsx`.
-- **un champ aux propositions de Claude** : l'outil et `sanitize` dans `server/features/proposals.py` (le serveur borne tout) → `lib/types/proposal.ts` → `components/trading/ClaudeProposals.tsx`.
+- **un champ aux propositions du modèle** : l'outil et `sanitize` dans `server/features/proposals.py` (le serveur borne tout) → `lib/types/proposal.ts` → `components/trading/Proposals.tsx`.
 - **une méthode de trading** : `server/market/strategies.py` (signal + paramètres par défaut) et `backtest.py` (grille) ; pour le tutoriel : `lib/learn/methods.ts` et sa leçon dans `lib/learn/content/methods.ts`.
 - **une page** : une route dans `web/src/App.tsx`, une entrée dans `components/layout/navigation.ts`, une page dans `pages/` ; côté Python, un blueprint dans `server/routes/`.

@@ -2,6 +2,8 @@
 from flask import Blueprint, jsonify
 
 from server import settings
+from server.core.llm import LlmError, list_models
+from server.core.providers import PROVIDERS
 from server.market.prices import try_last_price
 from server.services import ai, manual
 
@@ -36,4 +38,15 @@ def activity():
 def connections():
     """Variables d'environnement définies ou non : seulement un booléen par variable, jamais sa valeur."""
     var = lambda name: {"name": name, "set": settings.is_set(name)}
-    return jsonify(claude=[var("ANTHROPIC_API_KEY")], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")])
+    return jsonify(models=[var(p["env"]) for p in PROVIDERS.values()], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")])
+
+
+@bp.get("/models/<provider>")
+def models(provider):
+    """Modèles disponibles chez un fournisseur (liste officielle via sa clé). Sans clé ou en cas d'échec : modèles d'exemple + `notice`."""
+    if provider not in PROVIDERS:
+        return jsonify(ok=False, error="fournisseur inconnu"), 404
+    try:
+        return jsonify(ok=True, models=list_models(provider), source="api")
+    except LlmError as e:
+        return jsonify(ok=True, models=PROVIDERS[provider]["models"], source="examples", notice=str(e))

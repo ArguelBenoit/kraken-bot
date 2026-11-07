@@ -1,4 +1,5 @@
 /** Types du trading manuel. */
+import type { Providers } from './ai'
 import type { Mode } from './market'
 
 export interface ManualConfig {
@@ -10,6 +11,9 @@ export interface ManualConfig {
   max_leverage: number
   margin_fee_pct: number
   rollover_pct: number
+  /** Fournisseur et modèle des propositions de trade. */
+  provider: string
+  model: string
   allow_live_short: boolean
 }
 
@@ -93,7 +97,8 @@ export interface ManualStatus {
   live_ok: boolean
   /** Les shorts sont-ils autorisés dans le mode courant ? */
   shorts_allowed: boolean
-  /** ANTHROPIC_API_KEY définie côté serveur (propositions de trade). */
-  claude_ok: boolean
+  /** Clé du fournisseur choisi définie côté serveur (propositions de trade). */
+  llm_ok: boolean
+  providers: Providers
   quote: { pair: string; price: number } | null
 }

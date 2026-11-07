@@ -7,7 +7,7 @@ import type { AiPosition } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { confirmAction } from '@/stores/uiStore'
 
-/** Un « Trade en cours » par position ouverte par Claude (jusqu'à 5). Rien n'est affiché sans position. */
+/** Un « Trade en cours » par position ouverte par le modèle (jusqu'à 5). Rien n'est affiché sans position. */
 export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; feePct: number }) {
   const close = useAiStore((s) => s.closePosition)
   const closeWithConfirm = async (p: AiPosition) => {
