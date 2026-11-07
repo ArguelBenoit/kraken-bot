@@ -26,10 +26,12 @@ export function ModelPicker({ providers, provider, model, onChange, compact }: P
   }, [list, model, provider, onChange])
 
   const options = list ? (list.models.includes(model) || !model ? list.models : [model, ...list.models]) : [model]
+  // seuls les fournisseurs connectés (clé définie, ou Ollama qui répond) ; le fournisseur courant reste affiché pour ne pas tromper
+  const shown = Object.entries(providers).filter(([k, p]) => p.connected || k === provider)
   const select = (
     <select className={compact ? undefined : 'wide'} value={provider}
       onChange={(e) => { switched.current = true; onChange(e.target.value, providers[e.target.value]?.models[0] ?? '') }}>
-      {Object.entries(providers).map(([k, p]) => <option key={k} value={k}>{p.label}{p.key_ok ? '' : ' (clé absente)'}</option>)}
+      {shown.map(([k, p]) => <option key={k} value={k}>{p.label}{p.connected ? '' : ' (non connecté)'}</option>)}
     </select>
   )
   const modelSelect = (
@@ -37,11 +39,12 @@ export function ModelPicker({ providers, provider, model, onChange, compact }: P
       {options.map((m) => <option key={m} value={m}>{m}</option>)}
     </select>
   )
-  const note = list?.source === 'examples' ? <div className="hint">Exemples seulement : {list.notice ?? 'liste indisponible'}</div> : null
+  const none = !Object.values(providers).some((p) => p.connected)
+  const note = none ? <div className="hint">Aucun fournisseur connecté : ajoute une clé dans .env (ou lance Ollama), puis relance le serveur.</div> : list?.source === 'examples' ? <div className="hint">Exemples seulement : {list.notice ?? 'liste indisponible'}</div> : null
   if (compact) return <>{select}{modelSelect}{note}</>
   return (
     <>
-      <Field label="Fournisseur" tip="Qui héberge le modèle. La clé API correspondante se met dans .env (voir « Connexions » en bas du menu).">{select}</Field>
+      <Field label="Fournisseur" tip="Qui héberge le modèle. La clé API correspondante se met dans .env (voir « Connexions » en bas du menu). Ollama = modèle local, sans clé ni coût : adresse dans OLLAMA_URL (défaut http://localhost:11434). Pense alors à décocher le plafond d'appels.">{select}</Field>
       <Field label="Modèle" tip="Liste réelle des modèles que ta clé peut utiliser, demandée au fournisseur. Sans clé, seulement quelques exemples. Un modèle plus puissant analyse mieux mais coûte plus cher par appel.">{modelSelect}</Field>
       {note}
     </>

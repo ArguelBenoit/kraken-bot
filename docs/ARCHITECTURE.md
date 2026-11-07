@@ -19,7 +19,7 @@ Lancé par `python -m server` (voir `__main__.py`). Découpé par fonction :
 | `settings.py` | Chemins (racine, `web/dist`), lecture de `.env`, présence des clés d'API. |
 | `app.py` | Fabrique Flask : mot de passe optionnel, enregistrement des routes. |
 | `services.py` | Le Bot IA et le trader manuel, instanciés une seule fois et partagés par les routes. |
-| `core/` | Utilitaires transverses : `storage` (JSON atomique), `journal` (derniers événements), `cache` (mémoïsation courte), `llm` (appel d'un modèle avec un outil : formats Anthropic et compatible OpenAI) et `providers` (fournisseurs, clés, modèles d'exemple), `limits` (bornes). |
+| `core/` | Utilitaires transverses : `storage` (JSON atomique), `journal` (derniers événements), `cache` (mémoïsation courte), `llm` (appel d'un modèle avec un outil : formats Anthropic, compatible OpenAI et Ollama local) , `models` (liste des modèles d'un fournisseur) et `providers` (fournisseurs, clés, modèles d'exemple), `limits` (bornes). |
 | `market/` | `kraken` (client), `indicators` (EMA, RSI), `strategies` (signaux des 6 méthodes, pour le backtest), `pairs` (paires suivies), `prices` (dernier prix en cache), `scan` (tableau Marché), `chart` (bougies + RSI + repères des trades), `snapshot` (résumé chiffré envoyé à Claude). |
 | `bots/ai/` | `config`, `prompt` (outil `decide` + prompt), `guards` (garde-fous, fonctions pures), `bot`. |
 | `bots/manual.py` | Trading manuel (page d'accueil) : ordres long ou short, marché / limite, stops par position, surveillance. |

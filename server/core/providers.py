@@ -1,9 +1,15 @@
 """Fournisseurs de modèles : adresse de l'API, variable d'environnement de la clé et quelques modèles d'exemple (repli quand la liste officielle est inaccessible).
 
-`format` : `anthropic` (API Messages) ou `openai` (compatible `/chat/completions`). Les noms de modèles évoluent vite : la liste
-`models` n'est qu'un exemple ; l'interface demande la liste réelle à l'API du fournisseur (`core/llm.py: list_models`).
+`format` : `anthropic` (API Messages), `openai` (compatible `/chat/completions`) ou `ollama` (API native, modèle local sans clé :
+adresse dans `OLLAMA_URL`, défaut `http://localhost:11434`). Les noms de modèles évoluent vite : la liste
+`models` n'est qu'un exemple ; l'interface demande la liste réelle à l'API du fournisseur (`core/models.py`).
 """
+import os
+
+import requests
+
 from server import settings
+from .cache import memo
 
 _OPENAI_LIKE = {"format": "openai", "max_tokens_param": "max_tokens"}
 
@@ -27,6 +33,9 @@ PROVIDERS = {
     "openrouter": {"label": "OpenRouter", **_OPENAI_LIKE, "env": "OPENROUTER_API_KEY",
                    "url": "https://openrouter.ai/api/v1/chat/completions",
                    "models": ["anthropic/claude-sonnet-5-5", "google/gemini-2.5-pro", "openai/gpt-5"]},
+    # Local : pas de clé. API native (et non /v1) pour fixer la fenêtre de contexte, que Ollama laisse sinon trop petite pour le prompt du bot.
+    "ollama": {"label": "Ollama (local)", "format": "ollama", "env": "OLLAMA_URL", "keyless": True, "default_url": "http://localhost:11434",
+               "timeout": 300, "num_ctx": 8192, "keep_alive": "10m", "models": ["qwen3:8b", "llama3.1:8b", "gemma3:12b"]},
 }
 DEFAULT_PROVIDER, DEFAULT_MODEL = "anthropic", "claude-sonnet-5-5"
 
@@ -42,10 +51,32 @@ def check_choice(provider, model):
 
 
 def key_set(provider):
-    """La clé du fournisseur est-elle définie dans l'environnement ?"""
-    return settings.is_set(PROVIDERS[provider]["env"]) if provider in PROVIDERS else False
+    """La clé du fournisseur est-elle définie dans l'environnement ? (toujours vrai pour un modèle local, qui n'en a pas)"""
+    p = PROVIDERS.get(provider)
+    return bool(p) and (p.get("keyless", False) or settings.is_set(p["env"]))
+
+
+def base_url(provider):
+    """Adresse d'un fournisseur local : variable d'environnement ou défaut, sans « / » final."""
+    return (os.getenv(provider["env"]) or provider["default_url"]).rstrip("/")
+
+
+def _reachable(url):
+    try:
+        return requests.get(url, timeout=1.5).status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def connected(provider):
+    """Fournisseur utilisable : clé définie, ou (modèle local) serveur qui répond (vérifié au plus toutes les 15 s)."""
+    p = PROVIDERS[provider]
+    if p.get("keyless"):
+        return memo(("up", provider), 15, lambda: _reachable(base_url(p) + "/api/tags"))
+    return key_set(provider)
 
 
 def public():
-    """Fournisseurs pour l'interface : libellé, modèles d'exemple et clé définie ou non (jamais la clé)."""
-    return {k: {"label": v["label"], "models": v["models"], "env": v["env"], "key_ok": key_set(k)} for k, v in PROVIDERS.items()}
+    """Fournisseurs pour l'interface : libellé, modèles d'exemple, connecté ou non (clé définie / serveur local joignable ; jamais la clé)."""
+    return {k: {"label": v["label"], "models": v["models"], "env": v["env"], "connected": connected(k), "local": v.get("keyless", False)}
+            for k, v in PROVIDERS.items()}

@@ -2,7 +2,8 @@
 from flask import Blueprint, jsonify
 
 from server import settings
-from server.core.llm import LlmError, list_models
+from server.core.llm import LlmError
+from server.core.models import list_models
 from server.core.providers import PROVIDERS
 from server.market.prices import try_last_price
 from server.services import ai, manual
@@ -38,7 +39,7 @@ def activity():
 def connections():
     """Variables d'environnement définies ou non : seulement un booléen par variable, jamais sa valeur."""
     var = lambda name: {"name": name, "set": settings.is_set(name)}
-    return jsonify(models=[var(p["env"]) for p in PROVIDERS.values()], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")])
+    return jsonify(models=[var(p["env"]) for p in PROVIDERS.values() if not p.get("keyless")], kraken=[var("KRAKEN_API_KEY"), var("KRAKEN_API_SECRET")])
 
 
 @bp.get("/models/<provider>")

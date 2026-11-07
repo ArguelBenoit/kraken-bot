@@ -2,7 +2,7 @@
 import type { Mode } from './market'
 
 /** Fournisseurs de modèles proposés par le serveur : libellé, modèles d'exemple, variable de la clé et clé définie ou non. */
-export type Providers = Record<string, { label: string; models: string[]; env: string; key_ok: boolean }>
+export type Providers = Record<string, { label: string; models: string[]; env: string; connected: boolean; local: boolean }>
 
 export type Aggressiveness = 'prudent' | 'equilibre' | 'agressif'
 
