@@ -35,17 +35,17 @@ DEFAULT_CONFIG = {
     "pairs": [p for p, _ in WATCH],
     "order_size": 50.0,              # montant de base par trade (stablecoin)
     "budget": 1000.0,                # capital alloué à l'IA (paper : cash de départ)
-    "max_exposure_pct": 60.0,        # % max du budget investi en même temps
-    "max_daily_loss_pct": 5.0,       # au-delà, plus aucune nouvelle ouverture jusqu'à demain
-    "limit_calls": True,             # plafonner les appels au modèle (décocher = illimité, pour un modèle local)
-    "max_calls_per_day": 100,        # plafond d'appels au modèle par jour (si limit_calls)
-    "fee_pct": 0.26,
+    "max_exposure_pct": 60.0,        # % max du budget investi en même temps (None = illimité)
+    "max_daily_loss_pct": 5.0,       # au-delà, plus aucune nouvelle ouverture jusqu'à demain (None = illimité)
+    "max_calls_per_day": 100,        # plafond d'appels au modèle par jour (None = illimité, ex. modèle local)
+    "fee_pct": 0.26,                 # frais par ordre (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 5),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
           "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "fee_pct": (0, 2)}
 FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct")
+OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day")      # champ vide = aucune restriction (None)
 TIMEFRAMES = (15, 60, 240, 1440)
 
 
@@ -60,11 +60,16 @@ def validate(current, new, busy):
     if cfg["aggressiveness"] not in PROFILES:
         raise ValueError("agressivité invalide")
     cfg["model"] = check_choice(cfg["provider"], cfg["model"])
-    cfg["limit_calls"] = bool(cfg["limit_calls"])
     cfg["notes"] = str(cfg["notes"])[:500]
+    for key in OPTIONAL_KEYS:
+        if cfg[key] in (None, ""):
+            cfg[key] = None
+    if cfg["fee_pct"] in (None, ""):
+        cfg["fee_pct"] = 0.0
     for key in LIMITS:
-        cfg[key] = float(cfg[key]) if key in FLOAT_KEYS else int(cfg[key])
-    check_limits(cfg, LIMITS)
+        if cfg[key] is not None:
+            cfg[key] = float(cfg[key]) if key in FLOAT_KEYS else int(cfg[key])
+    check_limits({k: v for k, v in cfg.items() if v is not None}, {k: r for k, r in LIMITS.items() if cfg[k] is not None})
     if cfg["timeframe"] not in TIMEFRAMES:
         raise ValueError("timeframe invalide")
     cfg["strategies"] = [s for s in cfg["strategies"] if s in STRATEGIES]

@@ -19,10 +19,10 @@ export interface AiConfig {
   pairs: string[]
   order_size: number
   budget: number
-  max_exposure_pct: number
-  max_daily_loss_pct: number
-  limit_calls: boolean
-  max_calls_per_day: number
+  /** null = illimité (champ laissé vide). */
+  max_exposure_pct: number | null
+  max_daily_loss_pct: number | null
+  max_calls_per_day: number | null
   fee_pct: number
   notes: string
 }

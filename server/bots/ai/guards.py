@@ -21,7 +21,7 @@ def vet_open(cfg, state, action):
         return None, "nombre max de positions atteint"
     if confidence < profile["min_conf"]:
         return None, f"confiance {confidence:.2f} < minimum {profile['min_conf']} ({cfg['aggressiveness']})"
-    if state["day_pnl"] <= -cfg["budget"] * cfg["max_daily_loss_pct"] / 100:
+    if cfg["max_daily_loss_pct"] is not None and state["day_pnl"] <= -cfg["budget"] * cfg["max_daily_loss_pct"] / 100:
         return None, "perte journalière max atteinte"
     stop = float(action.get("stop_loss_pct") or 0)
     if stop <= 0:
@@ -30,7 +30,7 @@ def vet_open(cfg, state, action):
     factor = min(max(float(action.get("size_factor", 1)), MIN_SIZE_FACTOR), profile["size_max"])
     size = cfg["order_size"] * factor
     invested = sum(p["cost"] for p in state["positions"])
-    if invested + size > cfg["budget"] * cfg["max_exposure_pct"] / 100:
+    if cfg["max_exposure_pct"] is not None and invested + size > cfg["budget"] * cfg["max_exposure_pct"] / 100:
         return None, "exposition max atteinte"
     if cfg["mode"] == "paper" and state["cash"] < size:
         return None, "solde insuffisant"

@@ -6,7 +6,7 @@ import { Field } from '@/components/ui/Field'
 import { ModelPicker } from '@/components/ui/ModelPicker'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
-import { CALLS_FIELD, LIMIT_FIELDS, PARALLEL_FIELD, type NumberField } from '@/lib/aiForm'
+import { LIMIT_FIELDS, PARALLEL_FIELD, type NumberField } from '@/lib/aiForm'
 import type { Aggressiveness } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { AiControls } from './AiControls'
@@ -18,7 +18,7 @@ function NumberInput({ def }: { def: NumberField }) {
   const setField = useAiStore((s) => s.setField)
   return (
     <Field label={def.label} tip={def.tip}>
-      <input type="number" step={def.step ?? 'any'} min={def.min} max={def.max} value={value ?? ''} onChange={(e) => setField(def.name, e.target.value)} />
+      <input type="number" step={def.step ?? 'any'} min={def.min} max={def.max} placeholder={def.empty} value={value ?? ''} onChange={(e) => setField(def.name, e.target.value)} />
     </Field>
   )
 }
@@ -57,11 +57,6 @@ export function AiSettingsCard() {
         </Field>
         {LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
 
-        <label className="check">
-          <input type="checkbox" checked={draft.limit_calls} onChange={(e) => setField('limit_calls', e.target.checked)} />
-          <span>Limiter les appels par jour<Tip text="Décoché : aucun plafond, utile avec un modèle qui tourne en local (gratuit). Le compteur d'appels du jour continue de s'afficher." /></span>
-        </label>
-        {draft.limit_calls && <NumberInput def={CALLS_FIELD} />}
 
         <Accordion id="ai-strategies" title={<>Stratégies autorisées<Tip text="Les approches que le modèle a le droit d'utiliser pour ouvrir un trade. Décoche celles que tu ne veux pas ; il en faut au moins une." /></>}>
           {Object.entries(options.strategies).map(([k, desc]) => (

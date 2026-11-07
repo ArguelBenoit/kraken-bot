@@ -38,7 +38,10 @@ class AIBot:
         self.log = self.journal.add
         self.last_review = 0.0
         self.reviewing = False
-        self.config = {**cfgmod.DEFAULT_CONFIG, **{k: v for k, v in load_json(CONFIG_FILE, {}).items() if k in cfgmod.DEFAULT_CONFIG}}
+        saved = load_json(CONFIG_FILE, {})
+        if saved.get("limit_calls") is False:             # ancien réglage « plafond désactivé » -> champ vide
+            saved["max_calls_per_day"] = None
+        self.config = {**cfgmod.DEFAULT_CONFIG, **{k: v for k, v in saved.items() if k in cfgmod.DEFAULT_CONFIG}}
         self.state = load_json(STATE_FILE) or self._fresh_state()
 
     # ---------- persistance et réglages ----------
@@ -160,7 +163,7 @@ class AIBot:
     def _review(self):
         c, s = self.config, self.state
         self._day_rollover()
-        if c["limit_calls"] and s["usage"]["calls"] >= c["max_calls_per_day"]:
+        if c["max_calls_per_day"] is not None and s["usage"]["calls"] >= c["max_calls_per_day"]:
             return self.log("Plafond d'appels du jour atteint : analyse sautée")
         self.reviewing = True
         try:

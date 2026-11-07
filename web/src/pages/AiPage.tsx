@@ -30,7 +30,7 @@ export function AiPage() {
         <Kpi label="PnL du jour" tip={AI_KPI_TIPS['PnL du jour']}><Pnl v={status?.day_pnl} /></Kpi>
         <Kpi label="Équité" tip={AI_KPI_TIPS['Équité']}><b>{fm(status?.equity)}</b></Kpi>
         <Kpi label="Appels IA" tip={AI_KPI_TIPS['Appels IA']}>
-          <b>{status ? `${status.usage.calls} / ${c?.limit_calls ? c.max_calls_per_day : '∞'}` : '–'}</b>
+          <b>{status ? `${status.usage.calls} / ${c?.max_calls_per_day ?? '∞'}` : '–'}</b>
         </Kpi>
       </>}>
         <Kpi bare label="Mode" tip={AI_KPI_TIPS['Mode']} tipRight={false}>

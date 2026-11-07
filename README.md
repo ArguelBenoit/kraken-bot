@@ -36,7 +36,7 @@ Copie `.env.example` en `.env`. Toutes les variables sont facultatives : sans cl
 
 | Variable | Pour quoi faire |
 |---|---|
-| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY` | Clé du fournisseur de modèle choisi (une seule suffit ; **Ollama** = modèle local sans clé, adresse dans `OLLAMA_URL`, contexte dans `OLLAMA_NUM_CTX`). Le Bot IA et les propositions de la page Trading ont chacun leur choix de fournisseur et de modèle, mémorisé. Appels payants chez le fournisseur ; plafond d'appels par jour désactivable. |
+| `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `DEEPSEEK_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY` | Clé du fournisseur de modèle choisi (une seule suffit ; **Ollama** = modèle local sans clé, adresse dans `OLLAMA_URL`, contexte dans `OLLAMA_NUM_CTX`). Le Bot IA et les propositions de la page Trading ont chacun leur choix de fournisseur et de modèle, mémorisé. Appels payants chez le fournisseur ; plafond d'appels par jour (champ vide = illimité). |
 | `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` | Mode **live** uniquement. Droits *Query Funds* + *Create Orders*, **jamais de retrait**. |
 | `HOST`, `PORT` | Adresse d'écoute (défaut `127.0.0.1:5000`). |
 | `APP_PASSWORD` | Mot de passe (HTTP Basic) exigé hors localhost. À définir dès que `HOST=0.0.0.0`. |

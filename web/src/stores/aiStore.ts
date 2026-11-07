@@ -21,13 +21,14 @@ type AiDraft = Omit<AiConfig, 'mode' | AiNumericKey> & Record<AiNumericKey, numb
 const toDraft = (c: AiConfig): AiDraft => {
   const { mode: _mode, ...rest } = c
   void _mode
-  return { ...rest, strategies: [...c.strategies], pairs: [...c.pairs] }
+  const numbers = Object.fromEntries(AI_NUMERIC_KEYS.map((k) => [k, c[k] ?? '']))      // null (illimité) -> champ vide
+  return { ...rest, ...numbers, strategies: [...c.strategies], pairs: [...c.pairs] } as AiDraft
 }
 
-/** Brouillon -> corps JSON : champs numériques convertis, listes inchangées. */
+/** Brouillon -> corps JSON : champs numériques convertis (vide = null, c'est-à-dire sans restriction), listes inchangées. */
 const toAiPayload = (d: AiDraft) => {
   const out: Record<string, unknown> = { ...d }
-  for (const k of AI_NUMERIC_KEYS) out[k] = Number(d[k])
+  for (const k of AI_NUMERIC_KEYS) out[k] = d[k] === '' ? null : Number(d[k])
   return out
 }
 
