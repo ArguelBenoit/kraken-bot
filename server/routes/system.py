@@ -2,7 +2,7 @@
 from flask import Blueprint, jsonify
 
 from server import settings
-from server.core.llm import LlmError
+from server.core.transport import LlmError
 from server.core.models import list_models
 from server.core.providers import PROVIDERS, connected
 from server.market.prices import try_last_price

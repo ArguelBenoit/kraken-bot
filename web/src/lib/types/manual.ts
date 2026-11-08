@@ -99,6 +99,8 @@ export interface ManualStatus {
   shorts_allowed: boolean
   /** Clé du fournisseur choisi définie côté serveur (propositions de trade). */
   llm_ok: boolean
+  /** Une analyse du modèle est en cours (aussi après un rechargement de la page). */
+  analyzing: boolean
   providers: Providers
   quote: { pair: string; price: number } | null
 }

@@ -8,73 +8,80 @@ import json
 import os
 import re
 
-import requests
-
 from .providers import PROVIDERS, base_url
+from .transport import LlmError, api_error, stream_lines
 
 
-class LlmError(Exception):
-    """Échec d'un appel au modèle. `status` = code HTTP à renvoyer à l'interface ; `usage` = tokens consommés malgré l'échec."""
-
-    def __init__(self, message, status=502, usage=None):
-        super().__init__(message)
-        self.status = status
-        self.usage = usage or {"in": 0, "out": 0}
-
-
-class CreditError(LlmError):
-    """Crédit ou quota du fournisseur épuisé : inutile de réessayer tant que le compte n'est pas rechargé."""
-
-
-def _is_credit_problem(status, text):
-    return status == 402 or any(s in text for s in ("credit balance", "insufficient_quota", "insufficient credits", "Insufficient Balance"))
+def _sse(lines):
+    """Charges JSON des évènements SSE (lignes `data: …`), jusqu'à `[DONE]`."""
+    for line in lines:
+        if not line.startswith("data:"):
+            continue
+        payload = line[5:].strip()
+        if payload == "[DONE]":
+            return
+        try:
+            yield json.loads(payload)
+        except ValueError:
+            continue
 
 
-def _post(url, headers, body, timeout, name):
-    """POST JSON ; renvoie la réponse décodée ou lève LlmError / CreditError."""
+def _args(raw, usage):
+    """Arguments d'un appel d'outil reçus en texte JSON."""
     try:
-        r = requests.post(url, headers=headers, json=body, timeout=timeout)
-    except requests.RequestException as e:
-        raise LlmError(f"{name} injoignable : {e}")
-    if r.status_code != 200:
-        if _is_credit_problem(r.status_code, r.text):
-            raise CreditError(f"Crédit ou quota {name} épuisé : recharge ton compte chez le fournisseur.")
-        raise LlmError(f"{name} {r.status_code} : {r.text[:200]}")
-    return r.json()
+        return json.loads(raw or "{}")
+    except ValueError:
+        raise LlmError("Arguments de l'outil illisibles (JSON invalide) : modèle trop faible pour cet usage ?", usage=usage)
 
 
-def _anthropic(provider, key, model, system, user, tool, max_tokens, timeout):
-    data = _post(provider["url"], {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                 {"model": model, "max_tokens": max_tokens, "system": system, "tools": [tool],
-                  "tool_choice": {"type": "auto"}, "messages": [{"role": "user", "content": user}]}, timeout, provider["label"])
-    raw = data.get("usage", {})
-    usage = {"in": raw.get("input_tokens", 0), "out": raw.get("output_tokens", 0)}
-    blocks = data.get("content", [])
-    for b in blocks:
+def _anthropic(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
+    body = {"model": model, "max_tokens": max_tokens, "system": system, "tools": [tool], "stream": True,
+            "tool_choice": {"type": "auto"}, "messages": [{"role": "user", "content": user}]}
+    headers = {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
+    blocks, usage = {}, {"in": 0, "out": 0}
+    for ev in _sse(stream_lines(provider["url"], headers, body, timeout, provider["label"], cancel)):
+        kind = ev.get("type")
+        if kind == "message_start":
+            usage["in"] = (ev.get("message") or {}).get("usage", {}).get("input_tokens", 0)
+        elif kind == "content_block_start":
+            blocks[ev.get("index")] = {**(ev.get("content_block") or {}), "json": "", "text": ""}
+        elif kind == "content_block_delta" and ev.get("index") in blocks:
+            delta, block = ev.get("delta") or {}, blocks[ev["index"]]
+            block["json"] += delta.get("partial_json", "")
+            block["text"] += delta.get("text", "")
+        elif kind == "message_delta":
+            usage["out"] = (ev.get("usage") or {}).get("output_tokens", usage["out"])
+        elif kind == "error":
+            raise api_error(200, json.dumps(ev.get("error") or ev), provider["label"])
+    for b in blocks.values():
         if b.get("type") == "tool_use" and b.get("name") == tool["name"]:
-            return b["input"], usage
-    said = " ".join(b.get("text", "") for b in blocks if b.get("type") == "text")
-    raise _no_call(tool, said, usage)
+            return _args(b["json"], usage), usage
+    raise _no_call(tool, " ".join(b["text"] for b in blocks.values() if b.get("type") == "text"), usage)
 
 
-def _openai(provider, key, model, system, user, tool, max_tokens, timeout):
+def _openai(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
     function = {"name": tool["name"], "description": tool.get("description", ""), "parameters": tool["input_schema"]}
-    body = {"model": model, provider["max_tokens_param"]: max_tokens, "tool_choice": "auto",
+    body = {"model": model, provider["max_tokens_param"]: max_tokens, "tool_choice": "auto", "stream": True, "stream_options": {"include_usage": True},
             "tools": [{"type": "function", "function": function}],
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
-    data = _post(provider["url"], {"Authorization": f"Bearer {key}", "content-type": "application/json"}, body, timeout, provider["label"])
-    raw = data.get("usage") or {}
-    usage = {"in": raw.get("prompt_tokens", 0), "out": raw.get("completion_tokens", 0)}
-    message = ((data.get("choices") or [{}])[0]).get("message") or {}
-    for call in message.get("tool_calls") or []:
-        fn = call.get("function") or {}
-        if fn.get("name") == tool["name"]:
-            try:
-                args = json.loads(fn.get("arguments") or "{}")
-            except ValueError:
-                raise LlmError("Arguments de l'outil illisibles (JSON invalide) : modèle trop faible pour cet usage ?", usage=usage)
-            return args, usage
-    raise _no_call(tool, message.get("content") or "", usage)
+    headers = {"Authorization": f"Bearer {key}", "content-type": "application/json"}
+    calls, said, usage = [], [], {"in": 0, "out": 0}
+    for ev in _sse(stream_lines(provider["url"], headers, body, timeout, provider["label"], cancel)):
+        if ev.get("error"):
+            raise api_error(200, json.dumps(ev["error"]), provider["label"])
+        if ev.get("usage"):
+            usage = {"in": ev["usage"].get("prompt_tokens", 0), "out": ev["usage"].get("completion_tokens", 0)}
+        delta = ((ev.get("choices") or [{}])[0]).get("delta") or {}
+        said.append(delta.get("content") or "")
+        for part in delta.get("tool_calls") or []:
+            fn = part.get("function") or {}
+            if fn.get("name") or not calls:         # le nom n'arrive qu'au début de chaque appel ; la suite n'ajoute que des arguments
+                calls.append({"name": fn.get("name", ""), "args": ""})
+            calls[-1]["args"] += fn.get("arguments") or ""
+    for call in calls:
+        if call["name"] == tool["name"]:
+            return _args(call["args"], usage), usage
+    raise _no_call(tool, "".join(said), usage)
 
 
 def _no_call(tool, said, usage):
@@ -106,14 +113,32 @@ def _ollama_args(data, tool):
     return _json_in(message.get("content"), tool)
 
 
+def _ollama_reply(lines, name):
+    """Réponse Ollama (une ligne JSON par morceau) rassemblée en un seul message, au format d'une réponse non diffusée."""
+    message, counts = {"content": "", "tool_calls": []}, {}
+    for line in lines:
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if ev.get("error"):
+            raise api_error(200, str(ev["error"]), name)
+        part = ev.get("message") or {}
+        message["content"] += part.get("content") or ""
+        message["tool_calls"] += part.get("tool_calls") or []
+        if ev.get("done"):
+            counts = {k: ev.get(k, 0) for k in ("prompt_eval_count", "eval_count")}
+    return {"message": message, **counts}
+
+
 _NO_TOOLS = set()     # modèles Ollama qui refusent les outils : on passe directement en sortie JSON contrainte
 
 
-def _ollama(provider, key, model, system, user, tool, max_tokens, timeout):
+def _ollama(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
     """Ollama : d'abord avec l'outil ; si le modèle ne gère pas les outils (ou n'en appelle aucun), seconde passe en sortie JSON contrainte par le schéma."""
     url = base_url(provider) + "/api/chat"
     options = {"num_ctx": int(os.getenv("OLLAMA_NUM_CTX") or provider["num_ctx"]), "num_predict": max(max_tokens, 4096)}
-    base = {"model": model, "stream": False, "options": options, "keep_alive": provider["keep_alive"]}
+    base = {"model": model, "stream": True, "options": options, "keep_alive": provider["keep_alive"]}
     function = {"name": tool["name"], "description": tool.get("description", ""), "parameters": tool["input_schema"]}
     json_system = f"{system}\n\nRéponds UNIQUEMENT par un objet JSON conforme au schéma de l'outil `{tool['name']}`, sans aucun texte autour."
     usage = {"in": 0, "out": 0}
@@ -121,7 +146,7 @@ def _ollama(provider, key, model, system, user, tool, max_tokens, timeout):
         body = {**base, "messages": [{"role": "system", "content": system if with_tools else json_system}, {"role": "user", "content": user}]}
         body.update({"tools": [{"type": "function", "function": function}]} if with_tools else {"format": tool["input_schema"]})
         try:
-            data = _post(url, {}, body, timeout, provider["label"])
+            data = _ollama_reply(stream_lines(url, {"content-type": "application/json"}, body, timeout, provider["label"], cancel), provider["label"])
         except LlmError as e:
             if with_tools and "does not support tools" in str(e):
                 _NO_TOOLS.add(model)
@@ -138,8 +163,8 @@ def _ollama(provider, key, model, system, user, tool, max_tokens, timeout):
 _CLIENTS = {"anthropic": _anthropic, "openai": _openai, "ollama": _ollama}
 
 
-def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None):
-    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`."""
+def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None, cancel=None):
+    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`. `cancel` (un `Cancel`) permet de l'interrompre depuis un autre thread."""
     provider = PROVIDERS.get(provider_id)
     if not provider:
         raise LlmError(f"Fournisseur inconnu : {provider_id}", 400)
@@ -148,5 +173,5 @@ def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=N
         raise LlmError(f"{provider['env']} absente (.env) : ajoute-la puis relance le serveur.", 400)
     if not model:
         raise LlmError("Aucun modèle choisi.", 400)
-    return _CLIENTS[provider["format"]](provider, key, model, system, user, tool, max_tokens, timeout or provider.get("timeout", 90))
+    return _CLIENTS[provider["format"]](provider, key, model, system, user, tool, max_tokens, timeout or provider.get("timeout", 90), cancel)
 

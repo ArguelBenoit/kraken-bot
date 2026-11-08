@@ -6,6 +6,7 @@ import { Header, Kpi } from '@/components/layout/Header'
 import { LogCard } from '@/components/ui/LogCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { PairTradesCard } from '@/components/ui/PairTradesCard'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { ManualSettingsCard } from '@/components/trading/ManualSettingsCard'
 import { OrderTicketCard } from '@/components/trading/OrderTicketCard'
 import { ManualOpenTrades } from '@/components/trading/ManualOpenTrades'
@@ -15,6 +16,7 @@ import { fm, gainClass, signed } from '@/lib/format'
 import { previewFromTicket } from '@/lib/ticket'
 import { useManualStore } from '@/stores/manualStore'
 import { useMarketStore } from '@/stores/marketStore'
+import { useProposalStore } from '@/stores/proposalStore'
 
 /** Lignes du graphique : positions ouvertes + ordres limites + aperçu de l'ordre en cours de saisie. */
 function useChartLevels(): ChartLevel[] {
@@ -48,6 +50,7 @@ export function TradingPage() {
   const setMode = useManualStore((s) => s.setMode)
   const setTicket = useManualStore((s) => s.setTicket)
   const levels = useChartLevels()
+  const analyzing = useProposalStore((s) => s.loading) || !!status?.analyzing
   const live = status?.config.mode === 'live'
 
   return (
@@ -66,6 +69,9 @@ export function TradingPage() {
           <b>{live ? 'n/a' : fm(status?.equity)}</b>
         </Kpi>
       </>}>
+        <Kpi bare label="Analyse" hidden={!analyzing}>
+          <StatusBadge running runningLabel="ANALYSE…" />
+        </Kpi>
         <Kpi bare label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>

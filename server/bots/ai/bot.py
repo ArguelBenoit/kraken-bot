@@ -11,7 +11,8 @@ import uuid
 from datetime import datetime
 
 from server import settings
-from server.core.llm import CreditError, LlmError, call_tool
+from server.core.llm import call_tool
+from server.core.transport import CreditError, LlmError
 from server.core.providers import key_set, public
 from server.core.journal import Journal
 from server.core.storage import load_json, save_json

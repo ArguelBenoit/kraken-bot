@@ -8,6 +8,10 @@ interface ProposalStore {
   loading: boolean
   /** Demande au modèle des trades pour maintenant (aucun ordre n'est passé). */
   ask: () => Promise<void>
+  /** Interrompt l'analyse en cours (la connexion au modèle est coupée côté serveur). */
+  cancel: () => Promise<void>
+  /** Récupère la dernière proposition gardée par le serveur (après un rechargement ou une analyse lancée avant). */
+  restore: () => Promise<void>
   dismiss: () => void
 }
 
@@ -20,7 +24,9 @@ export const useProposalStore = create<ProposalStore>((set, get) => ({
     if (get().loading) return
     set({ loading: true })
     try {
-      set({ result: await api.post<ProposalSet>('/api/manual/propose') })
+      const r = await api.post<ProposalSet | { cancelled: true }>('/api/manual/propose')
+      if ('cancelled' in r) toast.info('Analyse annulée.')
+      else set({ result: r })
     } catch (e) {
       toast.error(isMissingRoute(e) ? 'Le serveur Python tourne avec une ancienne version : arrête-le (Ctrl+C) puis relance ./run.sh.' : errMsg(e))
     } finally {
@@ -28,5 +34,23 @@ export const useProposalStore = create<ProposalStore>((set, get) => ({
     }
   },
 
-  dismiss: () => set({ result: null }),
+  cancel: async () => {
+    try {
+      await api.post('/api/manual/propose/cancel')
+    } catch (e) {
+      toast.error(isMissingRoute(e) ? 'Le serveur Python tourne avec une ancienne version : arrête-le (Ctrl+C) puis relance ./run.sh.' : errMsg(e))
+    }
+  },
+
+  restore: async () => {
+    try {
+      const { result } = await api.get<{ result: ProposalSet | null }>('/api/manual/propose')
+      if (result && !get().loading) set({ result })
+    } catch { /* simple confort : la demande manuelle reste possible */ }
+  },
+
+  dismiss: () => {
+    set({ result: null })
+    void api.del('/api/manual/propose').catch(() => undefined)
+  },
 }))

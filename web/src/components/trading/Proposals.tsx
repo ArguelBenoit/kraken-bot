@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Sparkles, X } from 'lucide-react'
+import { Accordion } from '@/components/ui/Accordion'
 import { Button } from '@/components/ui/Button'
 import { ModelPicker } from '@/components/ui/ModelPicker'
 import { Tip } from '@/components/ui/Tip'
@@ -40,11 +42,18 @@ function Preset({ p, onUse }: { p: TradeProposal; onUse: (p: TradeProposal) => v
 /** Bloc de propositions du ticket d'ordre : quelques trades à prendre maintenant. « Pré-remplir » copie le preset dans le ticket ; le montant reste à ton choix. */
 export function Proposals() {
   const status = useManualStore((s) => s.status)
-  const { result, loading } = useProposalStore()
-  const { ask, dismiss } = useProposalStore.getState()
+  const { result, loading: asking } = useProposalStore()
+  const { ask, cancel, dismiss, restore } = useProposalStore.getState()
+  const analyzing = asking || !!status?.analyzing
+
   const { setTicket, saveConfig } = useManualStore.getState()
   const config = status?.config
   const provider = status?.providers[config?.provider ?? '']
+
+  // au chargement de la page et à la fin d'une analyse (lancée avant un rechargement), on retrouve la proposition du serveur
+  useEffect(() => {
+    if (!analyzing) void restore()
+  }, [analyzing, restore])
 
   const use = (p: TradeProposal) => {
     setTicket({
@@ -54,30 +63,36 @@ export function Proposals() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  // en-tête de l'accordéon : titre et boutons ; un clic sur les boutons ne replie pas le bloc
+  const header = (
+    <span className={css.head}>
+      <span className={css.name}><Sparkles className="ic" />Propositions
+        <Tip text="Le modèle choisi regarde le marché en bougies de 4 h et propose des trades à prendre maintenant. Il ne passe aucun ordre et ne choisit pas le montant : « Pré-remplir » remplit seulement le ticket. Chaque demande est un appel au fournisseur (payant sauf modèle local). Le choix du modèle est mémorisé ; celui du Bot IA est indépendant." />
+      </span>
+      <span className={css.actions} onClick={(e) => e.preventDefault()}>
+        {result && <Button variant="sec" size="xs" title="Fermer les propositions" onClick={dismiss}><X className="ic m0" /></Button>}
+        {analyzing
+          ? <Button size="title" variant="sec" title="Interrompt l'analyse et coupe la connexion au modèle" onClick={() => void cancel()}>Annuler</Button>
+          : <Button size="title" disabled={status?.llm_ok === false} onClick={() => void ask()}>{result ? 'Redemander' : 'Demander'}</Button>}
+      </span>
+    </span>
+  )
+
   return (
     <div className={css.box}>
-      <div className={css.head}>
-        <span className={css.name}><Sparkles className="ic" />Propositions<Tip text="Le modèle choisi regarde le marché en bougies de 4 h et propose des trades à prendre maintenant. Il ne passe aucun ordre et ne choisit pas le montant : « Pré-remplir » remplit seulement le ticket. Chaque demande est un appel au fournisseur (payant sauf modèle local). Le choix du modèle est mémorisé ; celui du Bot IA est indépendant." /></span>
-        <span className={css.actions}>
-          {result && <Button variant="sec" size="xs" title="Fermer les propositions" onClick={dismiss}><X className="ic m0" /></Button>}
-          <Button size="title" disabled={loading || status?.llm_ok === false} onClick={() => void ask()}>
-            {loading ? 'Analyse…' : result ? 'Redemander' : 'Demander'}
-          </Button>
-        </span>
-      </div>
-      {status && config && (
-        <div className={css.model}>
-          <ModelPicker compact providers={status.providers} provider={config.provider} model={config.model}
-            onChange={(p, m) => void saveConfig({ provider: p, model: m })} />
-        </div>
-      )}
-      {!result && !loading && (
-        <div className="hint">
+      <Accordion id="trading-proposals" title={header}>
+        {analyzing && <div className="hint">Analyse en cours : le modèle étudie le marché, la réponse apparaîtra ici.</div>}
+        {status && config && (
+          <div className={css.model}>
+            <ModelPicker compact providers={status.providers} provider={config.provider} model={config.model}
+              onChange={(p, m) => void saveConfig({ provider: p, model: m })} />
+          </div>
+        )}
+        <div className={`hint ${css.explain}`}>
           Le modèle regarde le marché (bougies de 4 h) et propose quelques trades à prendre maintenant, avec leurs stops. Il ne passe aucun ordre
           et ne choisit pas le montant : tu pré-remplis le ticket, tu vérifies, tu valides.
           {status?.llm_ok === false && ` Clé ${provider?.env ?? ''} absente (.env) : ajoute-la puis relance le serveur.`}
         </div>
-      )}
       {result && (
         <>
           <div className={css.view}>{result.market_view}</div>
@@ -88,6 +103,7 @@ export function Proposals() {
           </div>
         </>
       )}
+      </Accordion>
     </div>
   )
 }

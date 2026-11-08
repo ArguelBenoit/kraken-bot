@@ -4,7 +4,7 @@ import os
 import requests
 
 from .cache import memo
-from .llm import LlmError
+from .transport import LlmError
 from .providers import PROVIDERS, base_url
 
 # Identifiants qui ne sont pas des modèles de conversation (embeddings, voix, images, modération…) : écartés de la liste.

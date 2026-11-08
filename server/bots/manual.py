@@ -16,6 +16,7 @@ from server import settings
 from server.core.journal import Journal
 from server.core.providers import key_set, public
 from server.core.storage import load_json, save_json
+from server.features import proposals
 from server.market.pairs import LABELS
 from server.market.prices import last_price
 from . import live, positions as pos
@@ -329,4 +330,4 @@ class ManualTrader:
                     "equity": s["cash"] + reserved + sum(v["equity_value"] for v in views), "shorts_allowed": self.shorts_allowed,
                     "positions": views, "pending": [{**o, "label": LABELS.get(o["pair"], o["pair"])} for o in s["pending"]],
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-60:][::-1], "logs": self.journal.recent(40),
-                    "live_ok": settings.kraken_configured(), "llm_ok": key_set(c["provider"]), "providers": public(), "quote": quote}
+                    "live_ok": settings.kraken_configured(), "llm_ok": key_set(c["provider"]), "analyzing": proposals.running(), "providers": public(), "quote": quote}

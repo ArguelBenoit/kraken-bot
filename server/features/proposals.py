@@ -8,7 +8,8 @@ import threading
 import time
 
 from server.bots import positions as pos
-from server.core.llm import LlmError, call_tool
+from server.core.llm import call_tool
+from server.core.transport import Cancel, LlmError
 from server.market.pairs import LABELS, WATCH
 from server.market.snapshot import market_snapshot
 
@@ -20,6 +21,8 @@ MIN_LEVERAGE = 2.0
 BOUNDS = {"sl_pct": (0.5, 10.0), "tp_pct": (FEES_ROUND_TRIP + 0.5, 25.0), "trail_pct": (0.5, 10.0), "limit_discount_pct": (0.3, 5.0)}
 _lock = threading.Lock()
 _last = 0.0
+_cancel = None                 # jeton de l'analyse en cours
+_result = None                  # dernière proposition, gardée pour la retrouver après un rechargement de la page
 
 
 class ProposalError(LlmError):
@@ -116,25 +119,52 @@ def sanitize(raw, prices, held, shorts_ok=False, max_leverage=3.0):
     return out
 
 
+def running():
+    """True tant qu'une analyse est en cours (visible par toutes les pages ouvertes, même rechargées)."""
+    return _lock.locked()
+
+
+def cancel():
+    """Interrompt l'analyse en cours (coupe la connexion au modèle) ; False s'il n'y en a pas."""
+    token = _cancel
+    if token:
+        token.trigger()
+    return token is not None
+
+
+def last_result():
+    """Dernière proposition du modèle, ou None."""
+    return _result
+
+
+def dismiss():
+    """Oublie la dernière proposition."""
+    global _result
+    _result = None
+
+
 def propose(manual, provider, model):
     """Demande au modèle des trades pour maintenant. `manual` = le trader manuel (positions déjà ouvertes ou en attente à exclure)."""
-    global _last
+    global _last, _result, _cancel
     if not _lock.acquire(blocking=False):
         raise ProposalError("Une analyse est déjà en cours.", 429)
     try:
         if time.time() - _last < COOLDOWN:
             raise ProposalError(f"Patiente quelques secondes entre deux demandes ({COOLDOWN:.0f} s).", 429)
+        _cancel = Cancel()
         held = sorted({p["pair"] for p in manual.state["positions"]} | {o["pair"] for o in manual.state["pending"]})
         market = [r for r in market_snapshot(TIMEFRAME, [p for p, _ in WATCH]) if "error" not in r]
         shorts_ok = manual.shorts_allowed
         max_lev = manual.config["max_leverage"]
         context = {"now": time.strftime("%Y-%m-%d %H:%M"), "bougies_min": TIMEFRAME, "paires_deja_detenues": held,
                    "shorts_autorises": shorts_ok, "levier_max": max_lev, "marche": market}
-        raw, _tokens = call_tool(provider, model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500)
+        raw, _tokens = call_tool(provider, model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500, cancel=_cancel)
         _last = time.time()
         prices = {r["pair"]: r["price"] for r in market}
         trades = sanitize(raw.get("trades"), prices, held, shorts_ok, max_lev)
-        return {"trades": trades, "provider": provider, "model": model, "market_view": str(raw.get("market_view", ""))[:400],
-                "no_edge": bool(raw.get("no_edge")) or not trades, "at": int(time.time())}
+        _result = {"trades": trades, "provider": provider, "model": model, "market_view": str(raw.get("market_view", ""))[:400],
+                   "no_edge": bool(raw.get("no_edge")) or not trades, "at": int(time.time())}
+        return _result
     finally:
+        _cancel = None
         _lock.release()

@@ -42,6 +42,8 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 | `DELETE /api/manual/pending/<id>` | Annule un ordre limite en attente. |
 | `POST /api/manual/reset` | Remet l'état à zéro. |
 | `POST /api/manual/propose` | Le modèle choisi (config manuelle) propose 0 à 4 presets de trade à prendre maintenant (paire, long ou short, levier, marché/limite, SL, TP, suiveur, justification). **Rien n'est exécuté** : l'interface pré-remplit le ticket. Un appel à la fois, 10 s entre deux demandes ; le montant n'est jamais proposé. |
+| `GET /api/manual/propose` | Dernière proposition gardée par le serveur (`result`, null si aucune) : retrouvée après un rechargement de la page. `DELETE` la ferme. |
+| `POST /api/manual/propose/cancel` | Interrompt l'analyse en cours (connexion au modèle coupée) ; la demande `POST /propose` répond alors `{cancelled: true}`. `analyzing` dans `/api/manual/status` indique une analyse en cours. |
 
 ## Tutoriel
 

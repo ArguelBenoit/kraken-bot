@@ -1,7 +1,7 @@
 """Routes du trading manuel. Tout ordre ou vente LIVE exige `confirm: true` dans la requête (filet de sécurité côté serveur)."""
 from flask import Blueprint, jsonify, request
 
-from server.core.llm import LlmError
+from server.core.transport import Cancelled, LlmError
 from server.features import proposals
 from server.services import ai, manual
 from .helpers import run
@@ -53,10 +53,31 @@ def reset():
     return run(manual.reset_paper)
 
 
+@bp.get("/propose")
+def last_proposal():
+    """Dernière proposition du modèle (null si aucune) : permet de la retrouver après un rechargement de la page."""
+    return jsonify(ok=True, result=proposals.last_result())
+
+
+@bp.post("/propose/cancel")
+def cancel_proposal():
+    """Interrompt l'analyse en cours (la connexion au modèle est coupée)."""
+    return jsonify(ok=True, cancelled=proposals.cancel())
+
+
+@bp.delete("/propose")
+def dismiss_proposal():
+    """Ferme la dernière proposition."""
+    proposals.dismiss()
+    return jsonify(ok=True)
+
+
 @bp.post("/propose")
 def propose():
     """Le modèle propose quelques trades à prendre maintenant. Ne passe aucun ordre : l'interface pré-remplit le ticket."""
     try:
         return jsonify(ok=True, **proposals.propose(manual, manual.config["provider"], manual.config["model"]))
+    except Cancelled:
+        return jsonify(ok=True, cancelled=True)
     except LlmError as e:
         return jsonify(ok=False, error=str(e)), e.status
