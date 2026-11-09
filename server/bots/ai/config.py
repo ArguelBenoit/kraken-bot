@@ -38,14 +38,15 @@ DEFAULT_CONFIG = {
     "max_exposure_pct": 60.0,        # % max du budget investi en même temps (None = illimité)
     "max_daily_loss_pct": 5.0,       # au-delà, plus aucune nouvelle ouverture jusqu'à demain (None = illimité)
     "max_calls_per_day": 100,        # plafond d'appels au modèle par jour (None = illimité, ex. modèle local)
+    "min_reward_risk": 1.5,          # gain/risque minimum TP ÷ SL d'une ouverture avec objectif (None = pas de minimum)
     "fee_pct": 0.26,                 # frais par ordre (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 5),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
-          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "fee_pct": (0, 2)}
-FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct")
-OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day")      # champ vide = aucune restriction (None)
+          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "fee_pct": (0, 2)}
+FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "fee_pct")
+OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day", "min_reward_risk")      # champ vide = aucune restriction (None)
 TIMEFRAMES = (15, 60, 240, 1440)
 
 

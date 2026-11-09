@@ -32,6 +32,9 @@ DECIDE_TOOL = {
 def _system(cfg):
     profile = PROFILES[cfg["aggressiveness"]]
     strategies = "\n".join(f"- {name}: {STRATEGIES[name]}" for name in cfg["strategies"])
+    ratio = cfg["min_reward_risk"]
+    ratio_rule = "" if ratio is None else (
+        f"- Avec un objectif, le rapport objectif ÷ stop loss doit valoir au moins {ratio:g} (ex. SL 3 % → TP ≥ {3 * ratio:g} %) : le code refuse l'ordre sinon.\n")
     text = (
         "Tu es le moteur de décision d'un bot de trading crypto spot sur Kraken (long uniquement, ordres au marché, "
         "paires contre stablecoin). Tu reçois un résumé chiffré du marché et l'état du portefeuille, et tu réponds "
@@ -42,6 +45,7 @@ def _system(cfg):
         f"- Maximum {cfg['max_positions']} positions simultanées, une seule par paire. Respecte `free_slots`.\n"
         "- Chaque `open` DOIT avoir un stop_loss_pct. Les frais font ≈0,5 % l'aller-retour : n'ouvre que si le gain visé "
         "dépasse nettement ce coût et que le rapport gain/risque est favorable.\n"
+        f"{ratio_rule}"
         "- `close` pour sortir si la thèse est invalidée ; `adjust` pour resserrer stop/stop suiveur (un stop ne s'éloigne JAMAIS : le code refuse de l'élargir ou de le retirer) ou changer l'objectif. Les stops/TP sont aussi "
         "surveillés automatiquement entre deux analyses.\n"
         "- Ne force jamais un trade : une liste d'actions vide est une réponse valide et souvent la bonne.\n"

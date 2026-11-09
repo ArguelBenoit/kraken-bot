@@ -23,6 +23,7 @@ export interface AiConfig {
   max_exposure_pct: number | null
   max_daily_loss_pct: number | null
   max_calls_per_day: number | null
+  min_reward_risk: number | null
   fee_pct: number
   notes: string
 }
