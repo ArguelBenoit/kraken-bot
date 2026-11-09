@@ -224,10 +224,11 @@ class AIBot:
             if kind == "close":
                 self._sell(position, last_price(pair, 0), "IA : " + str(action.get("reason", ""))[:120])
                 return result(True, "fermée")
-            guards.adjust(self.config, position, action)
+            refused = guards.adjust(self.config, position, action)
             if self.config["mode"] == "live":
                 live.protect(position, self.log, replace=True)           # le stop Kraken suit les nouveaux niveaux
-            return result(True, f"SL {position['sl']}% · TP {position['tp']}% · suiveur {position['trail']}%")
+            note = f"SL {position['sl']}% · TP {position['tp']}% · suiveur {position['trail']}%"
+            return result(True, note + "".join(f" · {r}" for r in refused))
         except Exception as e:
             return result(False, "erreur : " + str(e)[:150])
 

@@ -41,10 +41,24 @@ def vet_open(cfg, state, action):
 
 
 def adjust(cfg, position, action):
-    """Applique à `position` les nouveaux stop / objectif / suiveur proposés, bornés par le profil ; le stop reste toujours défini."""
+    """Applique à `position` les nouveaux niveaux proposés, bornés par le profil. Renvoie les refus (liste de textes, vide si tout est passé).
+
+    Un stop (loss ou suiveur) ne s'éloigne JAMAIS : il ne peut que se rapprocher du prix d'entrée / du plus haut, ou rester ; il ne peut ni être supprimé,
+    ni élargi. L'objectif (TP) n'est pas un risque : il se règle librement."""
     stop_max = PROFILES[cfg["aggressiveness"]]["sl_max"]
-    for key, field, ceiling in (("sl", "stop_loss_pct", stop_max), ("tp", "take_profit_pct", MAX_TP_PCT), ("trail", "trailing_pct", stop_max)):
-        if action.get(field) is not None:
-            position[key] = min(max(float(action[field]), 0), ceiling)
+    refused = []
+    for key, field, label in (("sl", "stop_loss_pct", "stop loss"), ("trail", "trailing_pct", "stop suiveur")):
+        if action.get(field) is None:
+            continue
+        new, old = min(max(float(action[field]), 0), stop_max), position.get(key) or 0
+        if key == "sl" and new > 0:
+            new = max(new, MIN_STOP_PCT)                    # pas de stop microscopique ; 0 = « supprimer » est refusé plus bas
+        if old and (new == 0 or new > old):
+            refused.append(f"{label} conservé à {old} % (un stop ne s'éloigne jamais)")
+        else:
+            position[key] = new
+    if action.get("take_profit_pct") is not None:
+        position["tp"] = min(max(float(action["take_profit_pct"]), 0), MAX_TP_PCT)
     if not position["sl"]:
-        position["sl"] = stop_max
+        position["sl"] = stop_max                           # position sans stop (ancien état) : on en impose un
+    return refused

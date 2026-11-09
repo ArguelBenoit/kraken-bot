@@ -42,7 +42,7 @@ def _system(cfg):
         f"- Maximum {cfg['max_positions']} positions simultanées, une seule par paire. Respecte `free_slots`.\n"
         "- Chaque `open` DOIT avoir un stop_loss_pct. Les frais font ≈0,5 % l'aller-retour : n'ouvre que si le gain visé "
         "dépasse nettement ce coût et que le rapport gain/risque est favorable.\n"
-        "- `close` pour sortir si la thèse est invalidée ; `adjust` pour resserrer stop/objectif. Les stops/TP sont aussi "
+        "- `close` pour sortir si la thèse est invalidée ; `adjust` pour resserrer stop/stop suiveur (un stop ne s'éloigne JAMAIS : le code refuse de l'élargir ou de le retirer) ou changer l'objectif. Les stops/TP sont aussi "
         "surveillés automatiquement entre deux analyses.\n"
         "- Ne force jamais un trade : une liste d'actions vide est une réponse valide et souvent la bonne.\n"
         "- Aucune garantie de gain n'existe ; sois honnête sur ta confiance (0 à 1). Le code rejettera les ordres hors règles."
