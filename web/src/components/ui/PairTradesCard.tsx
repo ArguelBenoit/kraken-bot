@@ -17,6 +17,7 @@ export function PairTradesCard({ trades }: { trades: PairTrade[] }) {
       {trades.length === 0 ? (
         <span className="t-mu">Aucun trade dans ce mode.</span>
       ) : (
+        <div className="scroll-list">
         <table>
           <thead><tr><th>Heure</th><th>Paire</th><th /><th>Prix</th><th>PnL</th><th>Raison</th></tr></thead>
           <tbody>
@@ -35,6 +36,7 @@ export function PairTradesCard({ trades }: { trades: PairTrade[] }) {
             })}
           </tbody>
         </table>
+        </div>
       )}
     </Card>
   )

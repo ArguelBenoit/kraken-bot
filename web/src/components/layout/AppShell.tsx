@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { Outlet } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ToastHost } from '@/components/ui/ToastHost'
 import { usePolling } from '@/hooks/usePolling'
 import { useActivityStore } from '@/stores/activityStore'
+import { useLearnStore } from '@/stores/learnStore'
 import css from './AppShell.module.css'
 import { Sidebar } from './Sidebar'
 
@@ -10,6 +12,7 @@ import { Sidebar } from './Sidebar'
 export function AppShell() {
   usePolling(useActivityStore((s) => s.refresh), 4000)
   usePolling(useActivityStore((s) => s.loadConnections), 60_000)
+  useEffect(() => { void useLearnStore.getState().load() }, [])     // l'avancement du tutoriel s'affiche dans le menu
   return (
     <div className={css.shell}>
       <Sidebar />

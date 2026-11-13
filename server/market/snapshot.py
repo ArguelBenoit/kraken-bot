@@ -14,7 +14,11 @@ def _round(value, digits):
 def _pair_snapshot(pair, tf):
     ticker = next(iter(kraken.public("Ticker", pair=pair).values()))
     price, open24 = float(ticker["c"][0]), float(ticker["o"])
-    candles = kraken.ohlc(pair, tf)[:-1]
+    return pair_row(pair, kraken.ohlc(pair, tf)[:-1], price, (price / open24 - 1) * 100)
+
+
+def pair_row(pair, candles, price, chg24h_pct):
+    """Indicateurs d'une paire à partir de ses bougies TERMINÉES (les plus récentes en dernier) et du prix du moment ; aucun accès réseau (le backtest du Bot IA l'utilise aussi)."""
     cl = [c[4] for c in candles]
     highs, lows = [c[2] for c in candles], [c[3] for c in candles]
     fast, slow = ema_series(cl, 20), ema_series(cl, 50)
@@ -22,7 +26,7 @@ def _pair_snapshot(pair, tf):
     prev_gap = (fast[-2] / slow[-2] - 1) * 100 if len(cl) > 2 and fast[-2] and slow[-2] else None
     recent = candles[-30:]
     return {
-        "pair": pair, "price": price, "chg24h_pct": round((price / open24 - 1) * 100, 2),
+        "pair": pair, "price": price, "chg24h_pct": round(chg24h_pct, 2),
         "rsi14": _round(rsi_last(cl, 14), 1),
         "ema20_vs_ema50_pct": _round(gap, 2), "ema_gap_prev_pct": _round(prev_gap, 2),
         "bollinger_pctB": _round(bollinger_pct_b(cl), 2),

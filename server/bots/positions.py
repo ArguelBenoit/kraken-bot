@@ -103,6 +103,15 @@ def open_short(size, price, leverage, fee_pct, margin_fee_pct):
             "open_fees": size * (fee_pct + margin_fee_pct) / 100}
 
 
+def open_fields(side, size, price, leverage, fee_pct, margin_fee_pct):
+    """Champs d'une position ouverte en PAPER pour `size` et cash à débiter : achat (`qty`, `cost`) ou short (`open_short`, `cost` = garantie)."""
+    if side == "short":
+        fields = open_short(size, price, leverage, fee_pct, margin_fee_pct)
+        fields["cost"] = fields["collateral"]
+        return fields, fields["collateral"] + fields["open_fees"]
+    return {"qty": size * (1 - fee_pct / 100) / price, "cost": size}, size
+
+
 def scale(p, fraction):
     """Retire `fraction` de la position (vente partielle), proportionnellement, sur tous ses montants."""
     keep = 1 - fraction

@@ -10,4 +10,5 @@ web/node_modules/
 web/dist/
 manual_state.json
 manual_config.json
+ai_backtests.json
 learn_state.json

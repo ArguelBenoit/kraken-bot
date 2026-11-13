@@ -21,7 +21,8 @@ Lancé par `python -m server` (voir `__main__.py`). Découpé par fonction :
 | `services.py` | Le Bot IA et le trader manuel, instanciés une seule fois et partagés par les routes. |
 | `core/` | Utilitaires transverses : `storage` (JSON atomique), `journal` (derniers événements), `cache` (mémoïsation courte), `llm` (appel d'un modèle avec un outil : formats Anthropic, compatible OpenAI et Ollama local) , `models` (liste des modèles d'un fournisseur) et `providers` (fournisseurs, clés, modèles d'exemple), `limits` (bornes). |
 | `market/` | `kraken` (client), `indicators` (EMA, RSI), `strategies` (signaux des 6 méthodes, pour le backtest), `pairs` (paires suivies), `prices` (dernier prix en cache), `scan` (tableau Marché), `chart` (bougies + RSI + repères des trades), `snapshot` (résumé chiffré envoyé à Claude). |
-| `bots/ai/` | `config`, `prompt` (outil `decide` + prompt), `guards` (garde-fous, fonctions pures), `bot`. |
+| `bots/ai/` | `config`, `prompt` (outil `decide` + prompt), `guards` (garde-fous, fonctions pures), `account` (construction d'une position), `bot`. |
+| `backtest_ai/` | Backtest du Bot IA : `data` (bougies), `engine` (rejeu : analyse du modèle, garde-fous réels, stops sur les bougies), `stats`, `runner` (un essai à la fois, historique). |
 | `bots/manual.py` | Trading manuel (page d'accueil) : ordres long ou short, marché / limite, stops par position, surveillance. |
 | `bots/live.py` | Exécution LIVE du Trading : ordres au marché avec exécution réelle, stop posé chez Kraken, suivi et pose de remplacement. Jamais exécuté en réel. |
 | `bots/positions.py` | Calculs purs d'une position selon son sens (stops, liquidation, gains, frais de report) : voir [SHORT](SHORT.md). |

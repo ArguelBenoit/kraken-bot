@@ -7,7 +7,7 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 
 | Route | Rôle |
 |---|---|
-| `GET /api/activity` | Bot IA et trading manuel : positions ouvertes, ordres en attente, combien en gain / en perte (pastilles du menu, sondé toutes les 4 s). |
+| `GET /api/activity` | Bot IA, backtest (en cours ?) et trading manuel : positions ouvertes, ordres en attente, combien en gain / en perte (pastilles du menu, sondé toutes les 4 s). |
 | `GET /api/models/<fournisseur>` | Modèles utilisables avec la clé du fournisseur (API `/models`, mémorisée 10 min, modèles non conversationnels écartés). Sans clé ou en échec : quelques exemples, `source: "examples"` et `notice`. |
 | `GET /api/connections` | Pour chaque variable d'environnement (clés des fournisseurs de modèles, `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`) : `set` vrai/faux. **Jamais la valeur.** |
 
@@ -29,6 +29,18 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 | `POST /api/ai/liquidate` | Ferme toutes les positions. |
 | `POST /api/ai/close-<id>` | Ferme une position. |
 | `POST /api/ai/reset` | Remet l'état à zéro. |
+
+## Backtest du Bot IA (page annexe `/backtest`, accessible depuis le bloc « Contrôles » du Bot IA)
+
+Rejoue le modèle et les garde-fous du Bot IA sur les 720 dernières bougies Kraken ; paper uniquement, aucun ordre, l'état du vrai bot n'est jamais touché. Un seul essai à la fois ; les 15 derniers sont gardés dans `ai_backtests.json`.
+
+| Route | Rôle |
+|---|---|
+| `GET /api/backtest/status` | Essai courant (progression, courbe d'équité, trades, décisions, statistiques), liste résumée des essais gardés, options du formulaire (fournisseurs, paires, durée max par bougie, valeurs du Bot IA). |
+| `POST /api/backtest/start` | Lance un essai : `provider`, `model`, `pairs`, `timeframe`, `days`, `interval_min`, `aggressiveness`, `allow_short`, `min_reward_risk`, `max_calls` (facultatif). Le reste vient des réglages enregistrés du Bot IA. |
+| `POST /api/backtest/pause` · `POST /api/backtest/resume` | Met en pause entre deux bougies (l'appel au modèle en cours se termine) ; reprend. Statut `paused`. |
+| `POST /api/backtest/cancel` | Annule l'essai en cours (coupe aussi l'appel au modèle). |
+| `GET /api/backtest/<id>` · `DELETE /api/backtest/<id>` | Un essai complet ; suppression d'un essai gardé. |
 
 ## Trading manuel
 

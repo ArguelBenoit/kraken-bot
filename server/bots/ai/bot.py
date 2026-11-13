@@ -8,7 +8,6 @@ Le modèle peut aussi ouvrir des **shorts** (vente à découvert en marge, calcu
 """
 import threading
 import time
-import uuid
 from datetime import datetime
 
 from server import settings
@@ -23,6 +22,7 @@ from server.market.snapshot import market_snapshot
 from server.bots import live, positions as pos
 from . import config as cfgmod
 from . import guards, prompt
+from .account import make_position
 
 CONFIG_FILE, STATE_FILE = settings.data_file("ai_config.json"), settings.data_file("ai_state.json")
 MAX_ACTIONS = 10             # actions traitées par analyse
@@ -239,27 +239,19 @@ class AIBot:
         size, short, leverage = params["size"], params["side"] == "short", params["leverage"]
         price = last_price(pair, 0)
         fill = None
-        if short:
-            fields = pos.open_short(size, price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT)
-            if c["mode"] == "paper":
-                s["cash"] -= fields["collateral"] + fields["open_fees"]
-            else:
-                fill = live.enter(pair, "short", size / price, leverage)             # prix et volume RÉELS de l'exécution
-                price = fill["price"] or price
-                fields = {**pos.open_short(fill["cost"], price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT), "qty": fill["volume"],
-                          "open_fees": fill["fee"]}
+        if c["mode"] == "paper":
+            fields, needed = pos.open_fields(params["side"], size, price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT)
+            s["cash"] -= needed
+        elif short:
+            fill = live.enter(pair, "short", size / price, leverage)             # prix et volume RÉELS de l'exécution
+            price = fill["price"] or price
+            fields = {**pos.open_short(fill["cost"], price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT), "qty": fill["volume"], "open_fees": fill["fee"]}
             fields["cost"] = fields["collateral"]
-        elif c["mode"] == "paper":
-            s["cash"] -= size
-            fields = {"qty": size * (1 - c["fee_pct"] / 100) / price, "cost": size}
         else:
             fill = live.enter(pair, "long", size / price, 1.0)
             price = fill["price"] or price
             fields = {"qty": fill["volume"], "cost": fill["cost"] + fill["fee"]}
-        position = {"id": uuid.uuid4().hex[:8], "pair": pair, "side": params["side"], "leverage": leverage, "strategy": params["strategy"],
-                    "entry": price, "peak": price, "sl": params["sl"], "tp": params["tp"], "trail": params["trail"],
-                    "reason": params["reason"], "conf": params["conf"], "ts": int(time.time()),
-                    "opened": datetime.now().strftime("%d/%m %H:%M"), **fields}
+        position = make_position(pair, params, price, fields, int(time.time()), datetime.now().strftime("%d/%m %H:%M"))
         s["positions"].append(position)
         self._record("open", position, price, 0, params["reason"])
         if c["mode"] == "live":

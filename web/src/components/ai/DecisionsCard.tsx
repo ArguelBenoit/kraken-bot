@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import { Bot } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
 import type { AiDecision } from '@/lib/types'
@@ -8,6 +9,7 @@ export function DecisionsCard({ decisions }: { decisions: AiDecision[] }) {
   return (
     <Card title="Décisions du modèle" icon={Bot}>
       {decisions.length === 0 && <span className="t-mu">Aucune analyse pour l&apos;instant.</span>}
+      <div className="scroll-list" style={{ '--scroll-h': '460px' } as CSSProperties}>
       {decisions.map((d, i) => (
         <div className={css.decision} key={`${d.time}-${i}`}>
           <div className={css.time}>{d.time} · {d.mode}</div>
@@ -26,6 +28,7 @@ export function DecisionsCard({ decisions }: { decisions: AiDecision[] }) {
           )}
         </div>
       ))}
+      </div>
     </Card>
   )
 }

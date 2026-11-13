@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/Button'
 import { Accordion } from '@/components/ui/Accordion'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
+import { NumberInput as NumberInputField } from '@/components/ui/NumberInput'
 import { ModelPicker } from '@/components/ui/ModelPicker'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
@@ -15,11 +16,7 @@ import { AiWarnings } from './AiWarnings'
 function NumberInput({ def }: { def: NumberField }) {
   const value = useAiStore((s) => s.draft?.[def.name])
   const setField = useAiStore((s) => s.setField)
-  return (
-    <Field label={def.label} tip={def.tip}>
-      <input type="number" step={def.step ?? 'any'} min={def.min} max={def.max} placeholder={def.empty} value={value ?? ''} onChange={(e) => setField(def.name, e.target.value)} />
-    </Field>
-  )
+  return <NumberInputField def={def} value={value} onChange={(v) => setField(def.name, v)} />
 }
 
 /** Réglages du Bot IA : modèle, agressivité, limites, stratégies et paires autorisées ; contrôles du bot en dessous. */

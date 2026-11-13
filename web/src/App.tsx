@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/layout/AppShell'
 import { AiPage } from '@/pages/AiPage'
+import { BacktestPage } from '@/pages/BacktestPage'
 import { LearnPage } from '@/pages/LearnPage'
 import { TradingPage } from '@/pages/TradingPage'
 
@@ -11,6 +12,7 @@ export function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<TradingPage />} />
         <Route path="/ai" element={<AiPage />} />
+        <Route path="/backtest" element={<BacktestPage />} />
         <Route path="/learn" element={<LearnPage />} />
         <Route path="/learn/:id" element={<LearnPage />} />
         <Route path="/learn/:id/:step" element={<LearnPage />} />

@@ -64,7 +64,7 @@ def _system(cfg):
     return text
 
 
-def _context(cfg, state, price_of, market):
+def _context(cfg, state, price_of, market, now):
     positions = []
     for p in state["positions"]:
         px = price_of(p)
@@ -73,8 +73,8 @@ def _context(cfg, state, price_of, market):
                           "strategy": p["strategy"], "entry": p["entry"], "price": px,
                           "pnl_pct": round(pos.favorable_pct(p, px), 2), "stop_loss_pct": p["sl"],
                           "take_profit_pct": p["tp"], "trailing_pct": p["trail"],
-                          "age_h": round((time.time() - p["ts"]) / 3600, 1), "opened_reason": p["reason"]})
-    return {"now": datetime.now().strftime("%Y-%m-%d %H:%M"), "timeframe_min": cfg["timeframe"], "open_positions": positions,
+                          "age_h": round((now - p["ts"]) / 3600, 1), "opened_reason": p["reason"]})
+    return {"now": datetime.fromtimestamp(now).strftime("%Y-%m-%d %H:%M"), "timeframe_min": cfg["timeframe"], "open_positions": positions,
             "free_slots": cfg["max_positions"] - len(positions),
             "cash_available": round(state["cash"], 2) if cfg["mode"] == "paper" else None,
             "base_order_size": cfg["order_size"], "fee_pct_per_order": cfg["fee_pct"],
@@ -82,6 +82,6 @@ def _context(cfg, state, price_of, market):
             "day_pnl": round(state["day_pnl"], 2), "market": market}
 
 
-def build(cfg, state, price_of, market):
-    """(prompt système, message utilisateur JSON) pour un cycle d'analyse. `price_of(position)` donne le prix actuel."""
-    return _system(cfg), json.dumps(_context(cfg, state, price_of, market), ensure_ascii=False)
+def build(cfg, state, price_of, market, now=None):
+    """(prompt système, message utilisateur JSON) pour un cycle d'analyse. `price_of(position)` donne le prix actuel ; `now` = instant simulé (secondes, backtest), sinon l'heure réelle."""
+    return _system(cfg), json.dumps(_context(cfg, state, price_of, market, now or time.time()), ensure_ascii=False)

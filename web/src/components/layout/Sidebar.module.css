@@ -22,3 +22,8 @@
   width: 320px; padding: 11px 13px; background: #000; border: 1px solid var(--ac); color: var(--tx);
   font: 400 13px/1.5 var(--mono); text-transform: none; letter-spacing: 0; white-space: pre-line; box-shadow: 0 8px 24px #000c;
 }
+
+/* Pastilles des pages annexes : avancement du tutoriel et backtest en cours. */
+.count { margin-left: auto; font-size: 0.9em; color: var(--mu); }
+.running { margin-left: auto; color: var(--ok); font-size: 1.1em; }
+.paused { margin-left: auto; color: #ff8a00; font-size: 1.1em; }

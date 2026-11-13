@@ -1,4 +1,4 @@
-import { Bot, Crosshair, GraduationCap, type LucideIcon } from 'lucide-react'
+import { Bot, Crosshair, FlaskConical, GraduationCap, type LucideIcon } from 'lucide-react'
 
 interface NavItem {
   to: string
@@ -8,9 +8,11 @@ interface NavItem {
   tip: string
   /** Entrée qui gère des positions : affiche en bout de ligne « ordre ouvert » et « bot en marche ». */
   activity?: 'ai' | 'manual'
+  /** Pastille d'état d'une page annexe : avancement du tutoriel (x/x) ou backtest en cours. */
+  badge?: 'learn' | 'backtest'
 }
 
-/** Groupes du menu : ajouter une page = une entrée ici + une route dans App.tsx. « Apprendre » est volontairement à part. */
+/** Groupes du menu : ajouter une page = une entrée ici + une route dans App.tsx. « Autres » regroupe les pages annexes. */
 export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Trading',
@@ -26,11 +28,15 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
     ],
   },
   {
-    label: 'Apprendre',
+    label: 'Autres',
     items: [
       {
-        to: '/learn', label: 'Tutoriel', icon: GraduationCap,
+        to: '/learn', label: 'Tutoriel', icon: GraduationCap, badge: 'learn',
         tip: "Apprendre le trading pas à pas, sans risque : leçons simples, glossaire, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves à valider, une par méthode. 100 % paper : aucun ordre réel.",
+      },
+      {
+        to: '/backtest', label: 'Backtest IA', icon: FlaskConical, badge: 'backtest',
+        tip: "Rejoue le Bot IA sur des bougies passées (vrai prompt, vrais garde-fous), en accéléré et sans ordre : pour comparer des réglages ou un modèle avant de les activer.",
       },
     ],
   },

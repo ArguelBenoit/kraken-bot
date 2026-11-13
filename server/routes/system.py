@@ -6,7 +6,7 @@ from server.core.transport import LlmError
 from server.core.models import list_models
 from server.core.providers import PROVIDERS, connected
 from server.market.prices import try_last_price
-from server.services import ai, manual
+from server.services import ai, backtest, manual
 
 bp = Blueprint("system", __name__, url_prefix="/api")
 
@@ -26,11 +26,12 @@ def _tally(positions):
 
 @bp.get("/activity")
 def activity():
-    """Bot IA (tourne ? positions) et trading manuel (positions, ordres en attente) : combien sont en gain / en perte."""
+    """Bot IA (tourne ? positions), backtest (en cours ?) et trading manuel (positions, ordres en attente) : combien sont en gain / en perte."""
     ai_positions = [(p["pair"], p["entry"], False) for p in list(ai.state["positions"])]
     manual_positions = [(p["pair"], p["entry"], p.get("side") == "short") for p in list(manual.state["positions"])]
     return jsonify(
         ai={"running": ai.running, "positions": len(ai_positions), **_tally(ai_positions)},
+        backtest={"running": backtest.running(), "paused": backtest.paused()},
         manual={"positions": len(manual_positions), "pending": len(manual.state["pending"]), **_tally(manual_positions)},
     )
 

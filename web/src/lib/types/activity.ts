@@ -2,6 +2,8 @@
 export interface Activity {
   /** gain / loss : nombre de positions ouvertes en gain / en perte au prix actuel. */
   ai: { running: boolean; positions: number; gain: number; loss: number }
+  /** Absent si le serveur Python est une ancienne version. */
+  backtest?: { running: boolean; paused: boolean }
   manual: { positions: number; pending: number; gain: number; loss: number }
 }
 

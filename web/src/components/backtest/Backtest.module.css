@@ -1,0 +1,9 @@
+.bar { height: 8px; background: var(--card); border: 1px solid var(--bd); margin: 8px 0; }
+.fill { height: 100%; background: var(--ac); transition: width 0.4s; }
+.sub { color: var(--mu); font-size: 11px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.tab { display: flex; align-items: center; border: 1px solid var(--bd); background: var(--card); font-size: 12px; }
+.tab button { all: unset; cursor: pointer; padding: 5px 9px; }
+.tab button:hover { color: var(--ac); }
+.tab .x { padding: 5px 6px 5px 0; color: var(--mu); }
+.on { border-color: var(--ac); }
