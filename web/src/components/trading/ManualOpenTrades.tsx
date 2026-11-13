@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { OpenTradeCard } from '@/components/trade/OpenTradeCard'
 import { Button } from '@/components/ui/Button'
 import { fm, fmPrice } from '@/lib/format'
-import { manualTradeInput } from '@/lib/trade'
+import { positionTradeInput } from '@/lib/trade'
 import type { ManualPosition } from '@/lib/types'
 import { useManualStore } from '@/stores/manualStore'
 import { confirmAction } from '@/stores/uiStore'
@@ -48,7 +48,7 @@ function ManualTrade({ p, feePct, live }: { p: ManualPosition; feePct: number; l
   return (
     <OpenTradeCard
       pair={short ? `${p.label} · SHORT ×${p.leverage}` : p.label}
-      input={manualTradeInput(p, feePct)}
+      input={positionTradeInput(p, feePct)}
       details={[
         ['Ouvert le', p.opened],
         short ? ['Levier', `×${p.leverage}`] : null,

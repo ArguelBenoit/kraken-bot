@@ -6,7 +6,7 @@ import { Field } from '@/components/ui/Field'
 import { ModelPicker } from '@/components/ui/ModelPicker'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
-import { LIMIT_FIELDS, PARALLEL_FIELD, type NumberField } from '@/lib/aiForm'
+import { LIMIT_FIELDS, PARALLEL_FIELD, SHORT_FIELD, type NumberField } from '@/lib/aiForm'
 import type { Aggressiveness } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { AiControls } from './AiControls'
@@ -35,7 +35,7 @@ export function AiSettingsCard() {
 
   return (
     <Card title="Réglages IA" icon={Settings}>
-      <AiWarnings keyOk={key_ok} keyEnv={provider?.env ?? ''} live={status.config.mode === 'live'} liveOk={live_ok} creditLow={credit_low} />
+      <AiWarnings keyOk={key_ok} keyEnv={provider?.env ?? ''} live={status.config.mode === 'live'} shorts={status.config.allow_short} liveOk={live_ok} creditLow={credit_low} />
 
       <form onSubmit={(e) => { e.preventDefault(); void save() }}>
         <ModelPicker providers={options.providers} provider={draft.provider} model={draft.model}
@@ -56,6 +56,16 @@ export function AiSettingsCard() {
           </select>
         </Field>
         {LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
+
+        <label className="check">
+          <input type="checkbox" checked={draft.allow_short} onChange={(e) => setField('allow_short', e.target.checked)} />
+          <span>
+            <b>Autoriser les shorts</b>
+            <Tip text="En plus des achats (qui restent possibles), le modèle peut parier sur la baisse (vente à découvert en marge, avec levier), en paper comme en live. Décochée, il ne fait que des achats. Risque : la perte peut dépasser la mise et la position peut être liquidée si le prix monte ; frais de report toutes les 4 h. Le code impose un stop loss, un levier borné, une confiance plus élevée que pour un achat. En LIVE, la marge Kraken n'a jamais été validée : lance d'abord `python -m server.check_kraken`. Désactivé par défaut." />
+            <br /><small>Marge Kraken jamais validée : à tes risques en live.</small>
+          </span>
+        </label>
+        {draft.allow_short && <NumberInput def={SHORT_FIELD} />}
 
 
         <Accordion id="ai-strategies" title={<>Stratégies autorisées<Tip text="Les approches que le modèle a le droit d'utiliser pour ouvrir un trade. Décoche celles que tu ne veux pas ; il en faut au moins une." /></>}>

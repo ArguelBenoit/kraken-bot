@@ -3,7 +3,7 @@
 /** Réglages numériques : saisis comme du texte dans le formulaire, convertis en nombres à l'envoi. */
 export const AI_NUMERIC_KEYS = [
   'timeframe', 'interval_min', 'check_every', 'max_positions', 'order_size', 'budget', 'max_exposure_pct',
-  'max_daily_loss_pct', 'max_calls_per_day', 'min_reward_risk', 'fee_pct',
+  'max_daily_loss_pct', 'max_calls_per_day', 'min_reward_risk', 'max_leverage', 'fee_pct',
 ] as const
 export type AiNumericKey = (typeof AI_NUMERIC_KEYS)[number]
 
@@ -44,3 +44,7 @@ export const LIMIT_FIELDS: NumberField[] = [
   { name: 'fee_pct', label: 'Frais / ordre (%)', empty: '0',
     tip: "Frais Kraken estimés par ordre (0,26 % en taker), soit environ 0,5 % l'aller-retour. Sert au calcul du PnL. Vide = 0." },
 ]
+
+/** Levier maximum d'un short (affiché sous la case « Autoriser les shorts »). */
+export const SHORT_FIELD: NumberField = { name: 'max_leverage', label: 'Levier max (short)', step: '0.5', min: 2, max: 5,
+  tip: "Levier maximum que le modèle peut choisir pour un short (2 à 5). Plus bas = plus sûr : la liquidation estimée est à +0,8 ÷ levier (+40 % à ×2, +16 % à ×5)." }

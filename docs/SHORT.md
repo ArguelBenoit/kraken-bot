@@ -43,7 +43,9 @@ En live, le **stop loss d'un short est posé chez Kraken** (ordre `stop-loss` de
 ## Claude et le short
 
 Les propositions de la page Trading peuvent contenir des shorts, **uniquement si les shorts sont autorisés** dans le mode courant (paper, ou live avec l'option). Le code borne le levier, impose le stop loss et
-le garde bien en dessous de la liquidation. Le Bot IA reste **long uniquement**.
+le garde bien en dessous de la liquidation. Le **Bot IA** peut aussi shorter, mais seulement si la case « Autoriser les shorts » de ses réglages est cochée (désactivée par défaut ; elle vaut pour le paper et le live, avec un avertissement en live).
+Le code (`bots/ai/guards.py`) borne le levier (`max_leverage`, 2 à 5), exige un stop loss sous la liquidation, une confiance supérieure de 0,1 à celle d'un achat, un objectif ≤ −95 % et applique le gain/risque minimum ;
+comme pour un long, un stop ne s'éloigne jamais. Le cash paper, l'exposition max (calculée sur le montant vendu) et les frais de report suivent les mêmes règles que le Trading manuel.
 
 ## Tutoriel
 

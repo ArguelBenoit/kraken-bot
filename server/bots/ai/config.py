@@ -1,4 +1,5 @@
 """Réglages du Bot IA : valeurs par défaut, bornes, profils d'agressivité et validation."""
+from server.bots.manual_config import DEFAULT_CONFIG as MANUAL_DEFAULTS, MIN_LEVERAGE
 from server.core.limits import check_limits
 from server.core.providers import DEFAULT_MODEL, DEFAULT_PROVIDER, check_choice
 from server.market.pairs import LABELS, WATCH
@@ -22,6 +23,9 @@ PROFILES = {
                  "desc": "opportuniste, accepte des signaux plus incertains et des positions plus grosses, stops plus larges"},
 }
 
+# Frais de marge d'un short (mêmes estimations que le Trading manuel).
+MARGIN_FEE_PCT, ROLLOVER_PCT = MANUAL_DEFAULTS["margin_fee_pct"], MANUAL_DEFAULTS["rollover_pct"]
+
 DEFAULT_CONFIG = {
     "mode": "paper",                 # paper | live
     "provider": DEFAULT_PROVIDER,    # fournisseur du modèle (voir core/providers.py)
@@ -38,14 +42,16 @@ DEFAULT_CONFIG = {
     "max_exposure_pct": 60.0,        # % max du budget investi en même temps (None = illimité)
     "max_daily_loss_pct": 5.0,       # au-delà, plus aucune nouvelle ouverture jusqu'à demain (None = illimité)
     "max_calls_per_day": 100,        # plafond d'appels au modèle par jour (None = illimité, ex. modèle local)
+    "allow_short": False,            # le modèle peut-il ouvrir des shorts (vente à découvert en marge, paper et live) ? Désactivé par défaut
+    "max_leverage": MIN_LEVERAGE,    # levier maximum d'un short (2 à 5)
     "min_reward_risk": 1.5,          # gain/risque minimum TP ÷ SL d'une ouverture avec objectif (None = pas de minimum)
     "fee_pct": 0.26,                 # frais par ordre (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 5),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
-          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "fee_pct": (0, 2)}
-FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "fee_pct")
+          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2)}
+FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct")
 OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day", "min_reward_risk")      # champ vide = aucune restriction (None)
 TIMEFRAMES = (15, 60, 240, 1440)
 
@@ -65,6 +71,9 @@ def validate(current, new, busy):
     for key in OPTIONAL_KEYS:
         if cfg[key] in (None, ""):
             cfg[key] = None
+    cfg["allow_short"] = bool(cfg["allow_short"])
+    if cfg["max_leverage"] in (None, ""):
+        cfg["max_leverage"] = MIN_LEVERAGE
     if cfg["fee_pct"] in (None, ""):
         cfg["fee_pct"] = 0.0
     for key in LIMITS:

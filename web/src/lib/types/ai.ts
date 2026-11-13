@@ -1,4 +1,5 @@
 /** Types du Bot IA. */
+import type { ManualPosition, Side } from './manual'
 import type { Mode } from './market'
 
 /** Fournisseurs de modèles proposés par le serveur : libellé, modèles d'exemple, variable de la clé et clé définie ou non. */
@@ -23,37 +24,29 @@ export interface AiConfig {
   max_exposure_pct: number | null
   max_daily_loss_pct: number | null
   max_calls_per_day: number | null
+  /** Shorts autorisés (paper et live) ; désactivés par défaut. */
+  allow_short: boolean
+  /** Levier maximum d'un short (2 à 5). */
+  max_leverage: number
   min_reward_risk: number | null
   fee_pct: number
   notes: string
 }
 
-export interface AiPosition {
-  id: string
-  pair: string
-  label: string
+/** Position du Bot IA : mêmes champs de sens, de stops en prix et de liquidation que le Trading manuel (long ou short), plus la stratégie et la raison du modèle. */
+export interface AiPosition extends Omit<ManualPosition, 'value'> {
   strategy: string
-  qty: number
-  entry: number
-  cost: number
-  price: number
-  pnl_pct: number
-  pnl: number
-  sl: number
-  tp: number
-  trail: number
-  peak?: number
-  /** Live : un stop est posé chez Kraken pour cette position ? null en paper. */
-  exchange_stop: boolean | null
   conf: number
   reason: string
-  opened: string
 }
 
 interface AiTrade {
   time: string
   mode: Mode
   side: 'BUY' | 'SELL'
+  /** Sens de la position et nature de l'ordre (absents des anciens trades : long). */
+  dir?: Side
+  kind?: 'open' | 'close'
   pair: string
   strategy: string
   price: number

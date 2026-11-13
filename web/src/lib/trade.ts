@@ -98,29 +98,16 @@ export function computeOpenTrade(i: OpenTradeInput): OpenTradeView | null {
 
 // ---------- adaptateurs : chaque bot décrit sa position avec ses propres champs ----------
 
-const maxOrNull = (a: number | null, b: number | null) => (a == null ? b : b == null ? a : Math.max(a, b))
-
 /** Stop effectif = le plus protecteur : le plus haut des deux pour un long, le plus bas pour un short. */
 const nearest = (a: number | null, b: number | null, short: boolean) =>
   a == null ? b : b == null ? a : short ? Math.min(a, b) : Math.max(a, b)
 
-/** Trading manuel : long ou short ; pour un short, frais fixes = ouverture (déjà payés) + report cumulé. */
-export function manualTradeInput(p: ManualPosition, feePct: number): OpenTradeInput {
+/** Position du Trading manuel ou du Bot IA (long ou short) ; pour un short, frais fixes = ouverture (déjà payés) + report cumulé. */
+export function positionTradeInput(p: ManualPosition | AiPosition, feePct: number): OpenTradeInput {
   const short = p.side === 'short'
   return {
     side: p.side, entry: p.entry, qty: p.qty, price: p.price, cost: short ? p.notional : p.cost, peak: p.peak, feePct,
     fixedFees: short ? (p.open_fees ?? 0) + p.rollover : 0,
     stopPrice: nearest(p.sl_price, p.trail_price, short), tpPrice: p.tp_price,
-  }
-}
-
-/** Bot IA : stops en % de l'entrée (suiveur depuis le pic). */
-export function aiTradeInput(p: AiPosition, feePct: number): OpenTradeInput {
-  const peak = Math.max(p.peak ?? p.entry, p.price)
-  const sl = p.sl > 0 ? p.entry * (1 - p.sl / 100) : null
-  const trail = p.trail > 0 ? peak * (1 - p.trail / 100) : null
-  return {
-    entry: p.entry, qty: p.qty, price: p.price, cost: p.cost, peak, feePct,
-    stopPrice: maxOrNull(sl, trail), tpPrice: p.tp > 0 ? p.entry * (1 + p.tp / 100) : null,
   }
 }

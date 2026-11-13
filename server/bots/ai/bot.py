@@ -3,7 +3,8 @@
 Le modèle ne fait que PROPOSER (outil `decide`). Les garde-fous (guards.py) sont appliqués par le code ; les stops et objectifs sont
 surveillés localement toutes les `check_every` secondes en paper. En **live**, comme pour le trading manuel, le stop loss (ou à défaut
 le stop suiveur) est posé CHEZ KRAKEN (`bots/live.py`) : il protège la position même si ce programme s'arrête ; l'objectif et, quand il y a
-un stop loss, le stop suiveur restent surveillés ici. Jamais exécuté sur un compte réel. Le Bot IA est long uniquement.
+un stop loss, le stop suiveur restent surveillés ici. Jamais exécuté sur un compte réel.
+Le modèle peut aussi ouvrir des **shorts** (vente à découvert en marge, calculs de `bots/positions.py`) si l'option `allow_short` est cochée (désactivée par défaut) : le short live n'a jamais été validé chez Kraken.
 """
 import threading
 import time
@@ -16,7 +17,6 @@ from server.core.transport import CreditError, LlmError
 from server.core.providers import key_set, public
 from server.core.journal import Journal
 from server.core.storage import load_json, save_json
-from server.market import kraken
 from server.market.pairs import LABELS, WATCH
 from server.market.prices import last_price, try_last_price
 from server.market.snapshot import market_snapshot
@@ -145,13 +145,13 @@ class AIBot:
             except Exception as e:
                 self.log(f"Prix {p['pair']} indisponible: {e}")
                 continue
-            if self.config["mode"] == "live" and live.reconcile(p, lambda fill: self._sell(p, price, "stop déclenché chez Kraken", settled=fill), self.log):
+            if self.config["mode"] == "live" and live.reconcile(p, lambda fill: self._close(p, price, "stop déclenché chez Kraken", settled=fill), self.log):
                 continue
             p["peak"] = pos.best_price(p, price)
             why = pos.trigger_reason(p, price, p.get("stop_kind") if self.config["mode"] == "live" else None)
             if why:
                 try:
-                    self._sell(p, price, why)
+                    self._close(p, price, why)
                 except Exception as e:
                     self.log(f"Fermeture automatique impossible ({p['pair']}) : {e}")
         self._save()
@@ -215,14 +215,15 @@ class AIBot:
                 params, refusal = guards.vet_open(self.config, self.state, action)
                 if refusal:
                     return result(False, refusal)
-                self._buy(pair, params)
-                return result(True, f"ouverte {params['size']:.0f} (SL {params['sl']}%)")
+                self._open(pair, params)
+                kind_txt = f"SHORT ×{params['leverage']:g} " if params["side"] == "short" else ""
+                return result(True, f"{kind_txt}ouverte {params['size']:.0f} (SL {params['sl']}%)")
             if kind not in ("close", "adjust"):
                 return result(False, "type inconnu")
             if not position:
                 return result(False, "aucune position sur cette paire")
             if kind == "close":
-                self._sell(position, last_price(pair, 0), "IA : " + str(action.get("reason", ""))[:120])
+                self._close(position, last_price(pair, 0), "IA : " + str(action.get("reason", ""))[:120])
                 return result(True, "fermée")
             refused = guards.adjust(self.config, position, action)
             if self.config["mode"] == "live":
@@ -232,81 +233,104 @@ class AIBot:
         except Exception as e:
             return result(False, "erreur : " + str(e)[:150])
 
-    def _buy(self, pair, params):
+    def _open(self, pair, params):
+        """Ouvre la position contrôlée par `guards.vet_open` : achat (long) ou vente à découvert en marge (short), en paper ou en live."""
         c, s = self.config, self.state
-        size = params["size"]
+        size, short, leverage = params["size"], params["side"] == "short", params["leverage"]
         price = last_price(pair, 0)
-        if c["mode"] == "paper":
+        fill = None
+        if short:
+            fields = pos.open_short(size, price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT)
+            if c["mode"] == "paper":
+                s["cash"] -= fields["collateral"] + fields["open_fees"]
+            else:
+                fill = live.enter(pair, "short", size / price, leverage)             # prix et volume RÉELS de l'exécution
+                price = fill["price"] or price
+                fields = {**pos.open_short(fill["cost"], price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT), "qty": fill["volume"],
+                          "open_fees": fill["fee"]}
+            fields["cost"] = fields["collateral"]
+        elif c["mode"] == "paper":
             s["cash"] -= size
-            qty, cost = size * (1 - c["fee_pct"] / 100) / price, size
+            fields = {"qty": size * (1 - c["fee_pct"] / 100) / price, "cost": size}
         else:
-            fill = live.enter(pair, "long", size / price, 1.0)          # prix et volume RÉELS de l'exécution
+            fill = live.enter(pair, "long", size / price, 1.0)
             price = fill["price"] or price
-            qty, cost = fill["volume"], fill["cost"] + fill["fee"]
-        position = {"id": uuid.uuid4().hex[:8], "pair": pair, "strategy": params["strategy"],
-                    "qty": qty, "entry": price, "cost": cost, "peak": price,
-                    "sl": params["sl"], "tp": params["tp"], "trail": params["trail"], "reason": params["reason"], "conf": params["conf"],
-                    "ts": int(time.time()), "opened": datetime.now().strftime("%d/%m %H:%M")}
+            fields = {"qty": fill["volume"], "cost": fill["cost"] + fill["fee"]}
+        position = {"id": uuid.uuid4().hex[:8], "pair": pair, "side": params["side"], "leverage": leverage, "strategy": params["strategy"],
+                    "entry": price, "peak": price, "sl": params["sl"], "tp": params["tp"], "trail": params["trail"],
+                    "reason": params["reason"], "conf": params["conf"], "ts": int(time.time()),
+                    "opened": datetime.now().strftime("%d/%m %H:%M"), **fields}
         s["positions"].append(position)
-        self._record("BUY", position, price, 0, params["reason"])
+        self._record("open", position, price, 0, params["reason"])
         if c["mode"] == "live":
             live.protect(position, self.log)
             self._save()
 
-    def _sell(self, position, price, why, settled=None):
-        """Ferme la position. `settled` = exécution d'un stop déjà déclenché par Kraken (rien à envoyer, on enregistre)."""
+    def _close(self, position, price, why, settled=None):
+        """Ferme la position (vente d'un long, rachat d'un short). `settled` = exécution d'un stop déjà déclenché par Kraken (rien à envoyer, on enregistre)."""
         c, s = self.config, self.state
         fill = settled
         if fill is None and c["mode"] == "live":
             fill = live.exit_market(position, position["qty"])
         if fill:
             price = fill["price"] or price
-            proceeds = fill["cost"] - fill["fee"]
+        if pos.is_short(position):
+            rollover = pos.rollover_due(position, time.time(), cfgmod.ROLLOVER_PCT)
+            _, pnl, cash_delta = pos.close_amounts(position, price, 1.0, c["fee_pct"], rollover)
         else:
-            proceeds = position["qty"] * price * (1 - c["fee_pct"] / 100)
-        pnl = proceeds - position["cost"]
+            cash_delta = fill["cost"] - fill["fee"] if fill else position["qty"] * price * (1 - c["fee_pct"] / 100)
+            pnl = cash_delta - position["cost"]
         if c["mode"] == "paper":
-            s["cash"] += proceeds
+            s["cash"] += cash_delta
         s["positions"] = [p for p in s["positions"] if p["id"] != position["id"]]
         s["pnl"] += pnl
         s["day_pnl"] += pnl
-        self._record("SELL", position, price, pnl, why)
+        self._record("close", position, price, pnl, why)
 
-    def _record(self, side, position, price, pnl, why):
-        mode = self.config["mode"]
-        trade = {"time": datetime.now().strftime("%d/%m %H:%M:%S"), "mode": mode, "side": side, "pair": position["pair"],
+    def _record(self, kind, position, price, pnl, why):
+        """Journal des trades : `kind` = open | close ; `side` = sens réel de l'ordre (un short s'ouvre par une vente et se ferme par un achat)."""
+        mode, direction = self.config["mode"], position.get("side", "long")
+        side = "BUY" if (kind == "open") == (direction == "long") else "SELL"
+        trade = {"time": datetime.now().strftime("%d/%m %H:%M:%S"), "mode": mode, "side": side, "dir": direction, "kind": kind, "pair": position["pair"],
                  "strategy": position["strategy"], "price": price, "qty": position["qty"], "pnl": pnl, "why": why}
         self.state["trades"] = (self.state["trades"] + [trade])[-MAX_TRADES_KEPT:]
         self._save()
-        self.log(f"{mode.upper()} {side} {LABELS.get(position['pair'], position['pair'])} @ {price:g} ({why})")
+        label = {"open": {"long": "achat", "short": "short"}, "close": {"long": "vente", "short": "rachat"}}[kind][direction]
+        self.log(f"{mode.upper()} {label} {LABELS.get(position['pair'], position['pair'])} @ {price:g} ({why})")
 
     def liquidate(self):
         with self.tlock:
             for p in list(self.state["positions"]):
-                self._sell(p, last_price(p["pair"], 0), "Liquidation manuelle")
+                self._close(p, last_price(p["pair"], 0), "Liquidation manuelle")
 
     def close_position(self, position_id):
         with self.tlock:
             p = next((x for x in self.state["positions"] if x["id"] == position_id), None)
             if not p:
                 raise ValueError("Position introuvable")
-            self._sell(p, last_price(p["pair"], 0), "Fermeture manuelle")
+            self._close(p, last_price(p["pair"], 0), "Fermeture manuelle")
 
     # ---------- données pour l'interface ----------
+    def _position_view(self, p):
+        """Position enrichie pour l'interface : prix actuel, gains, niveaux de stop en prix, liquidation estimée (short)."""
+        c = self.config
+        px = self._price(p)
+        q = {**p, "side": p.get("side", "long"), "leverage": p.get("leverage", 1.0)}
+        rollover = pos.rollover_due(q, time.time(), cfgmod.ROLLOVER_PCT)
+        sl, tp, trail = pos.stop_prices(q)
+        return {**q, "label": LABELS.get(p["pair"], p["pair"]), "price": px, "pnl": pos.unrealized(q, px, c["fee_pct"], rollover),
+                "pnl_pct": pos.favorable_pct(q, px), "equity_value": pos.equity_value(q, px), "rollover": rollover,
+                "liq_price": pos.liq_price(q), "notional": q["qty"] * q["entry"], "sl_price": sl, "tp_price": tp, "trail_price": trail,
+                "exchange_stop": bool(p.get("stop_id")) if c["mode"] == "live" else None}
+
     def snapshot(self):
         with self.lock:
             c, s = self.config, self.state
-            fee = c["fee_pct"] / 100
-            positions = []
-            for p in s["positions"]:
-                px = self._price(p)
-                positions.append({**p, "label": LABELS.get(p["pair"], p["pair"]), "price": px, "pnl_pct": (px / p["entry"] - 1) * 100,
-                                  "pnl": p["qty"] * px * (1 - fee) - p["cost"],
-                                  "exchange_stop": bool(p.get("stop_id")) if c["mode"] == "live" else None})
+            positions = [self._position_view(p) for p in s["positions"]]
             next_review = max(0, int(c["interval_min"] * 60 - (time.time() - self.last_review))) if self.running else None
             return {"config": c, "running": self.running, "reviewing": self.reviewing, "next_review_s": next_review,
                     "key_ok": key_set(c["provider"]), "live_ok": settings.kraken_configured(),
-                    "cash": s["cash"], "equity": s["cash"] + sum(p["qty"] * p["price"] for p in positions),
+                    "cash": s["cash"], "equity": s["cash"] + sum(p["equity_value"] for p in positions),
                     "pnl": s["pnl"], "day_pnl": s["day_pnl"], "positions": positions, "usage": s["usage"],
                     "credit_low": bool(s.get("credit_low")),
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-40:][::-1],
