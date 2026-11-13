@@ -1,4 +1,5 @@
 import { Bot } from 'lucide-react'
+import { AiControls } from '@/components/ai/AiControls'
 import { AiSettingsCard } from '@/components/ai/AiSettingsCard'
 import { DecisionsCard } from '@/components/ai/DecisionsCard'
 import { AiOpenTrades } from '@/components/ai/AiOpenTrades'
@@ -45,6 +46,7 @@ export function AiPage() {
       </Header>
       <main className="layout">
         <div className="col">
+          {status && <AiControls status={status} />}
           <AiSettingsCard />
         </div>
         <div className="col">

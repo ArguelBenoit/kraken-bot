@@ -1,11 +1,12 @@
-import { LogOut, Play, RefreshCw, Square } from 'lucide-react'
+import { LogOut, Play, Power, RefreshCw, Square } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
 import { mmss } from '@/lib/format'
 import type { AiStatus } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { confirmAction } from '@/stores/uiStore'
 
-/** Boutons du Bot IA : un seul de Démarrer / Stop à la fois, analyse immédiate, liquidation, reset, et prochaine analyse. */
+/** Bloc « Contrôles » du Bot IA : un seul de Démarrer / Stop à la fois, analyse immédiate, liquidation, reset, et prochaine analyse. */
 export function AiControls({ status }: { status: AiStatus }) {
   const control = useAiStore((s) => s.control)
   const { running, reviewing, next_review_s, usage } = status
@@ -26,7 +27,7 @@ export function AiControls({ status }: { status: AiStatus }) {
   }
   const tokens = `Tokens du jour : ${usage.in} entrée / ${usage.out} sortie`
   return (
-    <>
+    <Card title="Contrôles" icon={Power}>
       <div className="row">
         {!running && <Button onClick={() => void control('start')}><Play className="ic f mr" />Démarrer</Button>}
         {running && <Button variant="ko" onClick={() => void control('stop')}><Square className="ic f mr" />Stop</Button>}
@@ -43,6 +44,6 @@ export function AiControls({ status }: { status: AiStatus }) {
       <div className="hint" style={{ marginTop: 10 }}>
         {running && next_review_s != null ? `Prochaine analyse dans ${mmss(next_review_s)} · ${tokens}` : tokens}
       </div>
-    </>
+    </Card>
   )
 }

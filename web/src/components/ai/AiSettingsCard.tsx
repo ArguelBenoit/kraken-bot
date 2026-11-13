@@ -9,7 +9,6 @@ import { AI_TFS } from '@/lib/constants'
 import { LIMIT_FIELDS, PARALLEL_FIELD, SHORT_FIELD, type NumberField } from '@/lib/aiForm'
 import type { Aggressiveness } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
-import { AiControls } from './AiControls'
 import { AiWarnings } from './AiWarnings'
 
 /** Champ numérique lié au brouillon du formulaire. */
@@ -97,7 +96,6 @@ export function AiSettingsCard() {
         </div>
       </form>
 
-      <AiControls status={status} />
     </Card>
   )
 }
