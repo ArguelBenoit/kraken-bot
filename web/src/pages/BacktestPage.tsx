@@ -16,7 +16,7 @@ import { useBacktestStore } from '@/stores/backtestStore'
 
 const BT_POLL_MS = 2000
 
-/** Page annexe du Bot IA : rejoue le modèle et ses garde-fous sur des bougies passées, sans ordre réel. Accessible depuis la section « Autres » du menu ; un onglet par essai. */
+/** Page annexe du Bot IA : rejoue le modèle et ses garde-fous sur des bougies passées, sans ordre réel. Accessible depuis la section « Outils » du menu ; un onglet par essai. */
 export function BacktestPage() {
   const refresh = useBacktestStore((s) => s.refresh)
   const status = useBacktestStore((s) => s.status)
@@ -55,7 +55,7 @@ export function BacktestPage() {
           <BacktestTabs />
           {!run && <Card title="Comment ça marche" icon={Info}>Règle les paramètres puis lance un backtest : le modèle choisi rejoue la période, bougie après bougie, avec les vrais garde-fous du Bot IA.</Card>}
           {run && <BacktestProgress run={run} />}
-          {stats && <BacktestStatsCard s={stats} />}
+          {stats && run && <BacktestStatsCard s={stats} maxPositions={run.params.max_positions} />}
           {run && run.equity.length > 0 && <EquityChart runId={run.id} equity={run.equity} />}
           {run && <PairTradesCard trades={[...run.trades].reverse().slice(0, 100)} />}
           {run && <DecisionsCard decisions={[...run.decisions].reverse().slice(0, 40)} />}

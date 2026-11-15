@@ -20,7 +20,7 @@ export interface NumberField {
 }
 
 /** Nombre de trades en parallèle (affiché avant le choix de la bougie). */
-export const PARALLEL_FIELD: NumberField = { name: 'max_positions', label: 'Trades en parallèle (1-5)', min: 1, max: 5, step: '1',
+export const PARALLEL_FIELD: NumberField = { name: 'max_positions', label: 'Trades en parallèle (1-10)', min: 1, max: 10, step: '1',
   tip: "Nombre maximum de positions ouvertes en même temps (une seule par paire). Le modèle ne peut pas en ouvrir davantage." }
 
 /** Rythme, montants et garde-fous (affichés après le choix de la bougie). */

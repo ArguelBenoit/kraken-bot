@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
     "timeframe": 60,                 # bougies analysées (minutes) : 15 | 60 | 240 | 1440
     "interval_min": 30,              # minutes entre deux analyses du modèle
     "check_every": 30,               # secondes entre deux contrôles locaux des stops
-    "max_positions": 3,              # 1 à 5 trades en parallèle
+    "max_positions": 3,              # 1 à 10 trades en parallèle
     "aggressiveness": "equilibre",
     "strategies": list(STRATEGIES),
     "pairs": [p for p, _ in WATCH],
@@ -48,7 +48,7 @@ DEFAULT_CONFIG = {
     "fee_pct": 0.26,                 # frais par ordre (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
-LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 5),
+LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 10),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
           "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2)}
 FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct")

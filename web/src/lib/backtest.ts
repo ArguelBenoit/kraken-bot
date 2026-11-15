@@ -1,6 +1,6 @@
 /** Calculs du formulaire de backtest (purs). */
 import { LIMIT_FIELDS, type AiNumericKey, type NumberField } from './aiForm'
-import type { BtState, BtStats } from './types'
+import type { Aggressiveness, BtState, BtStats } from './types'
 
 /** Nombre d'analyses (donc d'appels au modèle) d'un essai : une toutes les `interval` minutes, au mieux une par bougie. */
 export const estimateCalls = (days: number, timeframe: number, interval: number): number =>
@@ -10,6 +10,9 @@ export const estimateCalls = (days: number, timeframe: number, interval: number)
 export const BT_LABEL: Record<BtState, string> = {
   loading: 'téléchargement des bougies', running: 'en cours', paused: 'en pause', done: 'terminé', cancelled: 'annulé', stopped: 'arrêté', error: 'erreur',
 }
+
+/** Libellé du profil d'agressivité. */
+export const AGGR_LABEL: Record<Aggressiveness, string> = { prudent: 'prudent', equilibre: 'équilibré', agressif: 'agressif' }
 
 /** L'essai n'est-il pas terminé (téléchargement, calcul ou pause) ? */
 export const isActive = (s: BtState) => s === 'loading' || s === 'running' || s === 'paused'

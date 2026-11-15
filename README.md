@@ -1,7 +1,7 @@
 # Kraken Bot
 
 Plateforme locale de trading crypto sur **Kraken** (spot, paire contre stablecoin USDC/USDT ; long, et short en marge) : du **trading manuel
-assisté par un modèle d'IA**, un bot piloté par un modèle d'IA (Claude, GPT, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter…), et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
+assisté par un modèle d'IA**, un bot piloté par un modèle d'IA (Claude, GPT, Gemini, Mistral, Groq, DeepSeek, Grok, OpenRouter, ou **Ollama** en local…), un **backtest** du bot sur des bougies passées, et un **tutoriel interactif** pour apprendre. Tout tourne sur ta machine,
 en **paper trading** (vrais prix, ordres simulés) par défaut.
 
 > ⚠ Trader est risqué. Ce projet est une expérimentation personnelle : aucune rentabilité n'est garantie, ce n'est pas un conseil financier.
@@ -12,10 +12,12 @@ en **paper trading** (vrais prix, ordres simulés) par défaut.
 | Page | Rôle |
 |---|---|
 | **Trading** (accueil) | Tu passes tes ordres à la main, **long** (achat) ou **short** (vente à découvert en marge, levier ×2 à ×5), au marché ou en limite, avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
-| **Bot IA** | Le modèle analyse le marché à intervalle régulier et gère jusqu'à 5 positions en parallèle. Il ne fait que *proposer* : stops, tailles, exposition et perte journalière sont imposés par le code. |
+| **Bot IA** | Le modèle analyse le marché à intervalle régulier et gère jusqu’à 10 positions en parallèle, en achat et, si tu coches « Autoriser les shorts » (désactivé par défaut), en short. Il ne fait que *proposer* : stops (qui ne s'éloignent jamais), tailles, exposition, gain/risque minimum et perte journalière sont imposés par le code. Paper ou live. |
 | **Tutoriel** | 100 % simulation, pour débutant complet : leçons en « tunnel », glossaire cliquable, quiz, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves (une par méthode) à valider. |
+| **Backtest IA** (menu « Outils ») | Rejoue le vrai prompt et les vrais garde-fous du Bot IA sur les 720 dernières bougies Kraken, sans aucun ordre : rendement face à « acheter-garder », taux de réussite, drawdown, trades simultanés max, appels et tokens. Un onglet par essai (15 gardés), pause et annulation. |
+| **Échanges IA** (menu « Outils ») | Montre ce que la plateforme envoie au modèle (consignes, contexte, format de réponse imposé) et ce qu'il répond, pour le Bot IA et les propositions du Trading (40 derniers, en mémoire). |
 
-Le menu latéral montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
+Le menu latéral (sections « Trading » : Trading, Bot IA, Tutoriel ; « Outils » : Backtest IA, Échanges IA) montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
 et quelles clés d'API sont définies.
 
 ## Démarrage rapide
@@ -77,7 +79,7 @@ python -m server.backtest ETHUSDC rsi    # backtest d'une méthode (outil de rec
 ## Limites connues
 
 - **Short** : simulé en paper (garantie, frais de marge et de report, liquidation estimée). En live il est **désactivé par défaut** : la marge Kraken n'a jamais été validée sur un compte réel (voir `docs/SHORT.md`).
-- Live jamais testé avec de l'argent réel (le Trading lit désormais le prix et le volume réellement exécutés et respecte `ordermin` ; le Bot IA garde encore l'approximation).
-- **Live** : le stop loss (ou à défaut le stop suiveur) du Trading est posé **chez Kraken** ; l'objectif, le stop suiveur d'un trade qui a aussi un stop loss, les ordres limites et tout le Bot IA restent surveillés **par ce programme** (contrôle toutes les 10 à 30 s). Ce chemin live n'a jamais été exécuté (voir `docs/SHORT.md` et `python -m server.check_kraken`).
+- Live jamais testé avec de l'argent réel (le Trading et le Bot IA lisent le prix et le volume réellement exécutés ; les ordres sous `ordermin` sont refusés).
+- **Live** : le stop loss (ou à défaut le stop suiveur) du Trading **et du Bot IA** est posé **chez Kraken** ; l'objectif, le stop suiveur d'un trade qui a aussi un stop loss et les ordres limites restent surveillés **par ce programme** (contrôle toutes les 10 à 30 s). Ce chemin live n'a jamais été exécuté (voir `docs/SHORT.md` et `python -m server.check_kraken`).
 - Les bots ne redémarrent pas seuls et ne se coordonnent pas : ne pas les faire tourner en live en même temps sur le même compte.
-- Kraken ne fournit que 720 bougies par durée : les backtests sont courts et les résultats optimistes (biais de sélection).
+- Kraken ne fournit que 720 bougies par durée : les backtests (méthodes et Bot IA) sont courts, sur **un seul régime de marché** (les dernières semaines), sans glissement de prix ; le modèle n'étant pas déterministe, un essai n'est qu'un tirage : compare toujours à « acheter-garder » et répète les essais.

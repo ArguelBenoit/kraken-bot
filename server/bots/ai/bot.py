@@ -1,4 +1,4 @@
-"""Bot IA : Le modèle analyse régulièrement le marché et ouvre / ferme jusqu'à 5 positions en parallèle.
+"""Bot IA : Le modèle analyse régulièrement le marché et ouvre / ferme jusqu'à 10 positions en parallèle.
 
 Le modèle ne fait que PROPOSER (outil `decide`). Les garde-fous (guards.py) sont appliqués par le code ; les stops et objectifs sont
 surveillés localement toutes les `check_every` secondes en paper. En **live**, comme pour le trading manuel, le stop loss (ou à défaut
@@ -181,7 +181,7 @@ class AIBot:
             pairs = list(dict.fromkeys(c["pairs"] + [p["pair"] for p in s["positions"]]))
             market = [r for r in market_snapshot(c["timeframe"], pairs) if "error" not in r]
             system, user = prompt.build(c, s, self._price, market)
-            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL)
+            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL, source="Bot IA")
             self._count_usage(tokens)
             results = [self._apply(a) for a in decision.get("actions", [])[:MAX_ACTIONS]]
             self._record_decision(str(decision.get("market_view", "")), results)

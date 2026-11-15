@@ -1,5 +1,5 @@
 import { X } from 'lucide-react'
-import { hasStats, isActive } from '@/lib/backtest'
+import { AGGR_LABEL, hasStats, isActive } from '@/lib/backtest'
 import { gainClass, signed } from '@/lib/format'
 import type { BtRun, BtSummary } from '@/lib/types'
 import { useBacktestStore } from '@/stores/backtestStore'
@@ -32,7 +32,7 @@ export function BacktestTabs() {
         return (
           <div key={r.id} className={`${css.tab} ${r.id === selected ? css.on : ''}`}>
             <button type="button" onClick={() => (r.id === current?.id ? closeView() : void open(r.id))}>
-              #{r.id} · {r.params.model}
+              #{r.id} · {r.params.model} · {AGGR_LABEL[r.params.aggressiveness]}
               {hasStats(r.stats) && <> · <b className={gainClass(r.stats.return_pct)}>{signed(r.stats.return_pct)} %</b></>}
             </button>
             {!live && <button type="button" className={css.x} title="Supprimer cet essai" onClick={() => void askRemove(r)}><X className="ic m0" /></button>}

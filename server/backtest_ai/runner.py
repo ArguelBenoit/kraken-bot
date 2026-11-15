@@ -10,7 +10,7 @@ from server.core.providers import key_set, public
 from server.core.storage import load_json, save_json
 from server.core.transport import Cancel, Cancelled
 from server.market.pairs import WATCH
-from . import data
+from . import data, stats
 from .engine import Replay, StopRun
 
 FILE = settings.data_file("ai_backtests.json")
@@ -29,6 +29,9 @@ class BacktestRunner:
         self.cancel_token = None
         self.gate = threading.Event()               # levé = le rejeu avance ; baissé = en pause
         self.history = load_json(FILE, [])
+        for r in self.history:                    # essais gardés avant l'ajout de cette statistique : on la déduit de leurs trades
+            if r.get("stats") and "max_open" not in r["stats"]:
+                r["stats"]["max_open"] = stats.max_open(r["trades"])
 
     # ---------- lancement ----------
     def start(self, params):

@@ -16,7 +16,7 @@ import { useAiStore } from '@/stores/aiStore'
 
 const Pnl = ({ v }: { v: number | undefined }) => <b className={gainClass(v ?? 0)}>{fm(v)}</b>
 
-/** Page du Bot IA : Le modèle analyse le marché et gère jusqu'à 5 positions en parallèle. */
+/** Page du Bot IA : Le modèle analyse le marché et gère jusqu'à 10 positions en parallèle. */
 export function AiPage() {
   const refresh = useAiStore((s) => s.refresh)
   const status = useAiStore((s) => s.status)

@@ -18,7 +18,7 @@ function Row({ label, tip, children }: { label: string; tip: string; children: R
 }
 
 /** Chiffres d'un essai : rendement face à acheter-garder, qualité des trades, risque, frais et consommation du modèle. */
-export function BacktestStatsCard({ s }: { s: BtStats }) {
+export function BacktestStatsCard({ s, maxPositions }: { s: BtStats; maxPositions: number }) {
   return (
     <Card title="Résultats" icon={BarChart3}>
       <div className="summary">
@@ -27,6 +27,7 @@ export function BacktestStatsCard({ s }: { s: BtStats }) {
         <Row label="Écart avec acheter-garder" tip="Rendement du bot moins celui d'acheter-garder : positif = le bot a fait mieux."><b className={gainClass(s.return_pct - s.hold_pct)}>{pct(s.return_pct - s.hold_pct)}</b></Row>
         <Row label="Drawdown max" tip="Pire baisse de l'équité depuis un sommet : ce que tu aurais vu fondre au plus bas."><b className="t-ko">{num(s.max_drawdown_pct)} %</b></Row>
         <Row label="Trades clos" tip="Nombre de positions fermées pendant la période (les positions encore ouvertes à la fin ne comptent pas ici).">{s.trades}</Row>
+        {s.max_open != null && <Row label="Trades simultanés max" tip="Plus grand nombre de positions ouvertes en même temps pendant l'essai, sur la limite de trades en parallèle réglée. Si le maximum est atteint souvent, la limite bride le bot.">{s.max_open} / {maxPositions}</Row>}
         <Row label="Taux de réussite" tip="Part des trades clos gagnants. Avec des frais de 0,5 %, il faut en général plus de 45 % à 1,5 de gain/risque.">{s.win_rate == null ? '–' : `${fm(s.win_rate, 0)} % (${s.wins}/${s.trades})`}</Row>
         <Row label="Gain moyen / perte moyenne" tip="Moyenne des trades gagnants et des trades perdants (en monnaie de cotation)."><span className="t-ok">{signed(s.avg_win)}</span> / <span className="t-ko">{signed(s.avg_loss)}</span></Row>
         <Row label="Rapport gain/perte réel" tip="Gain moyen ÷ perte moyenne. Au-dessus de 1, un gagnant rapporte plus qu'un perdant ne coûte.">{num(s.payoff)}</Row>

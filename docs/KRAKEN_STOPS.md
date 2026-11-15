@@ -27,6 +27,10 @@ Objectif (take profit), stop suiveur d'une position qui a aussi un stop loss, or
 4. **Fermeture** (objectif, manuelle…) : le stop est annulé, puis l'ordre de fermeture part au marché. Si la fermeture échoue, le stop est reposé.
 5. **Échec de pose** : la position reste ouverte, une ligne « ALERTE » est écrite au journal, la carte affiche **STOP NON POSÉ chez Kraken** et la pose est retentée au contrôle suivant.
 
+## Un stop ne s'éloigne jamais
+
+Que ce soit le Trading ou le Bot IA, le modèle ne peut pas retirer ni élargir un stop loss ou un stop suiveur : `bots/ai/guards.py` (`adjust`) ne laisse que le resserrement, et le stop posé chez Kraken suit ces niveaux (l'ancien est annulé, le nouveau posé). Pour un short, le stop reste sous la distance de liquidation.
+
 ## Limites
 
 - **Jamais exécuté sur un compte réel**, pas même en `validate=true` (aucune clé disponible) : lance `python -m server.check_kraken` avant le live.

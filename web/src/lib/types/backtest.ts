@@ -44,6 +44,8 @@ export interface BtStats {
   tokens_out: number
   errors: number
   refused: number
+  /** Plus grand nombre de positions ouvertes en même temps (absent des essais faits avant cette statistique). */
+  max_open?: number
 }
 
 /** loading = bougies en téléchargement ; paused = en pause entre deux bougies ; stopped = arrêt voulu du moteur (plafond d'appels, erreurs répétées) : le résultat partiel est gardé. */

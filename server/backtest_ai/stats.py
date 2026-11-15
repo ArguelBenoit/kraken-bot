@@ -10,6 +10,15 @@ def _max_drawdown_pct(equity):
     return worst
 
 
+def max_open(trades):
+    """Plus grand nombre de positions ouvertes en même temps, déduit des ouvertures et clôtures (dans l'ordre)."""
+    now = peak = 0
+    for t in trades:
+        now += 1 if t["kind"] == "open" else -1
+        peak = max(peak, now)
+    return peak
+
+
 def summarize(run, budget):
     """Résumé chiffré d'un run : rendement (et celui d'acheter-garder), trades clos, taux de réussite, gain moyen / perte moyenne, drawdown, frais, appels."""
     closes = [t["pnl"] for t in run["trades"] if t["kind"] == "close"]
@@ -27,5 +36,5 @@ def summarize(run, budget):
         "profit_factor": sum(wins) / -sum(losses) if sum(losses) < 0 else None,
         "max_drawdown_pct": _max_drawdown_pct(equity), "fees": run["fees"],
         "calls": run["progress"]["calls"], "tokens_in": run["usage"]["in"], "tokens_out": run["usage"]["out"],
-        "errors": run["errors"], "refused": run["refused"],
+        "errors": run["errors"], "refused": run["refused"], "max_open": max_open(run["trades"]),
     }

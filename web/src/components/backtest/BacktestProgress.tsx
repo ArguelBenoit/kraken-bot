@@ -1,6 +1,6 @@
 import { Hourglass } from 'lucide-react'
 import { Card } from '@/components/ui/Card'
-import { BT_LABEL, isActive } from '@/lib/backtest'
+import { AGGR_LABEL, BT_LABEL, isActive } from '@/lib/backtest'
 import type { BtRun } from '@/lib/types'
 import css from './Backtest.module.css'
 
@@ -19,12 +19,11 @@ export function BacktestProgress({ run }: { run: BtRun }) {
           </div>
         </>
       )}
-      {!active && (
-        <div className="t-mu">
-          {run.params.model} · {run.params.pairs.length} paire(s) · {run.params.days} j en bougies de {run.params.timeframe} min · lancé le {run.started}
-          {run.seconds != null && ` · ${run.seconds} s`}
-        </div>
-      )}
+      <div className="t-mu" style={active ? { marginTop: 6 } : undefined}>
+        {run.params.model} · <b>{AGGR_LABEL[run.params.aggressiveness]}</b> · {run.params.max_positions} trades max · shorts {run.params.allow_short ? 'oui' : 'non'}
+        <br />{run.params.pairs.length} paire(s) · {run.params.days} j en bougies de {run.params.timeframe} min · lancé le {run.started}
+        {run.seconds != null && ` · ${run.seconds} s`}
+      </div>
       {status === 'stopped' && <div className="warn">Arrêt anticipé : {run.error}. Le résultat ci-dessous porte sur la période déjà rejouée.</div>}
       {status === 'error' && <div className="warn danger">Échec : {run.error}</div>}
       {status === 'cancelled' && <div className="warn">Annulé : le résultat ci-dessous porte sur la période déjà rejouée.</div>}
