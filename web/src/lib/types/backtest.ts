@@ -22,6 +22,14 @@ export interface BtParams {
   fee_pct: number
   strategies: string[]
   max_calls: number | null
+  /** Fin d'une période passée (AAAA-MM-JJ, données Binance) ; null = les dernières bougies Kraken. */
+  end: string | null
+  trend_filter: boolean
+  max_same_side: number | null
+  max_drawdown_pct: number | null
+  risk_per_trade_pct: number | null
+  stop_vol_mult: number | null
+  temperature: number | null
 }
 
 /** Résumé chiffré d'un essai ; vide tant qu'aucune bougie n'a été rejouée. */
@@ -91,7 +99,7 @@ export interface BtStatus {
     providers: Providers
     pairs: { pair: string; label: string }[]
     /** Réglages enregistrés du Bot IA : valeurs de départ du formulaire. */
-    defaults: Omit<BtParams, 'days' | 'max_calls'> & { notes: string }
+    defaults: Omit<BtParams, 'days' | 'max_calls' | 'end'> & { notes: string }
     /** Stratégies que le modèle peut utiliser, avec leur description. */
     strategies: Record<string, string>
     /** Durée maximale testable (jours) selon la bougie en minutes. */

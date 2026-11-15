@@ -35,9 +35,11 @@ def _args(raw, usage):
         raise LlmError("Arguments de l'outil illisibles (JSON invalide) : modèle trop faible pour cet usage ?", usage=usage)
 
 
-def _anthropic(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
+def _anthropic(provider, key, model, system, user, tool, max_tokens, timeout, cancel, temperature=None):
     body = {"model": model, "max_tokens": max_tokens, "system": system, "tools": [tool], "stream": True,
             "tool_choice": {"type": "auto"}, "messages": [{"role": "user", "content": user}]}
+    if temperature is not None:
+        body["temperature"] = temperature
     headers = {"x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json"}
     blocks, usage = {}, {"in": 0, "out": 0}
     for ev in _sse(stream_lines(provider["url"], headers, body, timeout, provider["label"], cancel)):
@@ -60,11 +62,13 @@ def _anthropic(provider, key, model, system, user, tool, max_tokens, timeout, ca
     raise _no_call(tool, " ".join(b["text"] for b in blocks.values() if b.get("type") == "text"), usage)
 
 
-def _openai(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
+def _openai(provider, key, model, system, user, tool, max_tokens, timeout, cancel, temperature=None):
     function = {"name": tool["name"], "description": tool.get("description", ""), "parameters": tool["input_schema"]}
     body = {"model": model, provider["max_tokens_param"]: max_tokens, "tool_choice": "auto", "stream": True, "stream_options": {"include_usage": True},
             "tools": [{"type": "function", "function": function}],
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    if temperature is not None:
+        body["temperature"] = temperature
     headers = {"Authorization": f"Bearer {key}", "content-type": "application/json"}
     calls, said, usage = [], [], {"in": 0, "out": 0}
     for ev in _sse(stream_lines(provider["url"], headers, body, timeout, provider["label"], cancel)):
@@ -135,10 +139,12 @@ def _ollama_reply(lines, name):
 _NO_TOOLS = set()     # modèles Ollama qui refusent les outils : on passe directement en sortie JSON contrainte
 
 
-def _ollama(provider, key, model, system, user, tool, max_tokens, timeout, cancel):
+def _ollama(provider, key, model, system, user, tool, max_tokens, timeout, cancel, temperature=None):
     """Ollama : d'abord avec l'outil ; si le modèle ne gère pas les outils (ou n'en appelle aucun), seconde passe en sortie JSON contrainte par le schéma."""
     url = base_url(provider) + "/api/chat"
     options = {"num_ctx": int(os.getenv("OLLAMA_NUM_CTX") or provider["num_ctx"]), "num_predict": max(max_tokens, 4096)}
+    if temperature is not None:
+        options["temperature"] = temperature
     base = {"model": model, "stream": True, "options": options, "keep_alive": provider["keep_alive"]}
     function = {"name": tool["name"], "description": tool.get("description", ""), "parameters": tool["input_schema"]}
     json_system = f"{system}\n\nRéponds UNIQUEMENT par un objet JSON conforme au schéma de l'outil `{tool['name']}`, sans aucun texte autour."
@@ -164,8 +170,8 @@ def _ollama(provider, key, model, system, user, tool, max_tokens, timeout, cance
 _CLIENTS = {"anthropic": _anthropic, "openai": _openai, "ollama": _ollama}
 
 
-def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None, cancel=None, source=None):
-    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`. `cancel` (un `Cancel`) permet de l'interrompre depuis un autre thread. `source` (« Bot IA »…) : l'échange est alors enregistré dans le journal de la page « Échanges IA »."""
+def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None, cancel=None, source=None, temperature=None):
+    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`. `cancel` (un `Cancel`) permet de l'interrompre depuis un autre thread. `temperature` (None = valeur par défaut du modèle ; plus bas = réponses plus répétables). `source` (« Bot IA »…) : l'échange est alors enregistré dans le journal de la page « Échanges IA »."""
     provider = PROVIDERS.get(provider_id)
     if not provider:
         raise LlmError(f"Fournisseur inconnu : {provider_id}", 400)
@@ -174,7 +180,7 @@ def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=N
         raise LlmError(f"{provider['env']} absente (.env) : ajoute-la puis relance le serveur.", 400)
     if not model:
         raise LlmError("Aucun modèle choisi.", 400)
-    call = lambda: _CLIENTS[provider["format"]](provider, key, model, system, user, tool, max_tokens, timeout or provider.get("timeout", 90), cancel)
+    call = lambda: _CLIENTS[provider["format"]](provider, key, model, system, user, tool, max_tokens, timeout or provider.get("timeout", 90), cancel, temperature)
     if not source:
         return call()
     entry = exchanges.begin(source, provider_id, model, system, user, tool)

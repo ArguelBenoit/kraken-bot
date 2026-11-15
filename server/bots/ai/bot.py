@@ -39,6 +39,7 @@ class AIBot:
         self.log = self.journal.add
         self.last_review = 0.0
         self.reviewing = False
+        self._rows = {}                  # indicateurs de la dernière analyse, pour les garde-fous
         saved = load_json(CONFIG_FILE, {})
         if saved.get("limit_calls") is False:             # ancien réglage « plafond désactivé » -> champ vide
             saved["max_calls_per_day"] = None
@@ -180,8 +181,9 @@ class AIBot:
         try:
             pairs = list(dict.fromkeys(c["pairs"] + [p["pair"] for p in s["positions"]]))
             market = [r for r in market_snapshot(c["timeframe"], pairs) if "error" not in r]
+            self._rows = {r["pair"]: r for r in market}
             system, user = prompt.build(c, s, self._price, market)
-            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL, source="Bot IA")
+            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL, source="Bot IA", temperature=c["temperature"])
             self._count_usage(tokens)
             results = [self._apply(a) for a in decision.get("actions", [])[:MAX_ACTIONS]]
             self._record_decision(str(decision.get("market_view", "")), results)
@@ -202,6 +204,11 @@ class AIBot:
             self._save()
 
     # ---------- exécution des actions proposées ----------
+    def _equity(self):
+        """Équité du bot : budget + gains réalisés + gains latents des positions aux derniers prix (même formule en paper et en live, où le cash n'est pas suivi)."""
+        s = self.state
+        return self.config["budget"] + s["pnl"] + sum(pos.equity_value(p, self._price(p)) - p["cost"] for p in s["positions"])
+
     def _apply(self, action):
         """Exécute une action du modèle après contrôle ; renvoie {ok, text, reason} pour l'historique des décisions."""
         kind, pair = action.get("type"), action.get("pair")
@@ -212,7 +219,7 @@ class AIBot:
 
         try:
             if kind == "open":
-                params, refusal = guards.vet_open(self.config, self.state, action)
+                params, refusal = guards.vet_open(self.config, self.state, action, self._rows, self._equity())
                 if refusal:
                     return result(False, refusal)
                 self._open(pair, params)

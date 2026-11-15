@@ -23,7 +23,7 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 | Route | Rôle |
 |---|---|
 | `GET /api/ai/status` | Réglages, positions, décisions du modèle, appels et tokens du jour, `options.providers` (fournisseurs, modèles d'exemple, clé définie ou non). |
-| `POST /api/ai/config` | Enregistre les réglages (modèle, agressivité, 1 à 10 trades en parallèle, budget, limites, `allow_short`, `max_leverage`, `min_reward_risk` : champ vide = sans minimum). |
+| `POST /api/ai/config` | Enregistre les réglages (modèle, agressivité, 1 à 10 trades en parallèle, budget, limites, `allow_short`, `max_leverage`, `min_reward_risk` : champ vide = sans minimum) et les réglages de stabilité, tous facultatifs (vide = désactivé) : `trend_filter`, `max_same_side`, `max_drawdown_pct`, `risk_per_trade_pct`, `stop_vol_mult`, `temperature`. |
 | `POST /api/ai/start` · `/stop` | Démarre / arrête la surveillance et les analyses. |
 | `POST /api/ai/analyze` | Lance une analyse tout de suite. |
 | `POST /api/ai/liquidate` | Ferme toutes les positions. |
@@ -47,7 +47,7 @@ Rejoue le modèle et les garde-fous du Bot IA sur les 720 dernières bougies Kra
 | Route | Rôle |
 |---|---|
 | `GET /api/backtest/status` | Essai courant (progression, courbe d'équité, trades, décisions, statistiques), liste résumée des essais gardés, options du formulaire (fournisseurs, paires, durée max par bougie, valeurs du Bot IA). |
-| `POST /api/backtest/start` | Lance un essai : `provider`, `model`, `pairs`, `timeframe`, `days`, `interval_min`, `aggressiveness`, `allow_short`, `min_reward_risk`, `max_leverage`, `max_positions` (1 à 10), `order_size`, `budget`, `max_exposure_pct`, `max_daily_loss_pct`, `fee_pct`, `strategies`, `notes`, `max_calls` (facultatif, plafond d'appels). Les champs omis viennent des réglages enregistrés du Bot IA, qui ne sont jamais modifiés. Statistiques : rendement et « acheter-garder », trades, taux de réussite, drawdown, frais, `max_open` (trades simultanés max), appels, erreurs, refus des garde-fous, tokens. |
+| `POST /api/backtest/start` | Lance un essai : `provider`, `model`, `pairs`, `timeframe`, `days`, `interval_min`, `aggressiveness`, `allow_short`, `min_reward_risk`, `max_leverage`, `max_positions` (1 à 10), `order_size`, `budget`, `max_exposure_pct`, `max_daily_loss_pct`, `fee_pct`, `strategies`, `notes`, `max_calls` (facultatif, plafond d'appels), `end` (AAAA-MM-JJ : rejoue une période passée avec les bougies de Binance au lieu des dernières de Kraken) et les réglages de stabilité. Les champs omis viennent des réglages enregistrés du Bot IA, qui ne sont jamais modifiés. Statistiques : rendement et « acheter-garder », trades, taux de réussite, drawdown, frais, `max_open` (trades simultanés max), appels, erreurs, refus des garde-fous, tokens. |
 | `POST /api/backtest/pause` · `POST /api/backtest/resume` | Met en pause entre deux bougies (l'appel au modèle en cours se termine) ; reprend. Statut `paused`. |
 | `POST /api/backtest/cancel` | Annule l'essai en cours (coupe aussi l'appel au modèle). |
 | `GET /api/backtest/<id>` · `DELETE /api/backtest/<id>` | Un essai complet ; suppression d'un essai gardé. |

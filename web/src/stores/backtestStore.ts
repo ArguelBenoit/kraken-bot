@@ -15,8 +15,11 @@ export interface BtDraft extends Record<BtNumericKey, string> {
   days: string
   aggressiveness: Aggressiveness
   allow_short: boolean
+  trend_filter: boolean
   notes: string
   max_calls: string
+  /** Fin d'une période passée (AAAA-MM-JJ) ; vide = les dernières bougies. */
+  end: string
 }
 
 interface BacktestStore {
@@ -45,7 +48,7 @@ function initialDraft(o: BtStatus['options']): BtDraft {
   const numbers = Object.fromEntries(BT_NUMERIC_KEYS.map((k) => [k, d[k] == null ? '' : String(d[k])])) as Record<BtNumericKey, string>
   return {
     ...numbers, provider: d.provider, model: d.model, pairs: [...d.pairs], strategies: [...d.strategies], timeframe: String(d.timeframe),
-    days: String(Math.min(14, max)), aggressiveness: d.aggressiveness, allow_short: d.allow_short, notes: d.notes, max_calls: '',
+    days: String(Math.min(14, max)), aggressiveness: d.aggressiveness, allow_short: d.allow_short, trend_filter: d.trend_filter, notes: d.notes, max_calls: '', end: '',
   }
 }
 

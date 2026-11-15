@@ -79,9 +79,11 @@ class Replay:
         progress, run = self.run["progress"], self.run
         if self.max_calls is not None and progress["calls"] >= self.max_calls:
             raise StopRun(f"plafond de {self.max_calls} appels atteint")
-        system, user = prompt.build(self.cfg, self.state, lambda p: self.candles[p["pair"]][i][1], self._market(i), now=t)
+        market = self._market(i)
+        self.rows = {r["pair"]: r for r in market}
+        system, user = prompt.build(self.cfg, self.state, lambda p: self.candles[p["pair"]][i][1], market, now=t)
         try:
-            decision, tokens = call_tool(self.cfg["provider"], self.cfg["model"], system, user, prompt.DECIDE_TOOL, cancel=self.cancel)
+            decision, tokens = call_tool(self.cfg["provider"], self.cfg["model"], system, user, prompt.DECIDE_TOOL, cancel=self.cancel, temperature=self.cfg["temperature"])
         except LlmError as e:
             if e.status == 499:
                 raise                                                   # annulation : remontée telle quelle
@@ -113,7 +115,7 @@ class Replay:
 
         try:
             if kind == "open":
-                params, refusal = guards.vet_open(self.cfg, self.state, action)
+                params, refusal = guards.vet_open(self.cfg, self.state, action, self.rows, self._equity(i))
                 if refusal:
                     return result(False, refusal)
                 self._open(pair, params, self.candles[pair][i][1], t)
@@ -178,9 +180,14 @@ class Replay:
         p["peak"] = pos.best_price(p, low if short else h)
 
     # ---------- courbes ----------
+    def _equity(self, i, column=1):
+        """Équité (cash + positions) à l'ouverture (colonne 1) ou à la clôture (colonne 4) de la bougie `i`."""
+        return self.state["cash"] + sum(pos.equity_value(p, self.candles[p["pair"]][i][column]) for p in self.state["positions"])
+
     def _point(self, i, t):
         s, c = self.state, self.cfg
         close = lambda pair: self.candles[pair][i][4]
-        equity = s["cash"] + sum(pos.equity_value(p, close(p["pair"])) for p in s["positions"])
+        equity = self._equity(i, 4)
+        guards.drawdown_pct(s, equity)                                  # tient le sommet de l'équité à jour pour le disjoncteur
         hold = c["budget"] * sum((1 - c["fee_pct"] / 100) * close(pair) / self.base[pair] for pair in self.base) / len(self.base)
         self.run["equity"].append([t + self.tf * 60, round(equity, 2), round(hold, 2)])

@@ -5,9 +5,10 @@ import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { ModelPicker } from '@/components/ui/ModelPicker'
 import { NumberInput } from '@/components/ui/NumberInput'
+import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { PARALLEL_FIELD, SHORT_FIELD } from '@/lib/aiForm'
-import { BT_LIMIT_FIELDS, estimateCalls, type BtNumericKey } from '@/lib/backtest'
+import { BT_LIMIT_FIELDS, BT_SCENARIOS, estimateCalls, type BtNumericKey } from '@/lib/backtest'
 import { AI_TFS } from '@/lib/constants'
 import type { Aggressiveness } from '@/lib/types'
 import { useBacktestStore } from '@/stores/backtestStore'
@@ -44,9 +45,19 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
             {AI_TFS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </Field>
-        <Field label={`Durée (jours, max ${maxDays})`} tip="Période rejouée, en finissant à aujourd'hui. Plus c'est long, plus il y a d'appels au modèle (et de trades pour juger).">
+        <Field label={`Durée (jours, max ${maxDays})`} tip="Période rejouée. Plus c'est long, plus il y a d'appels au modèle (et de trades pour juger).">
           <input type="number" min={1} max={maxDays} step="1" value={draft.days} onChange={(e) => setField('days', e.target.value)} />
         </Field>
+        <Field label="Fin de la période" tip="Vide = les dernières bougies de Kraken, jusqu'à maintenant. Une date passée rejoue un autre marché (hausse, baisse, sans tendance) avec les bougies de Binance en USDT, très proches de Kraken pour les grandes cryptos ; les paires qui n'existaient pas encore à cette date sont écartées. Une même date donne toujours le même marché : c'est ce qui permet de comparer des réglages.">
+          <input type="date" min="2018-01-01" value={draft.end} onChange={(e) => setField('end', e.target.value)} />
+        </Field>
+        <div className="row">
+          {BT_SCENARIOS.map((s) => (
+            <Button key={s.label} size="xs" variant="sec" title={`${s.note}. Fixe la fin de période et 30 jours.`}
+              onClick={() => { setField('end', s.end); setField('timeframe', '240'); setField('days', String(Math.min(30, options.max_days['240'] ?? 30))) }}>{s.label}</Button>
+          ))}
+          {draft.end && <Button size="xs" variant="sec" onClick={() => setField('end', '')}>Aujourd&apos;hui</Button>}
+        </div>
         {BT_LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} value={number(d)} onChange={(v) => setField(d.name as BtNumericKey, v)} />)}
         <Field label="Appels max (sécurité)" tip="Le test s'arrête (en gardant ce qui est calculé) après ce nombre d'appels au modèle. Vide = aucune limite.">
           <input type="number" min={1} step="1" placeholder="aucune" value={draft.max_calls} onChange={(e) => setField('max_calls', e.target.value)} />
@@ -60,6 +71,8 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
           </span>
         </label>
         {draft.allow_short && <NumberInput def={SHORT_FIELD} value={number(SHORT_FIELD)} onChange={(v) => setField('max_leverage', v)} />}
+        <StabilityFields id="bt-stability" trendFilter={draft.trend_filter} onTrendFilter={(on) => setField('trend_filter', on)}
+          value={(k) => draft[k as BtNumericKey]} onChange={(k, v) => setField(k as BtNumericKey, v)} />
 
         <Accordion id="bt-strategies" title={<>Stratégies autorisées<Tip text="Les approches que le modèle a le droit d'utiliser pour ouvrir un trade. Il en faut au moins une." /></>}>
           {Object.entries(options.strategies).map(([k, desc]) => (

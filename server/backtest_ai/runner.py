@@ -1,4 +1,5 @@
 """Lancement et suivi des backtests du Bot IA : un seul à la fois, en arrière-plan, annulable et pausable ; les essais terminés sont gardés dans `ai_backtests.json`."""
+import calendar
 import threading
 import time
 import uuid
@@ -18,7 +19,19 @@ KEPT = 15
 ACTIVE = ("loading", "running", "paused")      # états d'un essai qui n'est pas terminé
 # Réglages que la page peut modifier pour un essai ; tous les autres viennent des réglages enregistrés du Bot IA.
 OVERRIDES = ("provider", "model", "pairs", "timeframe", "interval_min", "aggressiveness", "allow_short", "min_reward_risk", "max_leverage", "max_positions",
-             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "strategies", "notes")
+             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "strategies", "notes",
+             "trend_filter", "max_same_side", "max_drawdown_pct", "risk_per_trade_pct", "stop_vol_mult", "temperature")
+
+
+def _end_ts(end):
+    """Instant (secondes, UTC) de fin d'une période passée donnée en AAAA-MM-JJ : minuit au début de ce jour."""
+    try:
+        ts = calendar.timegm(time.strptime(end, "%Y-%m-%d"))
+    except ValueError:
+        raise ValueError("Date de fin invalide (format AAAA-MM-JJ)") from None
+    if not calendar.timegm(time.strptime("2018-01-01", "%Y-%m-%d")) <= ts <= time.time():
+        raise ValueError("Date de fin : entre le 01/01/2018 et aujourd'hui")
+    return ts
 
 
 class BacktestRunner:
@@ -45,20 +58,24 @@ class BacktestRunner:
             days = float(params.get("days") or 0)
             if not 0 < days <= data.max_days(cfg["timeframe"]):
                 raise ValueError(f"Durée invalide : de 1 à {data.max_days(cfg['timeframe']):.0f} jours avec des bougies de {cfg['timeframe']} min")
+            end = str(params.get("end") or "")
+            end_ts = _end_ts(end) if end else None
             max_calls = int(params["max_calls"]) if params.get("max_calls") not in (None, "") else None
             self.cancel_token = Cancel()
             self.gate.set()
             self.current = {
                 "id": uuid.uuid4().hex[:8], "started": datetime.now().strftime("%d/%m %H:%M"), "status": "loading", "error": "",
-                "params": {**{k: cfg[k] for k in OVERRIDES if k not in ("notes",)}, "days": days, "max_calls": max_calls},
+                "params": {**{k: cfg[k] for k in OVERRIDES if k not in ("notes",)}, "days": days, "max_calls": max_calls, "end": end or None},
                 "progress": {"step": 0, "steps": 0, "calls": 0, "at": ""}, "usage": {"in": 0, "out": 0}, "fees": 0.0, "errors": 0, "refused": 0,
                 "equity": [], "trades": [], "decisions": [], "stats": {}}
-            threading.Thread(target=self._work, args=(self.current, self.cancel_token, cfg, days, max_calls), daemon=True).start()
+            threading.Thread(target=self._work, args=(self.current, self.cancel_token, cfg, days, max_calls, end_ts), daemon=True).start()
 
-    def _work(self, run, cancel, cfg, days, max_calls):
+    def _work(self, run, cancel, cfg, days, max_calls, end_ts):
         began = time.time()
         try:
-            candles = data.load(cfg["pairs"], cfg["timeframe"])
+            candles = data.load(cfg["pairs"], cfg["timeframe"], end_ts)
+            cfg = {**cfg, "pairs": list(candles)}                 # paires sans historique à cette date écartées
+            run["params"]["pairs"] = cfg["pairs"]
             replay = Replay(cfg, candles, days, run, max_calls, cancel, self.gate)
             run["status"] = "running"
             replay.go()

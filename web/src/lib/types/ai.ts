@@ -29,6 +29,13 @@ export interface AiConfig {
   /** Levier maximum d'un short (2 à 5). */
   max_leverage: number
   min_reward_risk: number | null
+  /** Réglages de stabilité : null = désactivé. */
+  trend_filter: boolean
+  max_same_side: number | null
+  max_drawdown_pct: number | null
+  risk_per_trade_pct: number | null
+  stop_vol_mult: number | null
+  temperature: number | null
   fee_pct: number
   notes: string
 }
