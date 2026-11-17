@@ -23,11 +23,11 @@ def _fetch(pair, tf):
 
 def load(pairs, tf, end_ts=None):
     """{paire: bougies terminées (temps, o, h, b, c)}, réduites aux instants communs à toutes les paires ; mémorisées 10 min.
-    `end_ts` (secondes) : fin d'une période passée, lue chez Binance ; les paires sans historique à cette date sont écartées (absentes du résultat)."""
+    `end_ts` (secondes) : fin d'une période passée, lue sur le disque ou chez Binance (voir `history`) ; les paires sans historique à cette date sont écartées (absentes du résultat)."""
     if end_ts is None:
         rows = {pair: memo(f"backtest:{pair}:{tf}", 600, lambda p=pair: _fetch(p, tf)) for pair in pairs}
     else:
-        rows = {pair: memo(f"backtest:{pair}:{tf}:{end_ts}", 3600, lambda p=pair: history.candles(p, tf, end_ts, MAX_CANDLES)) for pair in pairs}
+        rows = history.period(pairs, tf, end_ts, MAX_CANDLES)
         rows = {pair: series for pair, series in rows.items() if len(series) >= WARMUP + 10}
         if not rows:
             raise ValueError("Aucune paire n'a d'historique suffisant à cette date")

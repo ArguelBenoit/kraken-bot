@@ -33,8 +33,8 @@ export interface AiConfig {
   trend_filter: boolean
   max_same_side: number | null
   max_drawdown_pct: number | null
-  risk_per_trade_pct: number | null
-  stop_vol_mult: number | null
+  /** Fenêtre (jours) du disjoncteur. */
+  drawdown_days: number
   temperature: number | null
   fee_pct: number
   notes: string
@@ -67,6 +67,8 @@ export interface AiDecision {
   mode: Mode
   view: string
   actions: { ok: boolean; text?: string; reason?: string }[]
+  /** Échange avec le modèle : identifiant (Bot IA) ou numéro dans l'essai (backtest) ; null si non conservé. */
+  exchange?: string | number | null
 }
 
 export interface AiStatus {

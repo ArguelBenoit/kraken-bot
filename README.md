@@ -14,10 +14,9 @@ en **paper trading** (vrais prix, ordres simulés) par défaut.
 | **Trading** (accueil) | Tu passes tes ordres à la main, **long** (achat) ou **short** (vente à découvert en marge, levier ×2 à ×5), au marché ou en limite, avec stop loss, take profit et stop suiveur par position ; plusieurs positions ; aperçu du risque avant d'envoyer. **« Demander à Claude »** propose quelques trades à prendre maintenant (paire, entrée, stops) : un clic les pré-remplit dans le ticket, rien n'est envoyé sans ta validation. |
 | **Bot IA** | Le modèle analyse le marché à intervalle régulier et gère jusqu’à 10 positions en parallèle, en achat et, si tu coches « Autoriser les shorts » (désactivé par défaut), en short. Il ne fait que *proposer* : stops (qui ne s'éloignent jamais), tailles, exposition, gain/risque minimum et perte journalière sont imposés par le code. Paper ou live. |
 | **Tutoriel** | 100 % simulation, pour débutant complet : leçons en « tunnel », glossaire cliquable, quiz, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves (une par méthode) à valider. |
-| **Backtest IA** (menu « Outils ») | Rejoue le vrai prompt et les vrais garde-fous du Bot IA sur les 720 dernières bougies Kraken, sans aucun ordre : rendement face à « acheter-garder », taux de réussite, drawdown, trades simultanés max, appels et tokens. Un onglet par essai (15 gardés), pause et annulation. |
-| **Échanges IA** (menu « Outils ») | Montre ce que la plateforme envoie au modèle (consignes, contexte, format de réponse imposé) et ce qu'il répond, pour le Bot IA et les propositions du Trading (40 derniers, en mémoire). |
+| **Backtest IA** (menu « Outils ») | Rejoue le vrai prompt et les vrais garde-fous du Bot IA sur les 720 dernières bougies Kraken ou sur 15 marchés passés (5 en hausse, 5 en baisse, 5 sans tendance, bougies Binance gardées sur le disque), sans aucun ordre : rendement face à « buy & hold », taux de réussite, drawdown, trades simultanés max, appels et tokens. Un onglet par essai (15 gardés), pause et annulation ; un clic sur une décision ouvre la demande et la réponse du modèle. |
 
-Le menu latéral (sections « Trading » : Trading, Bot IA, Tutoriel ; « Outils » : Backtest IA, Échanges IA) montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
+Le menu latéral (sections « Trading » : Trading, Bot IA ; « Outils » : Tutoriel, Backtest IA) montre en direct quels bots tournent, si des positions sont ouvertes (⚡ vert / rouge / orange selon les gains et pertes)
 et quelles clés d'API sont définies.
 
 ## Démarrage rapide
@@ -54,8 +53,8 @@ docs/        Architecture, API, méthodes de trading, tutoriel
 run.sh       Lance tout en une commande
 ```
 
-Les réglages et états (`ai_*.json`, `manual_*.json`, `learn_state.json`) sont créés à la racine ;
-ils sont ignorés par git.
+Les réglages et états (`ai_*.json`, `manual_*.json`, `learn_state.json`) sont créés dans le dossier `data/` (ignoré par git ; les fichiers restés à la racine y sont déplacés au premier lancement) ;
+les marchés passés du backtest y sont gardés aussi (`data/scenarios/`).
 
 ## Documentation
 
@@ -82,4 +81,4 @@ python -m server.backtest ETHUSDC rsi    # backtest d'une méthode (outil de rec
 - Live jamais testé avec de l'argent réel (le Trading et le Bot IA lisent le prix et le volume réellement exécutés ; les ordres sous `ordermin` sont refusés).
 - **Live** : le stop loss (ou à défaut le stop suiveur) du Trading **et du Bot IA** est posé **chez Kraken** ; l'objectif, le stop suiveur d'un trade qui a aussi un stop loss et les ordres limites restent surveillés **par ce programme** (contrôle toutes les 10 à 30 s). Ce chemin live n'a jamais été exécuté (voir `docs/SHORT.md` et `python -m server.check_kraken`).
 - Les bots ne redémarrent pas seuls et ne se coordonnent pas : ne pas les faire tourner en live en même temps sur le même compte.
-- Kraken ne fournit que 720 bougies par durée : les backtests (méthodes et Bot IA) sont courts, sur **un seul régime de marché** (les dernières semaines), sans glissement de prix ; le modèle n'étant pas déterministe, un essai n'est qu'un tirage : compare toujours à « acheter-garder » et répète les essais.
+- Kraken ne fournit que 720 bougies par durée : les backtests (méthodes et Bot IA) sont courts, sur **un seul régime de marché** (les dernières semaines), sans glissement de prix ; le modèle n'étant pas déterministe, un essai n'est qu'un tirage : compare toujours à « buy & hold » et répète les essais.

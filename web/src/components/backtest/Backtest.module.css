@@ -7,3 +7,6 @@
 .tab button:hover { color: var(--ac); }
 .tab .x { padding: 5px 6px 5px 0; color: var(--mu); }
 .on { border-color: var(--ac); }
+.stats td { padding: 4px 8px 4px 0; }
+.stats tr:last-child td { border-bottom: none; }
+.label { width: 1%; white-space: nowrap; color: var(--mu); padding-right: 24px !important; }

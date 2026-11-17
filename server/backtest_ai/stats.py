@@ -10,6 +10,11 @@ def _max_drawdown_pct(equity):
     return worst
 
 
+def peak_pct(equity, budget):
+    """Gain maximum atteint en cours de session, en % du budget de départ (0 si l'équité n'a jamais dépassé le budget)."""
+    return max([0.0] + [(value / budget - 1) * 100 for value in equity])
+
+
 def max_open(trades):
     """Plus grand nombre de positions ouvertes en même temps, déduit des ouvertures et clôtures (dans l'ordre)."""
     now = peak = 0
@@ -20,7 +25,7 @@ def max_open(trades):
 
 
 def summarize(run, budget):
-    """Résumé chiffré d'un run : rendement (et celui d'acheter-garder), trades clos, taux de réussite, gain moyen / perte moyenne, drawdown, frais, appels."""
+    """Résumé chiffré d'un run : rendement (et celui du buy & hold), trades clos, taux de réussite, gain moyen / perte moyenne, drawdown, frais, appels."""
     closes = [t["pnl"] for t in run["trades"] if t["kind"] == "close"]
     wins, losses = [p for p in closes if p > 0], [p for p in closes if p <= 0]
     equity = [row[1] for row in run["equity"]]
@@ -34,7 +39,7 @@ def summarize(run, budget):
         "payoff": avg_win / -avg_loss if avg_loss < 0 and wins else None,
         "expectancy": sum(closes) / len(closes) if closes else None,
         "profit_factor": sum(wins) / -sum(losses) if sum(losses) < 0 else None,
-        "max_drawdown_pct": _max_drawdown_pct(equity), "fees": run["fees"],
+        "max_drawdown_pct": _max_drawdown_pct(equity), "peak_pct": peak_pct(equity, budget), "fees": run["fees"],
         "calls": run["progress"]["calls"], "tokens_in": run["usage"]["in"], "tokens_out": run["usage"]["out"],
         "errors": run["errors"], "refused": run["refused"], "max_open": max_open(run["trades"]),
     }

@@ -32,10 +32,26 @@ def resume():
     return run(backtest.resume)
 
 
+@bp.get("/draft")
+def get_draft():
+    return jsonify(draft=backtest.draft())
+
+
+@bp.put("/draft")
+def put_draft():
+    return run(lambda: backtest.save_draft(request.get_json(silent=True)))
+
+
 @bp.get("/<run_id>")
 def one(run_id):
     found = backtest.get(run_id)
     return (jsonify(found), 200) if found else (jsonify(ok=False, error="Essai introuvable"), 404)
+
+
+@bp.get("/<run_id>/exchange/<int:number>")
+def exchange(run_id, number):
+    found = backtest.exchange(run_id, number)
+    return (jsonify(found), 200) if found else (jsonify(ok=False, error="Échange introuvable (essai fait avant leur enregistrement ?)"), 404)
 
 
 @bp.delete("/<run_id>")

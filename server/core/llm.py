@@ -170,8 +170,8 @@ def _ollama(provider, key, model, system, user, tool, max_tokens, timeout, cance
 _CLIENTS = {"anthropic": _anthropic, "openai": _openai, "ollama": _ollama}
 
 
-def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None, cancel=None, source=None, temperature=None):
-    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`. `cancel` (un `Cancel`) permet de l'interrompre depuis un autre thread. `temperature` (None = valeur par défaut du modèle ; plus bas = réponses plus répétables). `source` (« Bot IA »…) : l'échange est alors enregistré dans le journal de la page « Échanges IA »."""
+def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=None, cancel=None, trace=None, temperature=None):
+    """Envoie `user` au modèle `model` du fournisseur `provider_id` et renvoie `(arguments_de_l_outil, {"in": tokens, "out": tokens})`. `cancel` (un `Cancel`) permet de l'interrompre depuis un autre thread. `temperature` (None = valeur par défaut du modèle ; plus bas = réponses plus répétables). `trace` (un dict) : l'échange est alors enregistré dans le journal (`core.exchanges`) et son identifiant est rangé dans `trace["exchange"]`, même si l'appel échoue."""
     provider = PROVIDERS.get(provider_id)
     if not provider:
         raise LlmError(f"Fournisseur inconnu : {provider_id}", 400)
@@ -181,9 +181,10 @@ def call_tool(provider_id, model, system, user, tool, max_tokens=2000, timeout=N
     if not model:
         raise LlmError("Aucun modèle choisi.", 400)
     call = lambda: _CLIENTS[provider["format"]](provider, key, model, system, user, tool, max_tokens, timeout or provider.get("timeout", 90), cancel, temperature)
-    if not source:
+    if trace is None:
         return call()
-    entry = exchanges.begin(source, provider_id, model, system, user, tool)
+    entry = exchanges.begin(provider_id, model, system, user)
+    trace["exchange"] = entry["id"]
     try:
         response, usage = call()
     except LlmError as e:

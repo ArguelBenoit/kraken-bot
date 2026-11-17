@@ -34,7 +34,7 @@ export function BacktestPage() {
         <Kpi label="Rendement" tip="Variation de l'équité du Bot IA sur la période rejouée.">
           <b className={stats ? gainClass(stats.return_pct) : ''}>{stats ? `${signed(stats.return_pct)} %` : '–'}</b>
         </Kpi>
-        <Kpi label="Acheter-garder" tip="Rendement d'un simple achat conservé, sur les mêmes paires et la même période.">
+        <Kpi label="Buy & hold" tip="Rendement d'un simple achat conservé, sur les mêmes paires et la même période.">
           <b className={stats ? gainClass(stats.hold_pct) : ''}>{stats ? `${signed(stats.hold_pct)} %` : '–'}</b>
         </Kpi>
         <Kpi label="Trades" tip="Positions clos pendant la période."><b>{stats ? stats.trades : '–'}</b></Kpi>
@@ -58,7 +58,7 @@ export function BacktestPage() {
           {stats && run && <BacktestStatsCard s={stats} maxPositions={run.params.max_positions} />}
           {run && run.equity.length > 0 && <EquityChart runId={run.id} equity={run.equity} />}
           {run && <PairTradesCard trades={[...run.trades].reverse().slice(0, 100)} />}
-          {run && <DecisionsCard decisions={[...run.decisions].reverse().slice(0, 40)} />}
+          {run && <DecisionsCard decisions={[...run.decisions].reverse().slice(0, 40)} exchangeUrl={(d) => (d.exchange != null ? `/api/backtest/${run.id}/exchange/${d.exchange}` : null)} />}
         </div>
       </main>
     </>

@@ -8,7 +8,7 @@ import { NumberInput } from '@/components/ui/NumberInput'
 import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { PARALLEL_FIELD, SHORT_FIELD } from '@/lib/aiForm'
-import { BT_LIMIT_FIELDS, BT_SCENARIOS, estimateCalls, type BtNumericKey } from '@/lib/backtest'
+import { BT_LIMIT_FIELDS, TREND_LABEL, estimateCalls, type BtNumericKey } from '@/lib/backtest'
 import { AI_TFS } from '@/lib/constants'
 import type { Aggressiveness } from '@/lib/types'
 import { useBacktestStore } from '@/stores/backtestStore'
@@ -25,6 +25,7 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
   const maxDays = options.max_days[draft.timeframe] ?? 0
   const calls = estimateCalls(Number(draft.days), tf, Number(draft.interval_min))
   const tooLong = Number(draft.days) > maxDays
+  const scenario = options.scenarios.find((s) => s.end === draft.end)
   const number = (def: { name: string }) => draft[def.name as BtNumericKey]
 
   return (
@@ -48,16 +49,17 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
         <Field label={`Durée (jours, max ${maxDays})`} tip="Période rejouée. Plus c'est long, plus il y a d'appels au modèle (et de trades pour juger).">
           <input type="number" min={1} max={maxDays} step="1" value={draft.days} onChange={(e) => setField('days', e.target.value)} />
         </Field>
-        <Field label="Fin de la période" tip="Vide = les dernières bougies de Kraken, jusqu'à maintenant. Une date passée rejoue un autre marché (hausse, baisse, sans tendance) avec les bougies de Binance en USDT, très proches de Kraken pour les grandes cryptos ; les paires qui n'existaient pas encore à cette date sont écartées. Une même date donne toujours le même marché : c'est ce qui permet de comparer des réglages.">
-          <input type="date" min="2018-01-01" value={draft.end} onChange={(e) => setField('end', e.target.value)} />
+        <Field label="Marché testé" tip="Aujourd'hui = les dernières bougies de Kraken. Les autres choix rejouent un marché passé précis (bougies de Binance en USDT, très proches de Kraken pour les grandes cryptos), classé par tendance du bitcoin : hausse, baisse ou sans tendance. Ils sont gardés sur le disque : un même marché se rejoue à l'identique, ce qui permet de comparer des réglages. Ta durée et ta bougie sont conservées. Les paires qui n'existaient pas encore à cette date sont écartées.">
+          <select value={draft.end} onChange={(e) => setField('end', e.target.value)}>
+            <option value="">Aujourd&apos;hui (dernières bougies)</option>
+            {(['hausse', 'baisse', 'range'] as const).map((trend) => (
+              <optgroup key={trend} label={TREND_LABEL[trend]}>
+                {options.scenarios.filter((s) => s.trend === trend).map((s) => <option key={s.end} value={s.end}>{TREND_LABEL[trend]} · {s.when}</option>)}
+              </optgroup>
+            ))}
+          </select>
         </Field>
-        <div className="row">
-          {BT_SCENARIOS.map((s) => (
-            <Button key={s.label} size="xs" variant="sec" title={`${s.note}. Fixe la fin de période et 30 jours.`}
-              onClick={() => { setField('end', s.end); setField('timeframe', '240'); setField('days', String(Math.min(30, options.max_days['240'] ?? 30))) }}>{s.label}</Button>
-          ))}
-          {draft.end && <Button size="xs" variant="sec" onClick={() => setField('end', '')}>Aujourd&apos;hui</Button>}
-        </div>
+        {scenario && <div className="hint">{scenario.note}</div>}
         {BT_LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} value={number(d)} onChange={(v) => setField(d.name as BtNumericKey, v)} />)}
         <Field label="Appels max (sécurité)" tip="Le test s'arrête (en gardant ce qui est calculé) après ce nombre d'appels au modèle. Vide = aucune limite.">
           <input type="number" min={1} step="1" placeholder="aucune" value={draft.max_calls} onChange={(e) => setField('max_calls', e.target.value)} />

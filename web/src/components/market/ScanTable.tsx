@@ -39,7 +39,6 @@ export function ScanTable({ tradeLabel, onTrade, onSelect }: Props) {
   const pick = (pair: string) => {
     selectPair(pair)
     onSelect?.(pair)
-    document.getElementById('chart')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
   }
 
   return (

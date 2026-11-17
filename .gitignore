@@ -11,4 +11,6 @@ web/dist/
 manual_state.json
 manual_config.json
 ai_backtests.json
+ai_backtest_draft.json
 learn_state.json
+data/

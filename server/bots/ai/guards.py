@@ -1,4 +1,6 @@
 """Garde-fous du Bot IA, appliqués par le code : Le modèle ne peut pas les contourner (fonctions pures)."""
+import time
+
 from server.bots import positions as pos
 from server.bots.manual_config import MIN_LEVERAGE
 from .config import MARGIN_FEE_PCT, PROFILES
@@ -15,15 +17,18 @@ def too_low_ratio(cfg, take_profit, stop):
     return cfg["min_reward_risk"] is not None and take_profit > 0 and take_profit / stop < cfg["min_reward_risk"]
 
 
-def drawdown_pct(state, equity):
-    """Baisse de l'équité (en %, négative ou nulle) depuis son sommet ; met le sommet à jour. Sans équité connue : 0."""
+def drawdown_pct(state, equity, now, days):
+    """Baisse de l'équité (en %, négative ou nulle) depuis son plus haut des `days` derniers jours ; enregistre ce point (à l'instant `now`, en secondes).
+    Le plus haut sort de la fenêtre avec le temps : le disjoncteur ne bloque donc jamais définitivement. Sans équité connue : 0."""
     if not equity:
         return 0.0
-    state["equity_peak"] = max(state.get("equity_peak", 0.0), equity)
-    return (equity / state["equity_peak"] - 1) * 100
+    history = [(ts, eq) for ts, eq in state.get("equity_hist", []) if now - days * 86400 < ts < now]
+    history.append((now, equity))
+    state["equity_hist"] = history[-5000:]
+    return (equity / max(eq for _, eq in history) - 1) * 100
 
 
-def vet_open(cfg, state, action, market=None, equity=None):
+def vet_open(cfg, state, action, market=None, equity=None, now=None):
     """Contrôle une ouverture proposée (achat ou short). Renvoie (paramètres sûrs, None), ou (None, motif de refus).
     `market` ({paire: indicateurs}) et `equity` alimentent le filtre de tendance, le stop minimal selon la volatilité et le disjoncteur ; sans eux ces contrôles sont sautés."""
     profile = PROFILES[cfg["aggressiveness"]]
@@ -49,8 +54,10 @@ def vet_open(cfg, state, action, market=None, equity=None):
     gap = row.get("ema20_vs_ema50_pct")
     if cfg["trend_filter"] and gap is not None and (gap < 0 if not short else gap > 0):
         return None, f"filtre de tendance : {'achat' if not short else 'short'} refusé, EMA20 {'<' if gap < 0 else '>'} EMA50 ({gap:+.2f} %)"
-    if cfg["max_drawdown_pct"] is not None and drawdown_pct(state, equity) <= -cfg["max_drawdown_pct"]:
-        return None, f"disjoncteur : l'équité a perdu {-drawdown_pct(state, equity):.1f} % depuis son sommet (limite {cfg['max_drawdown_pct']:g} %)"
+    if cfg["max_drawdown_pct"] is not None:
+        drop = drawdown_pct(state, equity, time.time() if now is None else now, cfg["drawdown_days"])
+        if drop <= -cfg["max_drawdown_pct"]:
+            return None, f"disjoncteur : l'équité a perdu {-drop:.1f} % depuis son plus haut des {cfg['drawdown_days']} derniers jours (limite {cfg['max_drawdown_pct']:g} %)"
     min_conf = min(profile["min_conf"] + (SHORT_CONF_BONUS if short else 0), 0.95)
     if confidence < min_conf:
         return None, f"confiance {confidence:.2f} < minimum {min_conf:.2f} ({cfg['aggressiveness']}{', short' if short else ''})"
@@ -60,11 +67,6 @@ def vet_open(cfg, state, action, market=None, equity=None):
     if stop <= 0:
         return None, "stop loss obligatoire"
     stop = max(stop, MIN_STOP_PCT)
-    if cfg["stop_vol_mult"] is not None and row.get("avg_range_pct"):
-        floor = cfg["stop_vol_mult"] * row["avg_range_pct"]
-        if floor > profile["sl_max"]:
-            return None, f"paire trop volatile pour ce profil : stop minimal {floor:.1f} % > maximum {profile['sl_max']:g} %"
-        stop = max(stop, floor)
     stop = min(stop, profile["sl_max"])
     leverage = 1.0
     if short:
@@ -76,10 +78,6 @@ def vet_open(cfg, state, action, market=None, equity=None):
         return None, f"gain/risque {take_profit / stop:.2f} < minimum {cfg['min_reward_risk']:g} (TP {take_profit:g} % / SL {stop:g} %)"
     factor = min(max(float(action.get("size_factor", 1)), MIN_SIZE_FACTOR), profile["size_max"])
     size = cfg["order_size"] * factor                       # long : montant dépensé ; short : montant vendu (la garantie en est une fraction)
-    if cfg["risk_per_trade_pct"] is not None:               # la perte au stop (≈ montant × stop) ne dépasse pas ce % du budget
-        size = min(size, cfg["budget"] * cfg["risk_per_trade_pct"] / stop)
-        if size < cfg["order_size"] * MIN_SIZE_FACTOR:
-            return None, f"stop {stop:g} % trop large pour le risque par trade ({cfg['risk_per_trade_pct']:g} % du budget)"
     invested = sum(p["size"] if pos.is_short(p) else p["cost"] for p in state["positions"])
     if cfg["max_exposure_pct"] is not None and invested + size > cfg["budget"] * cfg["max_exposure_pct"] / 100:
         return None, "exposition max atteinte"

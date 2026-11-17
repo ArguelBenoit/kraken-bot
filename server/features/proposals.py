@@ -158,7 +158,7 @@ def propose(manual, provider, model):
         max_lev = manual.config["max_leverage"]
         context = {"now": time.strftime("%Y-%m-%d %H:%M"), "bougies_min": TIMEFRAME, "paires_deja_detenues": held,
                    "shorts_autorises": shorts_ok, "levier_max": max_lev, "marche": market}
-        raw, _tokens = call_tool(provider, model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500, cancel=_cancel, source="Propositions du Trading")
+        raw, _tokens = call_tool(provider, model, SYSTEM, json.dumps(context, ensure_ascii=False), TOOL, max_tokens=2500, cancel=_cancel)
         _last = time.time()
         prices = {r["pair"]: r["price"] for r in market}
         trades = sanitize(raw.get("trades"), prices, held, shorts_ok, max_lev)

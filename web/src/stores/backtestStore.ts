@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { api, errMsg } from '@/lib/api'
-import { BT_NUMERIC_KEYS, BT_OPTIONAL_KEYS, type BtNumericKey } from '@/lib/backtest'
+import { BT_NUMERIC_KEYS, BT_OPTIONAL_KEYS, BT_STABILITY_KEYS, type BtNumericKey } from '@/lib/backtest'
 import type { Aggressiveness, BtRun, BtStatus } from '@/lib/types'
 import { runAction } from './runAction'
 import { toast } from './uiStore'
@@ -18,7 +18,7 @@ export interface BtDraft extends Record<BtNumericKey, string> {
   trend_filter: boolean
   notes: string
   max_calls: string
-  /** Fin d'une période passée (AAAA-MM-JJ) ; vide = les dernières bougies. */
+  /** Fin de la période (AAAA-MM-JJ) d'un marché passé ; vide (défaut) = les dernières bougies de Kraken. */
   end: string
 }
 
@@ -41,15 +41,34 @@ interface BacktestStore {
   remove: (id: string) => Promise<void>
 }
 
-/** Valeurs de départ du formulaire : réglages du Bot IA, durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
+/** Valeurs de départ du formulaire : réglages du Bot IA (sauf la stabilité des gains, laissée vide), durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
 function initialDraft(o: BtStatus['options']): BtDraft {
   const d = o.defaults
   const max = o.max_days[String(d.timeframe)] ?? 14
-  const numbers = Object.fromEntries(BT_NUMERIC_KEYS.map((k) => [k, d[k] == null ? '' : String(d[k])])) as Record<BtNumericKey, string>
+  const numbers = Object.fromEntries(BT_NUMERIC_KEYS.map((k) => [k, d[k] == null || BT_STABILITY_KEYS.includes(k) ? '' : String(d[k])])) as Record<BtNumericKey, string>
   return {
     ...numbers, provider: d.provider, model: d.model, pairs: [...d.pairs], strategies: [...d.strategies], timeframe: String(d.timeframe),
-    days: String(Math.min(14, max)), aggressiveness: d.aggressiveness, allow_short: d.allow_short, trend_filter: d.trend_filter, notes: d.notes, max_calls: '', end: '',
+    days: String(Math.min(14, max)), aggressiveness: d.aggressiveness, allow_short: d.allow_short, trend_filter: false, notes: d.notes, max_calls: '', end: '',
   }
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+
+/** Enregistre le formulaire sur le serveur une demi-seconde après la dernière modification (il suit ainsi d'une machine à l'autre). */
+function saveSoon(get: () => BacktestStore) {
+  clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => {
+    const draft = get().draft
+    if (draft) void api.put('/api/backtest/draft', draft).catch(() => undefined)
+  }, 500)
+}
+
+/** Brouillon conservé complété par les champs manquants ; le marché n'est gardé que s'il fait toujours partie des scénarios (sinon : aujourd'hui). */
+function restoreDraft(o: BtStatus['options'], saved: BtDraft | null): BtDraft {
+  const base = initialDraft(o)
+  if (!saved) return base
+  const keepEnd = o.scenarios.some((sc) => sc.end === saved.end)
+  return { ...base, ...saved, end: keepEnd ? saved.end : '' }
 }
 
 /** Brouillon -> corps JSON : nombres convertis ; vide = sans restriction (`null`) pour les champs facultatifs, sinon valeur du Bot IA conservée (champ omis). */
@@ -63,7 +82,7 @@ function toPayload(d: BtDraft) {
   return out
 }
 
-/** Page Backtest IA : état du serveur (essai courant, historique), formulaire et actions. */
+/** Page Backtest IA : état du serveur (essai courant, historique), formulaire (enregistré côté serveur) et actions. */
 export const useBacktestStore = create<BacktestStore>((set, get) => ({
   status: null,
   draft: null,
@@ -72,20 +91,27 @@ export const useBacktestStore = create<BacktestStore>((set, get) => ({
   refresh: async () => {
     try {
       const status = await api.get<BtStatus>('/api/backtest/status')
-      set((s) => (s.draft ? { status } : { status, draft: initialDraft(status.options) }))
+      if (get().draft) return set({ status })
+      const saved = (await api.get<{ draft: BtDraft | null }>('/api/backtest/draft')).draft
+      set((s) => ({ status, draft: s.draft ?? restoreDraft(status.options, saved) }))
     } catch {
       /* serveur injoignable */
     }
   },
 
-  setField: (name, value) => set((s) => (s.draft ? { draft: { ...s.draft, [name]: value } } : s)),
+  setField: (name, value) => {
+    set((s) => (s.draft ? { draft: { ...s.draft, [name]: value } } : s))
+    saveSoon(get)
+  },
 
-  toggleIn: (name, value) =>
+  toggleIn: (name, value) => {
     set((s) => {
       if (!s.draft) return s
       const cur = s.draft[name]
       return { draft: { ...s.draft, [name]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] } }
-    }),
+    })
+    saveSoon(get)
+  },
 
   start: async () => {
     const d = get().draft

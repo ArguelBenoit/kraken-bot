@@ -42,7 +42,7 @@ class Replay:
         self.state = {"cash": cfg["budget"], "positions": [], "day_pnl": 0.0}
         self.day, self.errors_in_a_row = "", 0
         run["progress"].update(step=0, steps=-(-(self.count - self.start) // self.every), calls=0, at="")
-        self.base = {p: rows[self.start][1] for p, rows in candles.items()}     # prix d'achat de la référence « acheter et garder »
+        self.base = {p: rows[self.start][1] for p, rows in candles.items()}     # prix d'achat de la référence « buy & hold »
 
     # ---------- boucle ----------
     def go(self):
@@ -90,7 +90,8 @@ class Replay:
             self._count(e.usage)
             run["errors"] += 1
             self.errors_in_a_row += 1
-            run["decisions"].append({"time": _fmt(t), "view": "", "actions": [{"ok": False, "text": "Erreur : " + str(e)[:300]}], "mode": "paper"})
+            run["decisions"].append({"time": _fmt(t), "view": "", "actions": [{"ok": False, "text": "Erreur : " + str(e)[:300]}], "mode": "paper",
+                                     "exchange": self._exchange(system, user, None, e.usage, str(e)[:500])})
             if isinstance(e, CreditError) or self.errors_in_a_row >= MAX_ERRORS_IN_A_ROW:
                 raise StopRun(str(e)[:200])
             return
@@ -98,7 +99,13 @@ class Replay:
         self._count(tokens)
         results = [self._apply(a, i, t) for a in decision.get("actions", [])[:MAX_ACTIONS]]
         run["refused"] += sum(1 for r in results if not r["ok"])
-        run["decisions"].append({"time": _fmt(t), "view": str(decision.get("market_view", ""))[:600], "actions": results, "mode": "paper"})
+        run["decisions"].append({"time": _fmt(t), "view": str(decision.get("market_view", ""))[:600], "actions": results, "mode": "paper",
+                                 "exchange": self._exchange(system, user, decision, tokens)})
+
+    def _exchange(self, system, user, response, usage, error=""):
+        """Garde la demande et la réponse du modèle dans l'essai (lues à la demande, jamais envoyées avec la liste) ; renvoie leur numéro."""
+        self.run["exchanges"].append({"system": system, "user": user, "response": response, "usage": usage, "error": error})
+        return len(self.run["exchanges"]) - 1
 
     def _count(self, tokens):
         self.run["progress"]["calls"] += 1
@@ -115,7 +122,7 @@ class Replay:
 
         try:
             if kind == "open":
-                params, refusal = guards.vet_open(self.cfg, self.state, action, self.rows, self._equity(i))
+                params, refusal = guards.vet_open(self.cfg, self.state, action, self.rows, self._equity(i), t)
                 if refusal:
                     return result(False, refusal)
                 self._open(pair, params, self.candles[pair][i][1], t)
@@ -188,6 +195,7 @@ class Replay:
         s, c = self.state, self.cfg
         close = lambda pair: self.candles[pair][i][4]
         equity = self._equity(i, 4)
-        guards.drawdown_pct(s, equity)                                  # tient le sommet de l'équité à jour pour le disjoncteur
+        if c["max_drawdown_pct"] is not None:
+            guards.drawdown_pct(s, equity, t + self.tf * 60, c["drawdown_days"])      # historique de l'équité pour le disjoncteur
         hold = c["budget"] * sum((1 - c["fee_pct"] / 100) * close(pair) / self.base[pair] for pair in self.base) / len(self.base)
         self.run["equity"].append([t + self.tf * 60, round(equity, 2), round(hold, 2)])

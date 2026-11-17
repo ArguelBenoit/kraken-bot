@@ -133,7 +133,7 @@ export interface Summary {
   buys: number
 }
 
-/** Bilan d'un exercice : résultat, comparaison avec « acheter et attendre », trades gagnants, respect des signaux. */
+/** Bilan d'un exercice : résultat, comparaison avec « buy & hold », trades gagnants, respect des signaux. */
 export function summarize(s: Sim, candles: Candle[]): Summary {
   const final = equity(s, candles)
   const first = candles[s.start].close

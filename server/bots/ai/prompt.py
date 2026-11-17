@@ -49,13 +49,8 @@ def _system(cfg):
                   "Trade dans le sens de la tendance de la paire, pas contre elle.\n")
     if cfg["max_same_side"] is not None:
         extra += f"- Au plus {cfg['max_same_side']} positions dans le même sens (achats ensemble, shorts ensemble) : les cryptos bougent ensemble, diversifie le sens.\n"
-    if cfg["stop_vol_mult"] is not None:
-        extra += (f"- Stop loss minimal : {cfg['stop_vol_mult']:g} × `avg_range_pct` de la paire (le code élargit un stop plus serré ; sous ce niveau c'est du bruit). "
-                  "Prévois un objectif en conséquence pour garder le gain/risque.\n")
-    if cfg["risk_per_trade_pct"] is not None:
-        extra += f"- La taille est réduite par le code pour que la perte au stop ne dépasse pas {cfg['risk_per_trade_pct']:g} % du budget : un stop large donne une petite position.\n"
     if cfg["max_drawdown_pct"] is not None:
-        extra += f"- Disjoncteur : plus aucune ouverture si l'équité perd {cfg['max_drawdown_pct']:g} % depuis son sommet.\n"
+        extra += f"- Disjoncteur : plus aucune ouverture si l'équité perd {cfg['max_drawdown_pct']:g} % depuis son plus haut des {cfg['drawdown_days']} derniers jours.\n"
     text = (
         f"Tu es le moteur de décision d'un bot de trading crypto sur Kraken ({'achat, et short en marge' if cfg['allow_short'] else 'long uniquement, spot'}, ordres au marché, "
         "paires contre stablecoin). Tu reçois un résumé chiffré du marché et l'état du portefeuille, et tu réponds "

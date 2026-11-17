@@ -4,7 +4,7 @@
 export const AI_NUMERIC_KEYS = [
   'timeframe', 'interval_min', 'check_every', 'max_positions', 'order_size', 'budget', 'max_exposure_pct',
   'max_daily_loss_pct', 'max_calls_per_day', 'min_reward_risk', 'max_leverage', 'fee_pct',
-  'max_same_side', 'max_drawdown_pct', 'risk_per_trade_pct', 'stop_vol_mult', 'temperature',
+  'max_same_side', 'max_drawdown_pct', 'drawdown_days', 'temperature',
 ] as const
 export type AiNumericKey = (typeof AI_NUMERIC_KEYS)[number]
 
@@ -58,11 +58,9 @@ export const STABILITY_FIELDS: NumberField[] = [
   { name: 'max_same_side', label: 'Positions max dans le même sens', step: '1', min: 1, max: 10, empty: 'aucun plafond',
     tip: "Nombre maximum d'achats ouverts en même temps, et de shorts. Les cryptos bougent ensemble : 5 achats sont souvent un seul gros pari. Plafonner par sens oblige le bot à répartir le risque. Vide = aucun plafond." },
   { name: 'max_drawdown_pct', label: 'Disjoncteur (% de baisse)', step: '0.5', min: 1, max: 50, empty: 'désactivé',
-    tip: "Si l'équité du bot perd ce pourcentage depuis son plus haut, plus aucune position n'est ouverte (les positions existantes continuent d'être gérées). Il repart quand l'équité remonte au-dessus du seuil. Vide = désactivé." },
-  { name: 'risk_per_trade_pct', label: 'Risque max par trade (% budget)', step: '0.1', min: 0.1, max: 5, empty: 'sans limite',
-    tip: "Taille de la position limitée pour que la perte au stop ne dépasse pas ce pourcentage du budget : un stop large donne une petite position, un stop serré une plus grande. Vide = taille classique." },
-  { name: 'stop_vol_mult', label: 'Stop min (× amplitude bougie)', step: '0.1', min: 0.5, max: 5, empty: 'sans minimum',
-    tip: "Le stop loss ne peut pas être plus serré que ce multiple de l'amplitude moyenne d'une bougie de la paire (`avg_range_pct`) : un stop plus serré saute sur du simple bruit. Le code élargit le stop ; si le gain/risque minimum n'est plus respecté, l'ordre est refusé. Vide = sans minimum." },
+    tip: "Si l'équité du bot perd ce pourcentage depuis son plus haut des derniers jours (voir la fenêtre ci-dessous), plus aucune position n'est ouverte ; les positions existantes continuent d'être gérées. Quand ce plus haut sort de la fenêtre, le bot rouvre : il n'est jamais bloqué définitivement. Vide = désactivé." },
+  { name: 'drawdown_days', label: 'Fenêtre du disjoncteur (jours)', step: '1', min: 1, max: 30, empty: '3',
+    tip: "Le disjoncteur compare l'équité à son plus haut des N derniers jours (3 par défaut). Plus la fenêtre est courte, plus vite le bot rouvre après une baisse ; plus elle est longue, plus il reste prudent. Sans effet si le disjoncteur est désactivé." },
   { name: 'temperature', label: 'Température du modèle', step: '0.1', min: 0, max: 1, empty: 'défaut du modèle',
     tip: "Plus bas = réponses plus répétables d'un essai à l'autre (0 = quasi déterministe). Vide = valeur par défaut du fournisseur. Certains modèles (raisonnement) refusent de la changer : l'erreur s'affiche alors dans le journal." },
 ]
