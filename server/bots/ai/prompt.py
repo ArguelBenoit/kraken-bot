@@ -43,6 +43,14 @@ def _system(cfg):
         "frais de report toutes les 4 h. Stop loss et objectif sont inversés : le stop est AU-DESSUS de l'entrée, l'objectif EN DESSOUS. "
         "Ne shorte que sur une tendance baissière claire (EMA20 sous EMA50, prix sous la moyenne, RSI qui ne rebondit pas), avec un stop serré et le levier le plus bas ; "
         "le code exige plus de confiance que pour un achat. Les stratégies ci-dessus s'inversent (ex. trend_follow = tendance baissière, bollinger/rsi = suracheté).\n")
+    extra = ""
+    if cfg["trend_filter"]:
+        extra += ("- Filtre de tendance : le code refuse un achat quand `ema20_vs_ema50_pct` est négatif et un short quand il est positif. "
+                  "Trade dans le sens de la tendance de la paire, pas contre elle.\n")
+    if cfg["max_same_side"] is not None:
+        extra += f"- Au plus {cfg['max_same_side']} positions dans le même sens (achats ensemble, shorts ensemble) : les cryptos bougent ensemble, diversifie le sens.\n"
+    if cfg["max_drawdown_pct"] is not None:
+        extra += f"- Disjoncteur : plus aucune ouverture si l'équité perd {cfg['max_drawdown_pct']:g} % depuis son plus haut des {cfg['drawdown_days']} derniers jours.\n"
     text = (
         f"Tu es le moteur de décision d'un bot de trading crypto sur Kraken ({'achat, et short en marge' if cfg['allow_short'] else 'long uniquement, spot'}, ordres au marché, "
         "paires contre stablecoin). Tu reçois un résumé chiffré du marché et l'état du portefeuille, et tu réponds "
@@ -53,7 +61,7 @@ def _system(cfg):
         f"- Maximum {cfg['max_positions']} positions simultanées, une seule par paire. Respecte `free_slots`.\n"
         "- Chaque `open` DOIT avoir un stop_loss_pct. Les frais font ≈0,5 % l'aller-retour : n'ouvre que si le gain visé "
         "dépasse nettement ce coût et que le rapport gain/risque est favorable.\n"
-        f"{ratio_rule}{short_rule}"
+        f"{ratio_rule}{short_rule}{extra}"
         "- `close` pour sortir si la thèse est invalidée ; `adjust` pour resserrer stop/stop suiveur (un stop ne s'éloigne JAMAIS : le code refuse de l'élargir ou de le retirer) ou changer l'objectif. Les stops/TP sont aussi "
         "surveillés automatiquement entre deux analyses.\n"
         "- Ne force jamais un trade : une liste d'actions vide est une réponse valide et souvent la bonne.\n"

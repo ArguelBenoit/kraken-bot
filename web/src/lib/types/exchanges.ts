@@ -1,28 +1,19 @@
-/** Un échange avec un modèle (journal de la page « Échanges IA »). */
+/** Un échange avec un modèle : ce qui lui a été envoyé et ce qu'il a répondu (ouvert depuis une décision du Bot IA ou d'un backtest). */
 export type ExchangeState = 'pending' | 'ok' | 'error' | 'cancelled'
 
-export interface ExchangeSummary {
-  id: string
-  /** Qui a posé la question : « Bot IA », « Propositions du Trading ». */
-  source: string
-  at: string
-  provider: string
-  model: string
-  status: ExchangeState
-  usage: { in: number; out: number }
-  seconds: number
-  error: string
-  /** Taille de la demande (consignes + contexte), en caractères. */
-  chars: number
-}
-
-export interface Exchange extends Omit<ExchangeSummary, 'chars'> {
+export interface Exchange {
   /** Consignes générales envoyées au modèle. */
   system: string
   /** Contexte de la demande (marché, positions, réglages…). */
   user: string
-  /** Outil imposé : le schéma de la réponse attendue. */
-  tool: unknown
-  /** Arguments renvoyés par le modèle ; null tant qu'il n'a pas répondu ou en cas d'échec. */
+  /** Arguments renvoyés par le modèle ; null en cas d'échec. */
   response: unknown
+  usage: { in: number; out: number }
+  error: string
+  /** Absents d'un échange de backtest. */
+  at?: string
+  provider?: string
+  model?: string
+  status?: ExchangeState
+  seconds?: number
 }

@@ -3,6 +3,14 @@ import type { AiDecision, Aggressiveness, Providers } from './ai'
 import type { PairTrade } from './manual'
 
 /** Réglages d'un essai (ceux de la page, plus ceux repris du Bot IA). */
+/** Marché passé proposé au backtest (bougies de Binance) : tendance, fin de période, mois, et évolution de BTC. */
+export interface BtScenario {
+  trend: 'hausse' | 'baisse' | 'range'
+  end: string
+  when: string
+  note: string
+}
+
 export interface BtParams {
   provider: string
   model: string
@@ -22,6 +30,13 @@ export interface BtParams {
   fee_pct: number
   strategies: string[]
   max_calls: number | null
+  /** Fin d'une période passée (AAAA-MM-JJ, données Binance) ; null = les dernières bougies Kraken. */
+  end: string | null
+  trend_filter: boolean
+  max_same_side: number | null
+  max_drawdown_pct: number | null
+  drawdown_days: number
+  temperature: number | null
 }
 
 /** Résumé chiffré d'un essai ; vide tant qu'aucune bougie n'a été rejouée. */
@@ -38,6 +53,8 @@ export interface BtStats {
   expectancy: number | null
   profit_factor: number | null
   max_drawdown_pct: number
+  /** Gain maximum atteint en cours d'essai, en % du budget (absent seulement si l'essai n'a pas de courbe). */
+  peak_pct?: number
   fees: number
   calls: number
   tokens_in: number
@@ -69,7 +86,7 @@ export interface BtRun {
   fees: number
   errors: number
   refused: number
-  /** [instant (s), équité du Bot IA, équité d'acheter-garder]. */
+  /** [instant (s), équité du Bot IA, équité du buy & hold]. */
   equity: [number, number, number][]
   trades: BtTrade[]
   decisions: AiDecision[]
@@ -91,9 +108,11 @@ export interface BtStatus {
     providers: Providers
     pairs: { pair: string; label: string }[]
     /** Réglages enregistrés du Bot IA : valeurs de départ du formulaire. */
-    defaults: Omit<BtParams, 'days' | 'max_calls'> & { notes: string }
+    defaults: Omit<BtParams, 'days' | 'max_calls' | 'end'> & { notes: string }
     /** Stratégies que le modèle peut utiliser, avec leur description. */
     strategies: Record<string, string>
+    /** Marchés passés déjà téléchargés ou téléchargeables. */
+    scenarios: BtScenario[]
     /** Durée maximale testable (jours) selon la bougie en minutes. */
     max_days: Record<string, number>
   }

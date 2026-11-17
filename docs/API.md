@@ -23,22 +23,21 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 | Route | Rôle |
 |---|---|
 | `GET /api/ai/status` | Réglages, positions, décisions du modèle, appels et tokens du jour, `options.providers` (fournisseurs, modèles d'exemple, clé définie ou non). |
-| `POST /api/ai/config` | Enregistre les réglages (modèle, agressivité, 1 à 10 trades en parallèle, budget, limites, `allow_short`, `max_leverage`, `min_reward_risk` : champ vide = sans minimum). |
+| `POST /api/ai/config` | Enregistre les réglages (modèle, agressivité, 1 à 10 trades en parallèle, budget, limites, `allow_short`, `max_leverage`, `min_reward_risk` : champ vide = sans minimum) et les réglages de stabilité, tous facultatifs (vide = désactivé) : `trend_filter`, `max_same_side`, `max_drawdown_pct`, `drawdown_days`, `temperature`. |
 | `POST /api/ai/start` · `/stop` | Démarre / arrête la surveillance et les analyses. |
 | `POST /api/ai/analyze` | Lance une analyse tout de suite. |
 | `POST /api/ai/liquidate` | Ferme toutes les positions. |
 | `POST /api/ai/close-<id>` | Ferme une position. |
 | `POST /api/ai/reset` | Remet l'état à zéro. |
 
-## Échanges avec les modèles (page annexe `/exchanges`, « Outils » du menu)
+## Échanges avec les modèles (fenêtre ouverte en cliquant sur une décision)
 
-Journal en mémoire des 40 derniers appels aux modèles du Bot IA et des propositions du Trading (le backtest n'y écrit pas) : consignes, contexte, outil imposé, réponse, tokens, durée. Perdu au redémarrage du serveur.
+Les 60 derniers appels du Bot IA sont gardés dans `data/ai_exchanges.json` (consignes `system`, contexte `user`, réponse, tokens, durée) et survivent au redémarrage ; les propositions du Trading n'y sont pas. Un backtest garde ceux de chaque décision dans l'essai, sans les envoyer avec la liste.
 
 | Route | Rôle |
 |---|---|
-| `GET /api/exchanges` | Liste résumée (source, heure, modèle, état `pending`/`ok`/`error`/`cancelled`, tokens, durée, taille). |
-| `GET /api/exchanges/<id>` | Un échange complet (`system`, `user`, `tool`, `response`, `error`). |
-| `DELETE /api/exchanges` | Vide le journal. |
+| `GET /api/exchanges/<id>` | Un échange du Bot IA (`system`, `user`, `response`, `usage`, `error`, modèle, état, durée) ; 404 s'il a été oublié. L'identifiant est le champ `exchange` d'une décision. |
+| `GET /api/backtest/<id>/exchange/<n>` | L'échange n° `n` d'un essai (`exchange` d'une décision) ; 404 pour un essai fait avant leur enregistrement. |
 
 ## Backtest du Bot IA (page annexe `/backtest`, section « Outils » du menu)
 
@@ -47,7 +46,7 @@ Rejoue le modèle et les garde-fous du Bot IA sur les 720 dernières bougies Kra
 | Route | Rôle |
 |---|---|
 | `GET /api/backtest/status` | Essai courant (progression, courbe d'équité, trades, décisions, statistiques), liste résumée des essais gardés, options du formulaire (fournisseurs, paires, durée max par bougie, valeurs du Bot IA). |
-| `POST /api/backtest/start` | Lance un essai : `provider`, `model`, `pairs`, `timeframe`, `days`, `interval_min`, `aggressiveness`, `allow_short`, `min_reward_risk`, `max_leverage`, `max_positions` (1 à 10), `order_size`, `budget`, `max_exposure_pct`, `max_daily_loss_pct`, `fee_pct`, `strategies`, `notes`, `max_calls` (facultatif, plafond d'appels). Les champs omis viennent des réglages enregistrés du Bot IA, qui ne sont jamais modifiés. Statistiques : rendement et « acheter-garder », trades, taux de réussite, drawdown, frais, `max_open` (trades simultanés max), appels, erreurs, refus des garde-fous, tokens. |
+| `POST /api/backtest/start` | Lance un essai : `provider`, `model`, `pairs`, `timeframe`, `days`, `interval_min`, `aggressiveness`, `allow_short`, `min_reward_risk`, `max_leverage`, `max_positions` (1 à 10), `order_size`, `budget`, `max_exposure_pct`, `max_daily_loss_pct`, `fee_pct`, `strategies`, `notes`, `max_calls` (facultatif, plafond d'appels), `end` (AAAA-MM-JJ : rejoue une période passée avec les bougies de Binance au lieu des dernières de Kraken ; l'interface propose les 15 marchés de `options.scenarios`, gardés dans `data/scenarios/`) et les réglages de stabilité. Les champs omis viennent des réglages enregistrés du Bot IA, qui ne sont jamais modifiés. Statistiques : rendement et « buy & hold », trades, taux de réussite, drawdown, `peak_pct` (gain maximum atteint en cours d’essai), frais, `max_open` (trades simultanés max), appels, erreurs, refus des garde-fous, tokens. |
 | `POST /api/backtest/pause` · `POST /api/backtest/resume` | Met en pause entre deux bougies (l'appel au modèle en cours se termine) ; reprend. Statut `paused`. |
 | `POST /api/backtest/cancel` | Annule l'essai en cours (coupe aussi l'appel au modèle). |
 | `GET /api/backtest/<id>` · `DELETE /api/backtest/<id>` | Un essai complet ; suppression d'un essai gardé. |

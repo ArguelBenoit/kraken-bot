@@ -28,9 +28,20 @@ repli de l'ordre limite 0,3–5 % ; les paires déjà détenues sont exclues et 
 Claude choisit parmi `rsi_reversion`, `trend_follow`, `breakout`, `momentum`, `bollinger`, mais **le code impose** : 1 à 10 positions, une par paire,
 confiance minimale et taille maximale selon l'agressivité, stop loss obligatoire (qui ne s'éloigne jamais), gain/risque minimum (TP ÷ SL, 1,5 par défaut), exposition max, perte journalière max, plafond d'appels par jour. Les shorts (case « Autoriser les shorts », désactivée par défaut, paper et live) s'ajoutent aux achats avec une confiance supérieure de 0,1 et un levier borné (voir [SHORT](SHORT.md)).
 
+### Stabilité des gains (facultatif, tout désactivé par défaut)
+
+Garde-fous du code (`bots/ai/guards.py`), réglables dans le bloc « Stabilité des gains » du Bot IA et du backtest, pour ne pas dépendre de l'humeur du modèle :
+
+| Réglage | Effet |
+|---|---|
+| Filtre de tendance | refuse un achat si EMA20 < EMA50 de la paire, un short si EMA20 > EMA50 |
+| Positions max dans le même sens | plafonne les achats d'un côté, les shorts de l'autre (les cryptos bougent ensemble) |
+| Disjoncteur | plus aucune ouverture si l’équité perd X % depuis son plus haut des N derniers jours (3 par défaut) ; le blocage se lève quand ce plus haut sort de la fenêtre |
+| Température | rend les réponses du modèle plus répétables (0 = quasi déterministe) |
+
 ## Backtest du Bot IA
 
-La page `/backtest` rejoue le prompt et les garde-fous réels sur les 720 dernières bougies (voir [API](API.md)). Hypothèses : le modèle ne voit que les bougies closes, l'ordre s'exécute à l'ouverture de la bougie, le stop passe avant l'objectif dans une même bougie, pas de glissement de prix. Elle teste la mécanique, pas la rentabilité : un seul régime de marché, peu de trades, modèle non déterministe ; compare à « acheter-garder » et répète les essais.
+La page `/backtest` rejoue le prompt et les garde-fous réels sur les 720 dernières bougies (voir [API](API.md)). Hypothèses : le modèle ne voit que les bougies closes, l'ordre s'exécute à l'ouverture de la bougie, le stop passe avant l'objectif dans une même bougie, pas de glissement de prix. Par défaut les 720 dernières bougies de Kraken ; avec une **date de fin** (ou les boutons Hausse / Baisse / Sans tendance, qui ne règlent que cette date), une période passée lue chez Binance en USDT (substitut des prix Kraken, paires inexistantes à cette date écartées) : un même marché se rejoue à l'identique, ce qui permet de comparer des réglages. Elle teste la mécanique, pas la rentabilité : un seul régime de marché, peu de trades, modèle non déterministe ; compare à « buy & hold » et répète les essais.
 
 ## Backtest des méthodes
 

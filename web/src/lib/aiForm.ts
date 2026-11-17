@@ -4,6 +4,7 @@
 export const AI_NUMERIC_KEYS = [
   'timeframe', 'interval_min', 'check_every', 'max_positions', 'order_size', 'budget', 'max_exposure_pct',
   'max_daily_loss_pct', 'max_calls_per_day', 'min_reward_risk', 'max_leverage', 'fee_pct',
+  'max_same_side', 'max_drawdown_pct', 'drawdown_days', 'temperature',
 ] as const
 export type AiNumericKey = (typeof AI_NUMERIC_KEYS)[number]
 
@@ -48,3 +49,18 @@ export const LIMIT_FIELDS: NumberField[] = [
 /** Levier maximum d'un short (affiché sous la case « Autoriser les shorts »). */
 export const SHORT_FIELD: NumberField = { name: 'max_leverage', label: 'Levier max (short)', step: '0.5', min: 2, max: 5,
   tip: "Levier maximum que le modèle peut choisir pour un short (2 à 5). Plus bas = plus sûr : la liquidation estimée est à +0,8 ÷ levier (+40 % à ×2, +16 % à ×5)." }
+
+/** Case « Filtre de tendance » (affichée avec les réglages de stabilité). */
+export const TREND_FILTER_TIP = "Le code refuse un achat quand l'EMA20 est sous l'EMA50 de la paire (tendance baissière) et un short quand elle est au-dessus. Le bot suit alors le sens du marché au lieu d'aller à contre-courant : c'est le réglage qui évite le plus de pertes en marché baissier ou haussier. Désactivé par défaut."
+
+/** Réglages de stabilité (tous facultatifs : vide = désactivé), affichés dans un bloc repliable. */
+export const STABILITY_FIELDS: NumberField[] = [
+  { name: 'max_same_side', label: 'Positions max dans le même sens', step: '1', min: 1, max: 10, empty: 'aucun plafond',
+    tip: "Nombre maximum d'achats ouverts en même temps, et de shorts. Les cryptos bougent ensemble : 5 achats sont souvent un seul gros pari. Plafonner par sens oblige le bot à répartir le risque. Vide = aucun plafond." },
+  { name: 'max_drawdown_pct', label: 'Disjoncteur (% de baisse)', step: '0.5', min: 1, max: 50, empty: 'désactivé',
+    tip: "Si l'équité du bot perd ce pourcentage depuis son plus haut des derniers jours (voir la fenêtre ci-dessous), plus aucune position n'est ouverte ; les positions existantes continuent d'être gérées. Quand ce plus haut sort de la fenêtre, le bot rouvre : il n'est jamais bloqué définitivement. Vide = désactivé." },
+  { name: 'drawdown_days', label: 'Fenêtre du disjoncteur (jours)', step: '1', min: 1, max: 30, empty: '3',
+    tip: "Le disjoncteur compare l'équité à son plus haut des N derniers jours (3 par défaut). Plus la fenêtre est courte, plus vite le bot rouvre après une baisse ; plus elle est longue, plus il reste prudent. Sans effet si le disjoncteur est désactivé." },
+  { name: 'temperature', label: 'Température du modèle', step: '0.1', min: 0, max: 1, empty: 'défaut du modèle',
+    tip: "Plus bas = réponses plus répétables d'un essai à l'autre (0 = quasi déterministe). Vide = valeur par défaut du fournisseur. Certains modèles (raisonnement) refusent de la changer : l'erreur s'affiche alors dans le journal." },
+]

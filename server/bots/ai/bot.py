@@ -39,6 +39,7 @@ class AIBot:
         self.log = self.journal.add
         self.last_review = 0.0
         self.reviewing = False
+        self._rows = {}                  # indicateurs de la dernière analyse, pour les garde-fous
         saved = load_json(CONFIG_FILE, {})
         if saved.get("limit_calls") is False:             # ancien réglage « plafond désactivé » -> champ vide
             saved["max_calls_per_day"] = None
@@ -167,8 +168,8 @@ class AIBot:
         for key in ("in", "out"):
             usage[key] += tokens[key]
 
-    def _record_decision(self, view, actions):
-        entry = {"time": datetime.now().strftime("%d/%m %H:%M"), "view": view[:600], "actions": actions, "mode": self.config["mode"]}
+    def _record_decision(self, view, actions, exchange=None):
+        entry = {"time": datetime.now().strftime("%d/%m %H:%M"), "view": view[:600], "actions": actions, "mode": self.config["mode"], "exchange": exchange}
         self.state["decisions"] = (self.state["decisions"] + [entry])[-MAX_DECISIONS_KEPT:]
 
     def _review(self):
@@ -177,31 +178,40 @@ class AIBot:
         if c["max_calls_per_day"] is not None and s["usage"]["calls"] >= c["max_calls_per_day"]:
             return self.log("Plafond d'appels du jour atteint : analyse sautée")
         self.reviewing = True
+        trace = {}                                   # reçoit l'identifiant de l'échange avec le modèle, lié à la décision
         try:
             pairs = list(dict.fromkeys(c["pairs"] + [p["pair"] for p in s["positions"]]))
             market = [r for r in market_snapshot(c["timeframe"], pairs) if "error" not in r]
+            self._rows = {r["pair"]: r for r in market}
+            if c["max_drawdown_pct"] is not None:
+                guards.drawdown_pct(s, self._equity(), time.time(), c["drawdown_days"])      # historique de l'équité pour le disjoncteur
             system, user = prompt.build(c, s, self._price, market)
-            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL, source="Bot IA")
+            decision, tokens = call_tool(c["provider"], c["model"], system, user, prompt.DECIDE_TOOL, trace=trace, temperature=c["temperature"])
             self._count_usage(tokens)
             results = [self._apply(a) for a in decision.get("actions", [])[:MAX_ACTIONS]]
-            self._record_decision(str(decision.get("market_view", "")), results)
+            self._record_decision(str(decision.get("market_view", "")), results, trace.get("exchange"))
             self.log(f"Analyse du modèle : {len(results)} action(s) proposée(s)")
         except LlmError as e:
             if e.usage["in"] or e.usage["out"]:
                 self._count_usage(e.usage)
-            self._record_decision("", [{"text": "Erreur : " + str(e)[:300], "ok": False}])
+            self._record_decision("", [{"text": "Erreur : " + str(e)[:300], "ok": False}], trace.get("exchange"))
             self.log(f"ERREUR analyse: {e}")
             if isinstance(e, CreditError):          # inutile de continuer à appeler l'API : on arrête le bot
                 s["credit_low"] = True
                 self.running = False
         except Exception as e:
-            self._record_decision("", [{"text": "Erreur : " + str(e)[:300], "ok": False}])
+            self._record_decision("", [{"text": "Erreur : " + str(e)[:300], "ok": False}], trace.get("exchange"))
             self.log(f"ERREUR analyse: {e}")
         finally:
             self.reviewing = False
             self._save()
 
     # ---------- exécution des actions proposées ----------
+    def _equity(self):
+        """Équité du bot : budget + gains réalisés + gains latents des positions aux derniers prix (même formule en paper et en live, où le cash n'est pas suivi)."""
+        s = self.state
+        return self.config["budget"] + s["pnl"] + sum(pos.equity_value(p, self._price(p)) - p["cost"] for p in s["positions"])
+
     def _apply(self, action):
         """Exécute une action du modèle après contrôle ; renvoie {ok, text, reason} pour l'historique des décisions."""
         kind, pair = action.get("type"), action.get("pair")
@@ -212,7 +222,7 @@ class AIBot:
 
         try:
             if kind == "open":
-                params, refusal = guards.vet_open(self.config, self.state, action)
+                params, refusal = guards.vet_open(self.config, self.state, action, self._rows, self._equity())
                 if refusal:
                     return result(False, refusal)
                 self._open(pair, params)

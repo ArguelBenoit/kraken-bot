@@ -1,6 +1,0 @@
-.item { display: block; width: 100%; text-align: left; padding: 7px 8px; border: 1px solid transparent; border-bottom: 1px dashed var(--bd); font-size: 12px; cursor: pointer; color: var(--tx); background: none; }
-.item:hover { color: var(--ac); }
-.on { border-color: var(--ac); }
-.sub { color: var(--mu); font-size: 11px; }
-.text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; max-height: 420px; overflow: auto; }
-.meta { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12px; }

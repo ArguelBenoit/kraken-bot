@@ -29,6 +29,13 @@ export interface AiConfig {
   /** Levier maximum d'un short (2 à 5). */
   max_leverage: number
   min_reward_risk: number | null
+  /** Réglages de stabilité : null = désactivé. */
+  trend_filter: boolean
+  max_same_side: number | null
+  max_drawdown_pct: number | null
+  /** Fenêtre (jours) du disjoncteur. */
+  drawdown_days: number
+  temperature: number | null
   fee_pct: number
   notes: string
 }
@@ -60,6 +67,8 @@ export interface AiDecision {
   mode: Mode
   view: string
   actions: { ok: boolean; text?: string; reason?: string }[]
+  /** Échange avec le modèle : identifiant (Bot IA) ou numéro dans l'essai (backtest) ; null si non conservé. */
+  exchange?: string | number | null
 }
 
 export interface AiStatus {

@@ -1,4 +1,4 @@
-import { Bot, Crosshair, FlaskConical, GraduationCap, MessagesSquare, type LucideIcon } from 'lucide-react'
+import { Bot, Crosshair, FlaskConical, GraduationCap, type LucideIcon } from 'lucide-react'
 
 interface NavItem {
   to: string
@@ -25,22 +25,18 @@ export const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
         to: '/ai', label: 'Bot IA', icon: Bot, activity: 'ai',
         tip: "Le modèle de ton choix analyse régulièrement le marché et ouvre jusqu'à 10 trades en parallèle, avec les stratégies que tu autorises. Le code impose les garde-fous : stop loss, exposition max, perte journalière max.",
       },
-      {
-        to: '/learn', label: 'Tutoriel', icon: GraduationCap, badge: 'learn',
-        tip: "Apprendre le trading pas à pas, sans risque : leçons simples, glossaire, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves à valider, une par méthode. 100 % paper : aucun ordre réel.",
-      },
     ],
   },
   {
     label: 'Outils',
     items: [
       {
-        to: '/backtest', label: 'Backtest IA', icon: FlaskConical, badge: 'backtest',
-        tip: "Rejoue le Bot IA sur des bougies passées (vrai prompt, vrais garde-fous), en accéléré et sans ordre : pour comparer des réglages ou un modèle avant de les activer.",
+        to: '/learn', label: 'Tutoriel', icon: GraduationCap, badge: 'learn',
+        tip: "Apprendre le trading pas à pas, sans risque : leçons simples, glossaire, et un simulateur qui rejoue de vrais moments du marché. 6 épreuves à valider, une par méthode. 100 % paper : aucun ordre réel.",
       },
       {
-        to: '/exchanges', label: 'Échanges IA', icon: MessagesSquare,
-        tip: "Montre ce que la plateforme envoie au modèle (consignes, contexte, format de réponse imposé) et ce qu'il répond, pour le Bot IA et les propositions du Trading. Gardé en mémoire depuis le démarrage du serveur.",
+        to: '/backtest', label: 'Backtest IA', icon: FlaskConical, badge: 'backtest',
+        tip: "Rejoue le Bot IA sur des bougies passées (vrai prompt, vrais garde-fous), en accéléré et sans ordre : pour comparer des réglages ou un modèle avant de les activer.",
       },
     ],
   },

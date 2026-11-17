@@ -16,7 +16,7 @@ interface Props {
   onAgain: () => void
 }
 
-/** Bilan de fin d'exercice : résultat comparé à « acheter et attendre », respect de la méthode, détail des trades. */
+/** Bilan de fin d'exercice : résultat comparé au buy & hold, respect de la méthode, détail des trades. */
 export function Debrief({ sim, summary, isTrial, validated, revealed, onReveal, onAgain }: Props) {
   const beat = summary.resultPct > summary.buyHoldPct
   const stopped = sim.trades.some((t) => t.why.startsWith('stop loss'))
@@ -26,7 +26,7 @@ export function Debrief({ sim, summary, isTrial, validated, revealed, onReveal, 
         {isTrial && validated && <p className={css.badge}>✔ ÉPREUVE VALIDÉE</p>}
         <div className={css.stats}>
           <div className={css.stat}><small>Ton résultat</small><b className={gainClass(summary.resultPct)}>{signed(summary.resultPct)} %</b></div>
-          <div className={css.stat}><small>« Acheter et attendre »</small><b className={gainClass(summary.buyHoldPct)}>{signed(summary.buyHoldPct)} %</b></div>
+          <div className={css.stat}><small>Buy &amp; hold</small><b className={gainClass(summary.buyHoldPct)}>{signed(summary.buyHoldPct)} %</b></div>
           <div className={css.stat}><small>Trades gagnants</small><b>{summary.wins} / {summary.sells}</b></div>
         </div>
         <div className={css.prose}>

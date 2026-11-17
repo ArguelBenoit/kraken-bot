@@ -27,7 +27,7 @@ def _tally(positions):
 @bp.get("/activity")
 def activity():
     """Bot IA (tourne ? positions), backtest (en cours ?) et trading manuel (positions, ordres en attente) : combien sont en gain / en perte."""
-    ai_positions = [(p["pair"], p["entry"], False) for p in list(ai.state["positions"])]
+    ai_positions = [(p["pair"], p["entry"], p.get("side") == "short") for p in list(ai.state["positions"])]
     manual_positions = [(p["pair"], p["entry"], p.get("side") == "short") for p in list(manual.state["positions"])]
     return jsonify(
         ai={"running": ai.running, "positions": len(ai_positions), **_tally(ai_positions)},

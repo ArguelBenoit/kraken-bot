@@ -10,7 +10,7 @@ interface Refs {
   hold: ISeriesApi<'Line'>
 }
 
-/** Courbe d'équité du Bot IA comparée à « acheter et garder » (même capital réparti sur les paires, mêmes frais d'achat). */
+/** Courbe d'équité du Bot IA comparée à « buy & hold » (même capital réparti sur les paires, mêmes frais d'achat). */
 export function EquityChart({ runId, equity }: { runId: string; equity: [number, number, number][] }) {
   const el = useRef<HTMLDivElement>(null)
   const refs = useRef<Refs | null>(null)
@@ -41,7 +41,7 @@ export function EquityChart({ runId, equity }: { runId: string; equity: [number,
   }, [equity, runId])
 
   return (
-    <Card title="Équité" icon={LineChart} actions={<span className="t-mu"><span className="t-ac">━</span> Bot IA · <span>┅</span> acheter et garder</span>}>
+    <Card title="Équité" icon={LineChart} actions={<span className="t-mu"><span className="t-ac">━</span> Bot IA · <span>┅</span> buy & hold</span>}>
       <div ref={el} style={{ height: 280 }} />
     </Card>
   )

@@ -1,4 +1,6 @@
 """Garde-fous du Bot IA, appliqués par le code : Le modèle ne peut pas les contourner (fonctions pures)."""
+import time
+
 from server.bots import positions as pos
 from server.bots.manual_config import MIN_LEVERAGE
 from .config import MARGIN_FEE_PCT, PROFILES
@@ -15,8 +17,20 @@ def too_low_ratio(cfg, take_profit, stop):
     return cfg["min_reward_risk"] is not None and take_profit > 0 and take_profit / stop < cfg["min_reward_risk"]
 
 
-def vet_open(cfg, state, action):
-    """Contrôle une ouverture proposée (achat ou short). Renvoie (paramètres sûrs, None), ou (None, motif de refus)."""
+def drawdown_pct(state, equity, now, days):
+    """Baisse de l'équité (en %, négative ou nulle) depuis son plus haut des `days` derniers jours ; enregistre ce point (à l'instant `now`, en secondes).
+    Le plus haut sort de la fenêtre avec le temps : le disjoncteur ne bloque donc jamais définitivement. Sans équité connue : 0."""
+    if not equity:
+        return 0.0
+    history = [(ts, eq) for ts, eq in state.get("equity_hist", []) if now - days * 86400 < ts < now]
+    history.append((now, equity))
+    state["equity_hist"] = history[-5000:]
+    return (equity / max(eq for _, eq in history) - 1) * 100
+
+
+def vet_open(cfg, state, action, market=None, equity=None, now=None):
+    """Contrôle une ouverture proposée (achat ou short). Renvoie (paramètres sûrs, None), ou (None, motif de refus).
+    `market` ({paire: indicateurs}) et `equity` alimentent le filtre de tendance, le stop minimal selon la volatilité et le disjoncteur ; sans eux ces contrôles sont sautés."""
     profile = PROFILES[cfg["aggressiveness"]]
     pair, strategy = action.get("pair"), action.get("strategy")
     confidence = float(action.get("confidence", 0))
@@ -34,6 +48,16 @@ def vet_open(cfg, state, action):
         return None, "position déjà ouverte"
     if len(state["positions"]) >= cfg["max_positions"]:
         return None, "nombre max de positions atteint"
+    if cfg["max_same_side"] is not None and sum(pos.is_short(p) == short for p in state["positions"]) >= cfg["max_same_side"]:
+        return None, f"{cfg['max_same_side']} positions {'short' if short else 'achat'} déjà ouvertes (plafond par sens)"
+    row = (market or {}).get(pair) or {}
+    gap = row.get("ema20_vs_ema50_pct")
+    if cfg["trend_filter"] and gap is not None and (gap < 0 if not short else gap > 0):
+        return None, f"filtre de tendance : {'achat' if not short else 'short'} refusé, EMA20 {'<' if gap < 0 else '>'} EMA50 ({gap:+.2f} %)"
+    if cfg["max_drawdown_pct"] is not None:
+        drop = drawdown_pct(state, equity, time.time() if now is None else now, cfg["drawdown_days"])
+        if drop <= -cfg["max_drawdown_pct"]:
+            return None, f"disjoncteur : l'équité a perdu {-drop:.1f} % depuis son plus haut des {cfg['drawdown_days']} derniers jours (limite {cfg['max_drawdown_pct']:g} %)"
     min_conf = min(profile["min_conf"] + (SHORT_CONF_BONUS if short else 0), 0.95)
     if confidence < min_conf:
         return None, f"confiance {confidence:.2f} < minimum {min_conf:.2f} ({cfg['aggressiveness']}{', short' if short else ''})"
@@ -42,7 +66,8 @@ def vet_open(cfg, state, action):
     stop = float(action.get("stop_loss_pct") or 0)
     if stop <= 0:
         return None, "stop loss obligatoire"
-    stop = min(max(stop, MIN_STOP_PCT), profile["sl_max"])
+    stop = max(stop, MIN_STOP_PCT)
+    stop = min(stop, profile["sl_max"])
     leverage = 1.0
     if short:
         leverage = min(max(float(action.get("leverage") or MIN_LEVERAGE), MIN_LEVERAGE), cfg["max_leverage"])

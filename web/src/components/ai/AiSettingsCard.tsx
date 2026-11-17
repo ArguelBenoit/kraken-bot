@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { NumberInput as NumberInputField } from '@/components/ui/NumberInput'
 import { ModelPicker } from '@/components/ui/ModelPicker'
+import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
 import { LIMIT_FIELDS, PARALLEL_FIELD, SHORT_FIELD, type NumberField } from '@/lib/aiForm'
@@ -63,6 +64,8 @@ export function AiSettingsCard() {
         </label>
         {draft.allow_short && <NumberInput def={SHORT_FIELD} />}
 
+        <StabilityFields id="ai-stability" trendFilter={draft.trend_filter} onTrendFilter={(on) => setField('trend_filter', on)}
+          value={(k) => draft[k]} onChange={(k, v) => setField(k, v)} />
 
         <Accordion id="ai-strategies" title={<>Stratégies autorisées<Tip text="Les approches que le modèle a le droit d'utiliser pour ouvrir un trade. Décoche celles que tu ne veux pas ; il en faut au moins une." /></>}>
           {Object.entries(options.strategies).map(([k, desc]) => (

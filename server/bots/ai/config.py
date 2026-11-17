@@ -45,14 +45,22 @@ DEFAULT_CONFIG = {
     "allow_short": False,            # le modèle peut-il ouvrir des shorts (vente à découvert en marge, paper et live) ? Désactivé par défaut
     "max_leverage": MIN_LEVERAGE,    # levier maximum d'un short (2 à 5)
     "min_reward_risk": 1.5,          # gain/risque minimum TP ÷ SL d'une ouverture avec objectif (None = pas de minimum)
+    "trend_filter": False,          # refuse un achat en tendance baissière (EMA20 < EMA50) et un short en tendance haussière
+    "max_same_side": None,          # nombre max de positions dans le même sens, achats ou shorts (None = pas de plafond)
+    "max_drawdown_pct": None,       # disjoncteur : plus d'ouverture si l'équité a perdu ce % depuis son plus haut des `drawdown_days` derniers jours (None = désactivé)
+    "drawdown_days": 3,             # fenêtre du disjoncteur (jours) : le blocage se lève quand le plus haut sort de la fenêtre
+    "temperature": None,            # température du modèle (None = valeur par défaut du fournisseur)
     "fee_pct": 0.26,                 # frais par ordre (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 10),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
-          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2)}
-FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct")
-OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day", "min_reward_risk")      # champ vide = aucune restriction (None)
+          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2),
+          "max_same_side": (1, 10), "max_drawdown_pct": (1, 50), "drawdown_days": (1, 30), "temperature": (0, 1)}
+FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct",
+              "max_drawdown_pct", "temperature")
+OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day", "min_reward_risk", "max_same_side", "max_drawdown_pct",
+                 "temperature")      # champ vide = aucune restriction (None)
 TIMEFRAMES = (15, 60, 240, 1440)
 
 
@@ -72,6 +80,9 @@ def validate(current, new, busy):
         if cfg[key] in (None, ""):
             cfg[key] = None
     cfg["allow_short"] = bool(cfg["allow_short"])
+    cfg["trend_filter"] = bool(cfg["trend_filter"])
+    if cfg["drawdown_days"] in (None, ""):
+        cfg["drawdown_days"] = DEFAULT_CONFIG["drawdown_days"]
     if cfg["max_leverage"] in (None, ""):
         cfg["max_leverage"] = MIN_LEVERAGE
     if cfg["fee_pct"] in (None, ""):
