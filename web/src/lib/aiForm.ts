@@ -1,4 +1,5 @@
 /** Formulaire des réglages du Bot IA : champs numériques et leurs libellés. */
+import type { AiPreset } from '@/lib/types'
 
 /** Réglages numériques : saisis comme du texte dans le formulaire, convertis en nombres à l'envoi. */
 export const AI_NUMERIC_KEYS = [
@@ -64,3 +65,13 @@ export const STABILITY_FIELDS: NumberField[] = [
   { name: 'temperature', label: 'Température du modèle', step: '0.1', min: 0, max: 1, empty: 'défaut du modèle',
     tip: "Plus bas = réponses plus répétables d'un essai à l'autre (0 = quasi déterministe). Vide = valeur par défaut du fournisseur. Certains modèles (raisonnement) refusent de la changer : l'erreur s'affiche alors dans le journal." },
 ]
+
+/** Champs d'un formulaire (Bot IA ou backtest) à remplacer pour appliquer un préréglage : nombres en texte (vide si absent), le reste tel quel. */
+export function presetPatch(p: AiPreset, has: (key: string) => boolean): Record<string, unknown> {
+  const numeric: readonly string[] = AI_NUMERIC_KEYS
+  return Object.fromEntries(
+    Object.entries(p.values)
+      .filter(([k]) => has(k))
+      .map(([k, v]) => [k, numeric.includes(k) ? String(v ?? '') : Array.isArray(v) ? [...v] : v]),
+  )
+}

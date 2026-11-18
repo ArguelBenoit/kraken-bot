@@ -7,6 +7,13 @@ export type Providers = Record<string, { label: string; models: string[]; env: s
 
 export type Aggressiveness = 'prudent' | 'equilibre' | 'agressif'
 
+/** Préréglage de formulaire (un type de marché) : réglages numériques (null = vide), listes et cases. */
+export interface AiPreset {
+  id: string
+  label: string
+  values: Partial<Omit<AiConfig, 'mode'>>
+}
+
 export interface AiConfig {
   mode: Mode
   provider: string
@@ -94,5 +101,6 @@ export interface AiStatus {
     strategies: Record<string, string>
     pairs: { pair: string; label: string }[]
     profiles: Record<Aggressiveness, string>
+    presets: AiPreset[]
   }
 }

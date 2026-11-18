@@ -51,9 +51,9 @@ export function AiPage() {
         </div>
         <div className="col">
           <AiOpenTrades positions={status?.positions ?? []} feePct={c?.fee_pct ?? 0.26} />
-          <DecisionsCard decisions={status?.decisions ?? []} exchangeUrl={(d) => (d.exchange ? `/api/exchanges/${d.exchange}` : null)} />
-          <PairTradesCard trades={status?.trades ?? []} />
-          <LogCard logs={status?.logs ?? []} />
+          <PairTradesCard id="ai-trades" trades={status?.trades ?? []} />
+          <DecisionsCard id="ai-decisions" decisions={status?.decisions ?? []} exchangeUrl={(d) => (d.exchange ? `/api/exchanges/${d.exchange}` : null)} />
+          <LogCard id="ai-log" logs={status?.logs ?? []} />
         </div>
       </main>
     </>

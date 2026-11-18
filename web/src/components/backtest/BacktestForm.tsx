@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { ModelPicker } from '@/components/ui/ModelPicker'
+import { PresetPicker } from '@/components/ui/PresetPicker'
 import { NumberInput } from '@/components/ui/NumberInput'
 import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
@@ -17,7 +18,7 @@ import { useBacktestStore } from '@/stores/backtestStore'
 export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean }) {
   const status = useBacktestStore((s) => s.status)
   const draft = useBacktestStore((s) => s.draft)
-  const { setField, toggleIn, start, cancel, pause, resume } = useBacktestStore.getState()
+  const { setField, toggleIn, applyPreset, start, cancel, pause, resume } = useBacktestStore.getState()
   if (!status || !draft) return <Card title="Paramètres" icon={FlaskConical}>Chargement…</Card>
 
   const { options } = status
@@ -29,8 +30,9 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
   const number = (def: { name: string }) => draft[def.name as BtNumericKey]
 
   return (
-    <Card title="Paramètres" icon={FlaskConical}>
+    <Card id="bt-form" title="Paramètres" icon={FlaskConical}>
       <form onSubmit={(e) => { e.preventDefault(); void start() }}>
+        <PresetPicker presets={options.presets} onPick={applyPreset} />
         <ModelPicker providers={options.providers} provider={draft.provider} model={draft.model}
           onChange={(p, m) => { setField('provider', p); setField('model', m) }} />
         <Field label="Agressivité" tip="Le code impose selon ce profil : la confiance minimale du modèle pour ouvrir, la taille maximale d'une position et le stop loss maximal. Prudent = rare et petit, agressif = plus d'ordres et plus gros.">
@@ -99,7 +101,7 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
         </label>
 
         <div className="hint">
-          {tooLong ? `Durée trop longue pour des bougies de ${tf} min (max ${maxDays} jours).` : `≈ ${calls} analyses, donc ≈ ${calls} appels au modèle.`}
+          {tooLong ? <b className="t-ko">{`Durée trop longue pour des bougies de ${tf} min (max ${maxDays} jours).`}</b> : `≈ ${calls} analyses, donc ≈ ${calls} appels au modèle.`}
           {' '}Valeurs de départ = réglages enregistrés du Bot IA, qui ne sont jamais modifiés. Aucun ordre réel.
         </div>
         <div className="row">

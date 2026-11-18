@@ -16,7 +16,7 @@ Après une modif **Python** : relancer le serveur. Les modifs de `web/src` se re
 ## Structure (résumé — voir docs/ARCHITECTURE.md)
 
 - `server/` : `settings`, `app`, `services` (singletons Bot IA + trader manuel), `core/` (storage, journal, cache, llm, transport, exchanges (échanges du Bot IA), providers, limits), `market/` (kraken, indicators, strategies [backtest], pairs, prices, scan, chart, snapshot),
-  `bots/ai/` (config, prompt, guards, account, bot), `backtest_ai/` (backtest du Bot IA : data, engine, stats, runner), `bots/manual.py` (+ `manual_config.py`), `bots/positions.py` (calculs long/short), `bots/live.py` (ordres et stops Kraken), `features/` (proposals, learn), `routes/` (un blueprint par domaine), `backtest.py`.
+  `bots/ai/` (config, presets [3 préréglages de formulaire : hausse, baisse, sans tendance], prompt, guards, account, bot), `backtest_ai/` (backtest du Bot IA : data, engine, stats, runner), `bots/manual.py` (+ `manual_config.py`), `bots/positions.py` (calculs long/short), `bots/live.py` (ordres et stops Kraken), `features/` (proposals, learn), `routes/` (un blueprint par domaine), `backtest.py`.
 - `web/src/` : `lib/` (logique pure, `types/`, `learn/`), `stores/` (zustand), `hooks/`, `components/` (ui, layout, chart, trade, bot, ai, trading, backtest, learn), `pages/`, `styles/theme.css`.
 - Données dans `data/` (créé au besoin, ignoré par git ; `settings.data_file(nom)`) : `ai_*.json`, `manual_*.json`, `learn_state.json`, `scenarios/` (marchés passés du backtest).
 

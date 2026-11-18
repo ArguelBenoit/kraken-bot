@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { NumberInput as NumberInputField } from '@/components/ui/NumberInput'
 import { ModelPicker } from '@/components/ui/ModelPicker'
+import { PresetPicker } from '@/components/ui/PresetPicker'
 import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
@@ -24,7 +25,7 @@ function NumberInput({ def }: { def: NumberField }) {
 export function AiSettingsCard() {
   const status = useAiStore((s) => s.status)
   const draft = useAiStore((s) => s.draft)
-  const { setField, toggleIn, save, restore } = useAiStore.getState()
+  const { setField, toggleIn, save, restore, applyPreset } = useAiStore.getState()
   if (!status || !draft) return <Card title="Réglages IA" icon={Settings}>Chargement…</Card>
 
   const { options, key_ok, live_ok, credit_low } = status
@@ -35,6 +36,7 @@ export function AiSettingsCard() {
       <AiWarnings keyOk={key_ok} keyEnv={provider?.env ?? ''} live={status.config.mode === 'live'} shorts={status.config.allow_short} liveOk={live_ok} creditLow={credit_low} />
 
       <form onSubmit={(e) => { e.preventDefault(); void save() }}>
+        <PresetPicker presets={options.presets} onPick={applyPreset} />
         <ModelPicker providers={options.providers} provider={draft.provider} model={draft.model}
           onChange={(p, m) => { setField('provider', p); setField('model', m) }} />
         <Field label="Agressivité" tip="Le code impose selon ce profil : la confiance minimale du modèle pour ouvrir, la taille maximale d'une position et le stop loss maximal. Prudent = rare et petit, agressif = plus d'ordres et plus gros.">

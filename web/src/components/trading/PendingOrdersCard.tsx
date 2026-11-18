@@ -11,7 +11,7 @@ export function PendingOrdersCard({ pending }: { pending: ManualPending[] }) {
   const cancel = useManualStore((s) => s.cancelPending)
   if (!pending.length) return null
   return (
-    <Card title="Ordres en attente" icon={Clock}>
+    <Card id="pending" title="Ordres en attente" icon={Clock}>
       <table>
         <thead><tr><th>Paire</th><th>Montant<Tip text="Montant réservé pour cet ordre (en paper, retiré du cash tant que l'ordre est en attente)." /></th><th>Déclenche si prix<Tip text="Achat (long) : déclenché quand le prix descend à cette valeur ou en dessous (≤). Short : déclenché quand le prix monte à cette valeur ou au-dessus (≥)." /></th><th>SL / TP<Tip text="Stop loss et take profit appliqués à la position une fois l'achat exécuté." right /></th><th /></tr></thead>
         <tbody>

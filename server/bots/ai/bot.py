@@ -22,6 +22,7 @@ from server.market.snapshot import market_snapshot
 from server.bots import live, positions as pos
 from . import config as cfgmod
 from . import guards, prompt
+from .presets import PRESETS
 from .account import make_position
 
 CONFIG_FILE, STATE_FILE = settings.data_file("ai_config.json"), settings.data_file("ai_state.json")
@@ -338,4 +339,4 @@ class AIBot:
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-40:][::-1],
                     "decisions": s["decisions"][-15:][::-1], "logs": self.journal.recent(30),
                     "options": {"providers": public(), "strategies": cfgmod.STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
-                                "profiles": {k: v["desc"] for k, v in cfgmod.PROFILES.items()}}}
+                                "profiles": {k: v["desc"] for k, v in cfgmod.PROFILES.items()}, "presets": PRESETS}}

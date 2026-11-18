@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api'
-import { AI_NUMERIC_KEYS, type AiNumericKey } from '@/lib/aiForm'
-import type { AiConfig, AiStatus, Mode } from '@/lib/types'
+import { AI_NUMERIC_KEYS, presetPatch, type AiNumericKey } from '@/lib/aiForm'
+import type { AiConfig, AiPreset, AiStatus, Mode } from '@/lib/types'
 import { runAction } from './runAction'
 import { toast } from './uiStore'
 
@@ -40,6 +40,7 @@ interface AiStore {
   setField: <K extends keyof AiDraft>(name: K, value: AiDraft[K]) => void
   toggleIn: (name: 'strategies' | 'pairs', value: string) => void
   restore: () => void
+  applyPreset: (p: AiPreset) => void
   save: () => Promise<boolean>
   setMode: (mode: Mode) => Promise<void>
   control: (action: 'start' | 'stop' | 'analyze' | 'liquidate' | 'reset') => Promise<void>
@@ -71,6 +72,11 @@ export const useAiStore = create<AiStore>((set, get) => {
         const cur = s.draft[name]
         return { draft: { ...s.draft, [name]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] } }
       }),
+
+    applyPreset: (p) => {
+      set((s) => (s.draft ? { draft: { ...s.draft, ...presetPatch(p, (k) => k in s.draft!) } } : s))
+      toast.info(`Préréglage « ${p.label} » appliqué : à enregistrer`)
+    },
 
     restore: () => {
       const cfg = get().status?.config

@@ -83,8 +83,8 @@ export function TradingPage() {
         <div className="col">
           <OrderTicketCard />
           <ManualSettingsCard />
-          <PairTradesCard trades={status?.trades ?? []} />
-          <LogCard logs={status?.logs ?? []} />
+          <PairTradesCard id="manual-trades" trades={status?.trades ?? []} />
+          <LogCard id="manual-log" logs={status?.logs ?? []} />
         </div>
         <div className="col">
           <ManualOpenTrades positions={status?.positions ?? []} feePct={status?.config.fee_pct ?? 0.26} live={!!live} />

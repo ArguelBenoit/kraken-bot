@@ -1,4 +1,5 @@
-import { X } from 'lucide-react'
+import { History, X } from 'lucide-react'
+import { Card } from '@/components/ui/Card'
 import { AGGR_LABEL, hasStats, isActive } from '@/lib/backtest'
 import { gainClass, signed } from '@/lib/format'
 import type { BtRun, BtSummary } from '@/lib/types'
@@ -26,19 +27,21 @@ export function BacktestTabs() {
   const selected = viewing?.id ?? current?.id
 
   return (
-    <div className={css.tabs}>
-      {tabs.map((r) => {
-        const live = isActive(r.status)
-        return (
-          <div key={r.id} className={`${css.tab} ${r.id === selected ? css.on : ''}`}>
-            <button type="button" onClick={() => (r.id === current?.id ? closeView() : void open(r.id))}>
-              #{r.id} · {r.params.model} · {AGGR_LABEL[r.params.aggressiveness]}
-              {hasStats(r.stats) && <> · <b className={gainClass(r.stats.return_pct)}>{signed(r.stats.return_pct)} %</b></>}
-            </button>
-            {!live && <button type="button" className={css.x} title="Supprimer cet essai" onClick={() => void askRemove(r)}><X className="ic m0" /></button>}
-          </div>
-        )
-      })}
-    </div>
+    <Card title="Essais" icon={History}>
+      <div className={css.tabs}>
+        {tabs.map((r) => {
+          const live = isActive(r.status)
+          return (
+            <div key={r.id} className={`${css.tab} ${r.id === selected ? css.on : ''}`}>
+              <button type="button" onClick={() => (r.id === current?.id ? closeView() : void open(r.id))}>
+                #{r.id} · {r.params.model} · {AGGR_LABEL[r.params.aggressiveness]}
+                {hasStats(r.stats) && <> · <b className={gainClass(r.stats.return_pct)}>{signed(r.stats.return_pct)} %</b></>}
+              </button>
+              {!live && <button type="button" className={css.x} title="Supprimer cet essai" onClick={() => void askRemove(r)}><X className="ic m0" /></button>}
+            </div>
+          )
+        })}
+      </div>
+    </Card>
   )
 }

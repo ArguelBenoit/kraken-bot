@@ -1,5 +1,5 @@
 /** Types du backtest du Bot IA (réponses de /api/backtest). */
-import type { AiDecision, Aggressiveness, Providers } from './ai'
+import type { AiDecision, AiPreset, Aggressiveness, Providers } from './ai'
 import type { PairTrade } from './manual'
 
 /** Réglages d'un essai (ceux de la page, plus ceux repris du Bot IA). */
@@ -113,6 +113,8 @@ export interface BtStatus {
     strategies: Record<string, string>
     /** Marchés passés déjà téléchargés ou téléchargeables. */
     scenarios: BtScenario[]
+    /** Préréglages par type de marché (mêmes que ceux du Bot IA). */
+    presets: AiPreset[]
     /** Durée maximale testable (jours) selon la bougie en minutes. */
     max_days: Record<string, number>
   }
