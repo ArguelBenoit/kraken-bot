@@ -39,6 +39,13 @@ export const BT_OPTIONAL_KEYS: readonly BtNumericKey[] = ['max_exposure_pct', 'm
 /** Nom d'une tendance de marché. */
 export const TREND_LABEL: Record<BtScenario['trend'], string> = { hausse: 'Hausse', baisse: 'Baisse', range: 'Sans tendance' }
 
+/** Sens du marché d'un essai, en un mot : tendance du scénario, « Actuel » (dernières bougies) ou « Autre date ». */
+export function trendLabel(end: string | null | undefined, scenarios: readonly BtScenario[]): string {
+  if (!end) return 'Actuel'
+  const sc = scenarios.find((x) => x.end === end)
+  return sc ? TREND_LABEL[sc.trend] : 'Autre date'
+}
+
 /** Marché d'un essai en clair : scénario connu (tendance, période), autre date passée, ou dernières bougies de Kraken (`end` vide). */
 export function marketLabel(end: string | null | undefined, scenarios: readonly BtScenario[]): string {
   if (!end) return 'Aujourd’hui · dernières bougies (Kraken)'

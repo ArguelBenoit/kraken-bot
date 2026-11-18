@@ -11,3 +11,7 @@
 .stats td { padding: 4px 8px 4px 0; }
 .stats tr:last-child td { border-bottom: none; }
 .label { width: 1%; white-space: nowrap; color: var(--mu); padding-right: 24px !important; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 16px; }
+.filters :global(.chip) { margin: 0; padding: 2px 8px; font-size: 11px; }
+.filters .chipOn { border-color: var(--ac); color: var(--ac); }
