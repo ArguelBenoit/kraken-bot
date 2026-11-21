@@ -28,6 +28,7 @@ export interface BtParams {
   max_exposure_pct: number | null
   max_daily_loss_pct: number | null
   fee_pct: number
+  short_fee_pct: number
   strategies: string[]
   max_calls: number | null
   /** Fin d'une période passée (AAAA-MM-JJ, données Binance) ; null = les dernières bougies Kraken. */
@@ -36,6 +37,7 @@ export interface BtParams {
   max_same_side: number | null
   max_drawdown_pct: number | null
   drawdown_days: number
+  cooldown_hours: number | null
   temperature: number | null
 }
 

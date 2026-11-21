@@ -14,6 +14,10 @@ from . import positions as pos
 STOP_KINDS = {"sl": "stop-loss", "trail": "trailing-stop"}
 
 
+class AlreadyClosed(RuntimeError):
+    """Kraken n'a plus la position à fermer (stop déclenché, liquidation ou fermeture à la main sur le site) : aucun ordre n'est parti."""
+
+
 def _closing_side(p):
     """Sens des ordres qui ferment la position : rachat pour un short, vente pour un long."""
     return "buy" if pos.is_short(p) else "sell"
@@ -37,6 +41,11 @@ def exit_market(p, qty):
         short = pos.is_short(p)
         txid = kraken.market_order(p["pair"], _closing_side(p), qty, leverage=_leverage(p), reduce_only=short)
         return kraken.wait_fill(txid)
+    except RuntimeError as e:
+        if "No position exists" in str(e):
+            raise AlreadyClosed("Position absente chez Kraken (déjà fermée)") from e
+        place_stop(p)
+        raise
     except Exception:
         place_stop(p)
         raise

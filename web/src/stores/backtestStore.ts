@@ -43,7 +43,7 @@ interface BacktestStore {
   remove: (id: string) => Promise<void>
 }
 
-/** Valeurs de départ du formulaire : réglages du Bot IA (sauf la stabilité des gains, laissée vide), durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
+/** Valeurs de départ du formulaire : réglages du Bot IA (sauf la protection du capital, laissée vide), durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
 function initialDraft(o: BtStatus['options']): BtDraft {
   const d = o.defaults
   const max = o.max_days[String(d.timeframe)] ?? 14

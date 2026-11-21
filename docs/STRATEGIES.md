@@ -26,11 +26,11 @@ repli de l'ordre limite 0,3–5 % ; les paires déjà détenues sont exclues et 
 ## Bot IA
 
 Claude choisit parmi `rsi_reversion`, `trend_follow`, `breakout`, `momentum`, `bollinger`, mais **le code impose** : 1 à 10 positions, une par paire,
-confiance minimale et taille maximale selon l'agressivité, stop loss obligatoire (qui ne s'éloigne jamais), gain/risque minimum (TP ÷ SL, 1,5 par défaut), exposition max, perte journalière max, plafond d'appels par jour. Les shorts (case « Autoriser les shorts », désactivée par défaut, paper et live) s'ajoutent aux achats avec une confiance supérieure de 0,1 et un levier borné (voir [SHORT](SHORT.md)).
+confiance minimale et taille maximale selon l'agressivité, stop loss obligatoire (qui ne s'éloigne jamais), gain/risque minimum net de frais ((TP − frais aller-retour) ÷ (SL + frais aller-retour), frais du long ou du short ; 1,5 par défaut), exposition max, perte journalière max, plafond d'appels par jour. Les shorts (case « Autoriser les shorts », désactivée par défaut, paper et live) s'ajoutent aux achats avec une confiance supérieure de 0,1 et un levier borné (voir [SHORT](SHORT.md)).
 
-### Stabilité des gains (facultatif, tout désactivé par défaut)
+### Protection du capital (facultatif, tout désactivé par défaut)
 
-Garde-fous du code (`bots/ai/guards.py`), réglables dans le bloc « Stabilité des gains » du Bot IA et du backtest, pour ne pas dépendre de l'humeur du modèle :
+Garde-fous du code (`bots/ai/guards.py`), réglables dans le bloc « Protection du capital » du Bot IA et du backtest, pour ne pas dépendre de l'humeur du modèle :
 
 | Réglage | Effet |
 |---|---|

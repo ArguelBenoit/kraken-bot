@@ -8,7 +8,7 @@ import { useAiStore } from '@/stores/aiStore'
 import { confirmAction } from '@/stores/uiStore'
 
 /** Un « Trade en cours » par position ouverte par le modèle (jusqu'à 10, achat ou short). Rien n'est affiché sans position. */
-export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; feePct: number }) {
+export function AiOpenTrades({ positions, feePct, shortFeePct }: { positions: AiPosition[]; feePct: number; shortFeePct: number }) {
   const close = useAiStore((s) => s.closePosition)
   const closeWithConfirm = async (p: AiPosition) => {
     const ok = await confirmAction({
@@ -25,7 +25,7 @@ export function AiOpenTrades({ positions, feePct }: { positions: AiPosition[]; f
           <OpenTradeCard
             key={p.id}
             pair={short ? `${p.label} · SHORT ×${p.leverage}` : p.label}
-            input={positionTradeInput(p, feePct)}
+            input={positionTradeInput(p, short ? shortFeePct : feePct)}
             details={[
               ['Stratégie', p.strategy], ['Confiance', fm(p.conf)], ['Ouvert le', p.opened],
               ...(short ? [

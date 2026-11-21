@@ -22,8 +22,8 @@ KEPT = 15
 ACTIVE = ("loading", "running", "paused")      # états d'un essai qui n'est pas terminé
 # Réglages que la page peut modifier pour un essai ; tous les autres viennent des réglages enregistrés du Bot IA.
 OVERRIDES = ("provider", "model", "pairs", "timeframe", "interval_min", "aggressiveness", "allow_short", "min_reward_risk", "max_leverage", "max_positions",
-             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "strategies", "notes",
-             "trend_filter", "max_same_side", "max_drawdown_pct", "drawdown_days", "temperature")
+             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "short_fee_pct", "strategies", "notes",
+             "trend_filter", "max_same_side", "max_drawdown_pct", "drawdown_days", "cooldown_hours", "temperature")
 
 
 def _end_ts(end):

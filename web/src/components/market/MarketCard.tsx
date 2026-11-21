@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { ChartCandlestick, ChartColumn, RefreshCw } from 'lucide-react'
 import { PriceChart } from '@/components/chart/PriceChart'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Tip } from '@/components/ui/Tip'
+import { EMA_LINES } from '@/lib/ema'
 import { MARKET_TFS, pairLabel } from '@/lib/constants'
 import type { ChartLevel } from '@/lib/chartTypes'
 import { useMarketStore } from '@/stores/marketStore'
@@ -18,12 +20,25 @@ interface Props {
   levels?: ChartLevel[]
 }
 
+const EMA_KEY = 'chartEmas'
+
+/** Périodes d'EMA affichées, mémorisées en local (aucune par défaut). */
+function readEmas(): number[] {
+  try { return JSON.parse(localStorage.getItem(EMA_KEY) ?? '[]') } catch { return [] }
+}
+
 /** Tableau du marché + graphique de la paire sélectionnée. Le sélecteur « Bougie » pilote les deux. */
 export function MarketCard({ tradeLabel, onTrade, onSelect, levels }: Props) {
   const tf = useMarketStore((s) => s.tf)
   const info = useMarketStore((s) => s.info)
   const chart = useMarketStore((s) => s.chart)
   const { setTf, loadScan } = useMarketStore.getState()
+  const [emas, setEmas] = useState<number[]>(readEmas)
+  const toggleEma = (n: number) => {
+    const next = emas.includes(n) ? emas.filter((x) => x !== n) : [...emas, n]
+    setEmas(next)
+    try { localStorage.setItem(EMA_KEY, JSON.stringify(next)) } catch { /* stockage indisponible */ }
+  }
 
   const actions = (
     <>
@@ -50,7 +65,13 @@ export function MarketCard({ tradeLabel, onTrade, onSelect, levels }: Props) {
           Graphique <span>{chart ? `— ${pairLabel(chart.pair)} · ${chart.tf} min · RSI en bas` : ''}</span>
         </span>
       </h2>
-      <PriceChart data={chart} levels={levels} />
+      <div className="chips">
+        {EMA_LINES.map((e) => (
+          <button key={e.n} type="button" className="chip" style={emas.includes(e.n) ? { borderColor: e.color, color: e.color } : undefined}
+            onClick={() => toggleEma(e.n)}>{e.label}</button>
+        ))}
+      </div>
+      <PriceChart data={chart} levels={levels} emas={emas} />
     </Card>
   )
 }
