@@ -7,10 +7,10 @@ import css from './DecisionsCard.module.css'
 
 /** Historique des analyses du modèle : sa lecture du marché et, pour chaque action proposée, si le code l'a acceptée ou refusée (et pourquoi).
  *  Un clic sur une décision ouvre l'échange complet avec le modèle (demande et réponse) ; `exchangeUrl` donne la route de cet échange (null = non conservé). */
-export function DecisionsCard({ decisions, exchangeUrl }: { decisions: AiDecision[]; exchangeUrl: (d: AiDecision) => string | null }) {
+export function DecisionsCard({ id, decisions, exchangeUrl }: { id: string; decisions: AiDecision[]; exchangeUrl: (d: AiDecision) => string | null }) {
   const [open, setOpen] = useState<string | null>(null)
   return (
-    <Card title="Décisions du modèle" icon={Bot}>
+    <Card id={id} title="Décisions du modèle" icon={Bot}>
       {decisions.length === 0 && <span className="t-mu">Aucune analyse pour l&apos;instant.</span>}
       <div className="scroll-list" style={{ '--scroll-h': '460px' } as CSSProperties}>
       {decisions.map((d, i) => {

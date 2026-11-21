@@ -43,6 +43,8 @@ body { margin: 0; min-width: 1300px; background: var(--bg); color: var(--tx); fo
   font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--ac);
 }
 .card-title .ic { margin-right: 7px; }
+.card-toggle { background: none; border: 0; padding: 0; color: var(--ac); cursor: pointer; display: inline-flex; }
+.card-toggle:hover { filter: brightness(1.2); }
 .card-title .actions { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-weight: 400; }
 
 /* ----- formulaires ----- */

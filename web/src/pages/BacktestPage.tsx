@@ -1,4 +1,5 @@
 import { FlaskConical, Info } from 'lucide-react'
+import { useEffect } from 'react'
 import { BacktestForm } from '@/components/backtest/BacktestForm'
 import { BacktestTabs } from '@/components/backtest/BacktestTabs'
 import { BacktestProgress } from '@/components/backtest/BacktestProgress'
@@ -24,6 +25,12 @@ export function BacktestPage() {
   usePolling(refresh, BT_POLL_MS)
 
   const current = status?.current ?? null
+  const loaded = !!status
+  const latestId = status?.history[0]?.id          // l'essai le plus récent (l'historique est du plus récent au plus ancien)
+  // sans essai courant (serveur redémarré), on ouvre directement le dernier essai gardé
+  useEffect(() => {
+    if (loaded && !current && !viewing && latestId) void useBacktestStore.getState().open(latestId)
+  }, [loaded, current, viewing, latestId])
   const run = viewing ?? current
   const busy = !!current && isActive(current.status)
   const stats = run && hasStats(run.stats) ? run.stats : null
@@ -50,15 +57,15 @@ export function BacktestPage() {
       <main className="layout">
         <div className="col">
           <BacktestForm busy={busy} paused={current?.status === 'paused'} />
+          <BacktestTabs />
         </div>
         <div className="col">
-          <BacktestTabs />
-          {!run && <Card title="Comment ça marche" icon={Info}>Règle les paramètres puis lance un backtest : le modèle choisi rejoue la période, bougie après bougie, avec les vrais garde-fous du Bot IA.</Card>}
+          {!run && <Card title="Aucun backtest" icon={Info}>Aucun backtest pour le moment : règle les paramètres à gauche puis lance un backtest. Le modèle choisi rejoue la période, bougie après bougie, avec les vrais garde-fous du Bot IA.</Card>}
           {run && <BacktestProgress run={run} />}
           {stats && run && <BacktestStatsCard s={stats} maxPositions={run.params.max_positions} />}
           {run && run.equity.length > 0 && <EquityChart runId={run.id} equity={run.equity} />}
-          {run && <PairTradesCard trades={[...run.trades].reverse().slice(0, 100)} />}
-          {run && <DecisionsCard decisions={[...run.decisions].reverse().slice(0, 40)} exchangeUrl={(d) => (d.exchange != null ? `/api/backtest/${run.id}/exchange/${d.exchange}` : null)} />}
+          {run && <PairTradesCard id="bt-trades" trades={[...run.trades].reverse().slice(0, 100)} />}
+          {run && <DecisionsCard id="bt-decisions" decisions={[...run.decisions].reverse().slice(0, 40)} exchangeUrl={(d) => (d.exchange != null ? `/api/backtest/${run.id}/exchange/${d.exchange}` : null)} />}
         </div>
       </main>
     </>

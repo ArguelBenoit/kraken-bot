@@ -9,7 +9,7 @@ STRATEGIES = {
     "rsi_reversion": "Mean-reversion RSI : achat d'un creux (RSI bas, prix sous la bande de Bollinger basse), sortie au rebond.",
     "trend_follow": "Suivi de tendance : EMA20 > EMA50 avec écart qui s'élargit ou croisement haussier récent, stop suiveur.",
     "breakout": "Cassure : prix qui dépasse le plus haut des 20 dernières bougies avec volatilité en hausse.",
-    "momentum": "Momentum : actif le plus fort sur 6/24 bougies, tant que le RSI n'est pas extrême (>80).",
+    "momentum": "Momentum : actif le plus fort sur 6/24 bougies, tant que le RSI n'est pas extrême (>70, achat refusé par le code).",
     "bollinger": "Bollinger : retour vers la moyenne depuis la bande basse (%B < 0.1) quand la tendance de fond n'est pas fortement baissière.",
 }
 
@@ -49,19 +49,31 @@ DEFAULT_CONFIG = {
     "max_same_side": None,          # nombre max de positions dans le même sens, achats ou shorts (None = pas de plafond)
     "max_drawdown_pct": None,       # disjoncteur : plus d'ouverture si l'équité a perdu ce % depuis son plus haut des `drawdown_days` derniers jours (None = désactivé)
     "drawdown_days": 3,             # fenêtre du disjoncteur (jours) : le blocage se lève quand le plus haut sort de la fenêtre
+    "cooldown_hours": None,         # délai (heures) avant de rouvrir une paire dans le même sens après un stop (None = pas de délai)
     "temperature": None,            # température du modèle (None = valeur par défaut du fournisseur)
-    "fee_pct": 0.26,                 # frais par ordre (vide = 0)
+    "fee_pct": 0.26,                 # frais par ordre d'un long (vide = 0 : abonnement sans frais par exemple)
+    "short_fee_pct": 0.26,           # frais par ordre d'un short, en plus des frais de marge (vide = 0)
     "notes": "",                     # consignes libres ajoutées au prompt
 }
 LIMITS = {"timeframe": (15, 1440), "interval_min": (5, 720), "check_every": (10, 600), "max_positions": (1, 10),
           "order_size": (5, 100000), "budget": (10, 10000000), "max_exposure_pct": (5, 100),
-          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2),
-          "max_same_side": (1, 10), "max_drawdown_pct": (1, 50), "drawdown_days": (1, 30), "temperature": (0, 1)}
-FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct",
-              "max_drawdown_pct", "temperature")
+          "max_daily_loss_pct": (0.5, 50), "max_calls_per_day": (1, 100000), "min_reward_risk": (0.5, 10), "max_leverage": (MIN_LEVERAGE, 5), "fee_pct": (0, 2), "short_fee_pct": (0, 2),
+          "max_same_side": (1, 10), "max_drawdown_pct": (1, 50), "drawdown_days": (1, 30), "cooldown_hours": (0.5, 168), "temperature": (0, 1)}
+FLOAT_KEYS = ("order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "min_reward_risk", "max_leverage", "fee_pct", "short_fee_pct",
+              "max_drawdown_pct", "cooldown_hours", "temperature")
 OPTIONAL_KEYS = ("max_exposure_pct", "max_daily_loss_pct", "max_calls_per_day", "min_reward_risk", "max_same_side", "max_drawdown_pct",
-                 "temperature")      # champ vide = aucune restriction (None)
+                 "cooldown_hours", "temperature")      # champ vide = aucune restriction (None)
 TIMEFRAMES = (15, 60, 240, 1440)
+
+
+def order_fee_pct(cfg, short):
+    """Frais (%) d'un ordre : celui du short ou celui du long."""
+    return cfg["short_fee_pct"] if short else cfg["fee_pct"]
+
+
+def round_trip_fee_pct(cfg, short):
+    """Frais (% du montant) d'un aller-retour : ouverture + fermeture, plus les frais d'ouverture de marge pour un short. Le report (par période de 4 h) n'y est pas."""
+    return 2 * order_fee_pct(cfg, short) + (MARGIN_FEE_PCT if short else 0)
 
 
 def validate(current, new, busy):
@@ -85,8 +97,9 @@ def validate(current, new, busy):
         cfg["drawdown_days"] = DEFAULT_CONFIG["drawdown_days"]
     if cfg["max_leverage"] in (None, ""):
         cfg["max_leverage"] = MIN_LEVERAGE
-    if cfg["fee_pct"] in (None, ""):
-        cfg["fee_pct"] = 0.0
+    for key in ("fee_pct", "short_fee_pct"):
+        if cfg[key] in (None, ""):
+            cfg[key] = 0.0
     for key in LIMITS:
         if cfg[key] is not None:
             cfg[key] = float(cfg[key]) if key in FLOAT_KEYS else int(cfg[key])

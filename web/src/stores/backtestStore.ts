@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { api, errMsg } from '@/lib/api'
+import { presetPatch } from '@/lib/aiForm'
 import { BT_NUMERIC_KEYS, BT_OPTIONAL_KEYS, BT_STABILITY_KEYS, type BtNumericKey } from '@/lib/backtest'
-import type { Aggressiveness, BtRun, BtStatus } from '@/lib/types'
+import type { Aggressiveness, AiPreset, BtRun, BtStatus } from '@/lib/types'
 import { runAction } from './runAction'
 import { toast } from './uiStore'
 
@@ -31,6 +32,7 @@ interface BacktestStore {
   refresh: () => Promise<void>
   setField: <K extends keyof BtDraft>(name: K, value: BtDraft[K]) => void
   toggleIn: (name: 'pairs' | 'strategies', value: string) => void
+  applyPreset: (p: AiPreset) => void
   start: () => Promise<void>
   cancel: () => Promise<void>
   pause: () => Promise<void>
@@ -41,7 +43,7 @@ interface BacktestStore {
   remove: (id: string) => Promise<void>
 }
 
-/** Valeurs de départ du formulaire : réglages du Bot IA (sauf la stabilité des gains, laissée vide), durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
+/** Valeurs de départ du formulaire : réglages du Bot IA (sauf la protection du capital, laissée vide), durée de 2 semaines (ou le maximum si la bougie ne le permet pas). */
 function initialDraft(o: BtStatus['options']): BtDraft {
   const d = o.defaults
   const max = o.max_days[String(d.timeframe)] ?? 14
@@ -63,12 +65,18 @@ function saveSoon(get: () => BacktestStore) {
   }, 500)
 }
 
+/** Ramène la durée au maximum permis par la bougie du brouillon (sinon le lancement serait bloqué). */
+function clampDays(o: BtStatus['options'], d: BtDraft): BtDraft {
+  const max = o.max_days[d.timeframe]
+  return max && Number(d.days) > max ? { ...d, days: String(Math.floor(max)) } : d
+}
+
 /** Brouillon conservé complété par les champs manquants ; le marché n'est gardé que s'il fait toujours partie des scénarios (sinon : aujourd'hui). */
 function restoreDraft(o: BtStatus['options'], saved: BtDraft | null): BtDraft {
   const base = initialDraft(o)
   if (!saved) return base
   const keepEnd = o.scenarios.some((sc) => sc.end === saved.end)
-  return { ...base, ...saved, end: keepEnd ? saved.end : '' }
+  return clampDays(o, { ...base, ...saved, end: keepEnd ? saved.end : '' })
 }
 
 /** Brouillon -> corps JSON : nombres convertis ; vide = sans restriction (`null`) pour les champs facultatifs, sinon valeur du Bot IA conservée (champ omis). */
@@ -100,7 +108,11 @@ export const useBacktestStore = create<BacktestStore>((set, get) => ({
   },
 
   setField: (name, value) => {
-    set((s) => (s.draft ? { draft: { ...s.draft, [name]: value } } : s))
+    set((s) => {
+      if (!s.draft) return s
+      const next = { ...s.draft, [name]: value }
+      return { draft: name === 'timeframe' && s.status ? clampDays(s.status.options, next) : next }   // changer de bougie ramène la durée au maximum permis
+    })
     saveSoon(get)
   },
 
@@ -111,6 +123,16 @@ export const useBacktestStore = create<BacktestStore>((set, get) => ({
       return { draft: { ...s.draft, [name]: cur.includes(value) ? cur.filter((v) => v !== value) : [...cur, value] } }
     })
     saveSoon(get)
+  },
+
+  applyPreset: (p) => {
+    set((s) => {
+      if (!s.draft || !s.status) return s
+      const draft = { ...s.draft, ...presetPatch(p, (k) => k in s.draft!) } as BtDraft
+      return { draft: clampDays(s.status.options, draft) }
+    })
+    saveSoon(get)
+    toast.info(`Préréglage « ${p.label} » appliqué`)
   },
 
   start: async () => {

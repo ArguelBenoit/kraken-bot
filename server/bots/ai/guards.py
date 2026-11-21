@@ -3,18 +3,32 @@ import time
 
 from server.bots import positions as pos
 from server.bots.manual_config import MIN_LEVERAGE
-from .config import MARGIN_FEE_PCT, PROFILES
+from .config import MARGIN_FEE_PCT, PROFILES, order_fee_pct, round_trip_fee_pct
 
 MIN_STOP_PCT = 0.5
 MIN_SIZE_FACTOR = 0.25
 MAX_TP_PCT, MAX_TRAIL_PCT = 100, 50
 MAX_SHORT_TP_PCT = 95             # un short ne peut pas gagner plus de 100 % : l'objectif reste en dessous
+RSI_SHORT_MIN, RSI_LONG_MAX = 25, 70      # pas de short en survente (rebond probable), pas d'achat en surachat (repli probable)
+STOP_REASONS = ("stop", "liquidation simulée")   # débuts des motifs de fermeture imposés par un stop ou une liquidation (ni l'objectif, ni le modèle, ni une fermeture manuelle)
 SHORT_CONF_BONUS = 0.1            # un short exige plus de confiance que l'achat du même profil (risque non plafonné)
 
 
-def too_low_ratio(cfg, take_profit, stop):
-    """Le rapport gain/risque (TP ÷ SL) est-il sous le minimum réglé ? Sans minimum (None) ou sans objectif, jamais."""
-    return cfg["min_reward_risk"] is not None and take_profit > 0 and take_profit / stop < cfg["min_reward_risk"]
+def net_ratio(cfg, take_profit, stop, short):
+    """Rapport gain/risque net de frais : (TP − frais aller-retour) ÷ (SL + frais aller-retour), en % du montant. Les frais réduisent le gain ET augmentent la perte."""
+    fees = round_trip_fee_pct(cfg, short)
+    return (take_profit - fees) / (stop + fees)
+
+
+def too_low_ratio(cfg, take_profit, stop, short):
+    """Le rapport gain/risque net de frais est-il sous le minimum réglé ? Sans minimum (None) ou sans objectif, jamais."""
+    return cfg["min_reward_risk"] is not None and take_profit > 0 and net_ratio(cfg, take_profit, stop, short) < cfg["min_reward_risk"]
+
+
+def note_close(state, position, why, now):
+    """Retient l'instant d'un stop (ou d'une liquidation) pour le délai avant de rouvrir la même paire dans le même sens."""
+    if why.lower().startswith(STOP_REASONS):
+        state.setdefault("stops", {})[f"{position['pair']}:{position.get('side', 'long')}"] = now
 
 
 def drawdown_pct(state, equity, now, days):
@@ -54,6 +68,14 @@ def vet_open(cfg, state, action, market=None, equity=None, now=None):
     gap = row.get("ema20_vs_ema50_pct")
     if cfg["trend_filter"] and gap is not None and (gap < 0 if not short else gap > 0):
         return None, f"filtre de tendance : {'achat' if not short else 'short'} refusé, EMA20 {'<' if gap < 0 else '>'} EMA50 ({gap:+.2f} %)"
+    stopped = state.get("stops", {}).get(f"{pair}:{side}")
+    if cfg["cooldown_hours"] and stopped is not None:
+        ago = ((time.time() if now is None else now) - stopped) / 3600
+        if ago < cfg["cooldown_hours"]:
+            return None, f"délai après un stop : {pair} en {'short' if short else 'achat'} stoppé il y a {ago:.1f} h (délai {cfg['cooldown_hours']:g} h)"
+    rsi = row.get("rsi14")
+    if rsi is not None and (rsi < RSI_SHORT_MIN if short else rsi > RSI_LONG_MAX):
+        return None, f"RSI {rsi:g} : short refusé en survente (< {RSI_SHORT_MIN})" if short else f"RSI {rsi:g} : achat refusé en surachat (> {RSI_LONG_MAX})"
     if cfg["max_drawdown_pct"] is not None:
         drop = drawdown_pct(state, equity, time.time() if now is None else now, cfg["drawdown_days"])
         if drop <= -cfg["max_drawdown_pct"]:
@@ -73,9 +95,13 @@ def vet_open(cfg, state, action, market=None, equity=None, now=None):
         leverage = min(max(float(action.get("leverage") or MIN_LEVERAGE), MIN_LEVERAGE), cfg["max_leverage"])
         if stop >= pos.liq_distance_pct(leverage):
             return None, f"stop loss {stop:g} % trop large : à ×{leverage:g} la liquidation estimée est à +{pos.liq_distance_pct(leverage):.1f} %"
-    take_profit = min(float(action.get("take_profit_pct") or 0), MAX_SHORT_TP_PCT if short else MAX_TP_PCT)
-    if take_profit and too_low_ratio(cfg, take_profit, stop):
-        return None, f"gain/risque {take_profit / stop:.2f} < minimum {cfg['min_reward_risk']:g} (TP {take_profit:g} % / SL {stop:g} %)"
+    take_profit = float(action.get("take_profit_pct") or 0)
+    if take_profit < 0:
+        return None, f"objectif négatif ({take_profit:g} %) : `take_profit_pct` est une distance positive en %, même pour un short"
+    take_profit = min(take_profit, MAX_SHORT_TP_PCT if short else MAX_TP_PCT)
+    if take_profit and too_low_ratio(cfg, take_profit, stop, short):
+        return None, (f"gain/risque net {net_ratio(cfg, take_profit, stop, short):.2f} < minimum {cfg['min_reward_risk']:g} "
+                      f"(TP {take_profit:g} % / SL {stop:g} %, frais {round_trip_fee_pct(cfg, short):.2f} % aller-retour)")
     factor = min(max(float(action.get("size_factor", 1)), MIN_SIZE_FACTOR), profile["size_max"])
     size = cfg["order_size"] * factor                       # long : montant dépensé ; short : montant vendu (la garantie en est une fraction)
     invested = sum(p["size"] if pos.is_short(p) else p["cost"] for p in state["positions"])
@@ -83,13 +109,13 @@ def vet_open(cfg, state, action, market=None, equity=None, now=None):
         return None, "exposition max atteinte"
     needed = size
     if short:
-        terms = pos.open_short(size, 1.0, leverage, cfg["fee_pct"], MARGIN_FEE_PCT)
+        terms = pos.open_short(size, 1.0, leverage, order_fee_pct(cfg, True), MARGIN_FEE_PCT)
         needed = terms["collateral"] + terms["open_fees"]
     if cfg["mode"] == "paper" and state["cash"] < needed:
         return None, "solde insuffisant"
     return {"size": size, "side": side, "leverage": leverage, "strategy": strategy, "sl": stop, "conf": confidence,
             "tp": take_profit,
-            "trail": min(float(action.get("trailing_pct") or 0), MAX_TRAIL_PCT),
+            "trail": min(max(float(action.get("trailing_pct") or 0), 0), MAX_TRAIL_PCT),
             "reason": str(action.get("reason", ""))[:200]}, None
 
 
@@ -114,8 +140,9 @@ def adjust(cfg, position, action):
             position[key] = new
     if action.get("take_profit_pct") is not None:
         target = min(max(float(action["take_profit_pct"]), 0), MAX_SHORT_TP_PCT if pos.is_short(position) else MAX_TP_PCT)
-        if target and too_low_ratio(cfg, target, position["sl"]):
-            refused.append(f"objectif conservé à {position['tp']} % (gain/risque {target / position['sl']:.2f} < minimum {cfg['min_reward_risk']:g})")
+        short = pos.is_short(position)
+        if target and too_low_ratio(cfg, target, position["sl"], short):
+            refused.append(f"objectif conservé à {position['tp']} % (gain/risque net {net_ratio(cfg, target, position['sl'], short):.2f} < minimum {cfg['min_reward_risk']:g})")
         else:
             position["tp"] = target
     if not position["sl"]:

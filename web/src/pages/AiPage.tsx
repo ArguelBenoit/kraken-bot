@@ -10,7 +10,7 @@ import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { usePolling } from '@/hooks/usePolling'
 import { POLL_MS } from '@/lib/constants'
-import { fm, gainClass } from '@/lib/format'
+import { fm, gainClass, signed } from '@/lib/format'
 import { AI_KPI_TIPS } from '@/lib/tips'
 import { useAiStore } from '@/stores/aiStore'
 
@@ -23,12 +23,14 @@ export function AiPage() {
   const setMode = useAiStore((s) => s.setMode)
   usePolling(refresh, POLL_MS)
   const c = status?.config
+  const gainPct = status && c?.budget ? ((status.equity - c.budget) / c.budget) * 100 : null
 
   return (
     <>
       <Header title="Bot IA" icon={Bot} more={<>
         <Kpi label="PnL réalisé" tip={AI_KPI_TIPS['PnL réalisé']}><Pnl v={status?.pnl} /></Kpi>
         <Kpi label="PnL du jour" tip={AI_KPI_TIPS['PnL du jour']}><Pnl v={status?.day_pnl} /></Kpi>
+        <Kpi label="Gain total" tip={AI_KPI_TIPS['Gain total']}>{gainPct !== null ? <b className={gainClass(gainPct)}>{signed(gainPct)} %</b> : <b>–</b>}</Kpi>
         <Kpi label="Équité" tip={AI_KPI_TIPS['Équité']}><b>{fm(status?.equity)}</b></Kpi>
         <Kpi label="Appels IA" tip={AI_KPI_TIPS['Appels IA']}>
           <b>{status ? `${status.usage.calls} / ${c?.max_calls_per_day ?? '∞'}` : '–'}</b>
@@ -50,10 +52,10 @@ export function AiPage() {
           <AiSettingsCard />
         </div>
         <div className="col">
-          <AiOpenTrades positions={status?.positions ?? []} feePct={c?.fee_pct ?? 0.26} />
-          <DecisionsCard decisions={status?.decisions ?? []} exchangeUrl={(d) => (d.exchange ? `/api/exchanges/${d.exchange}` : null)} />
-          <PairTradesCard trades={status?.trades ?? []} />
-          <LogCard logs={status?.logs ?? []} />
+          <AiOpenTrades positions={status?.positions ?? []} feePct={c?.fee_pct ?? 0.26} shortFeePct={c?.short_fee_pct ?? 0.26} />
+          <PairTradesCard id="ai-trades" trades={status?.trades ?? []} />
+          <DecisionsCard id="ai-decisions" decisions={status?.decisions ?? []} exchangeUrl={(d) => (d.exchange ? `/api/exchanges/${d.exchange}` : null)} />
+          <LogCard id="ai-log" logs={status?.logs ?? []} />
         </div>
       </main>
     </>

@@ -76,7 +76,7 @@ export function OrderTicketCard() {
   }
 
   return (
-    <Card title="Passer un ordre" icon={Crosshair}>
+    <Card id="order" title="Passer un ordre" icon={Crosshair}>
       {live && (
         <div className="warn danger">
           Mode LIVE : cet ordre sera réel. Jamais testé avec de l&apos;argent réel. Le stop loss (ou, à défaut, le stop suiveur) est posé chez Kraken ; l&apos;objectif et les ordres limites sont surveillés par ce programme

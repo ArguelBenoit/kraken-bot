@@ -7,6 +7,7 @@ from datetime import datetime
 
 from server import settings
 from server.bots.ai import config as cfgmod
+from server.bots.ai.presets import PRESETS
 from server.core.providers import key_set, public
 from server.core.storage import load_json, save_json
 from server.core.transport import Cancel, Cancelled
@@ -21,8 +22,8 @@ KEPT = 15
 ACTIVE = ("loading", "running", "paused")      # états d'un essai qui n'est pas terminé
 # Réglages que la page peut modifier pour un essai ; tous les autres viennent des réglages enregistrés du Bot IA.
 OVERRIDES = ("provider", "model", "pairs", "timeframe", "interval_min", "aggressiveness", "allow_short", "min_reward_risk", "max_leverage", "max_positions",
-             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "strategies", "notes",
-             "trend_filter", "max_same_side", "max_drawdown_pct", "drawdown_days", "temperature")
+             "order_size", "budget", "max_exposure_pct", "max_daily_loss_pct", "fee_pct", "short_fee_pct", "strategies", "notes",
+             "trend_filter", "max_same_side", "max_drawdown_pct", "drawdown_days", "cooldown_hours", "temperature")
 
 
 def _end_ts(end):
@@ -167,6 +168,6 @@ class BacktestRunner:
         summary = [{k: r[k] for k in ("id", "started", "status", "params", "stats")} for r in self.history]
         cfg = self.ai.config
         return {"current": self.current and {k: v for k, v in self.current.items() if k != "exchanges"}, "history": summary,
-                "options": {"providers": public(), "scenarios": SCENARIOS, "pairs": [{"pair": p, "label": l} for p, l in WATCH], "strategies": cfgmod.STRATEGIES,
+                "options": {"providers": public(), "scenarios": SCENARIOS, "presets": PRESETS, "pairs": [{"pair": p, "label": l} for p, l in WATCH], "strategies": cfgmod.STRATEGIES,
                             "defaults": {k: cfg[k] for k in OVERRIDES},
                             "max_days": {str(tf): round(data.max_days(tf)) for tf in cfgmod.TIMEFRAMES}}}

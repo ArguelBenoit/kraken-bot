@@ -10,10 +10,10 @@ function describe(t: PairTrade): { label: string; tone: 't-ok' | 't-ko'; closing
   return t.side === 'BUY' ? { label: 'ACHAT', tone: 't-ok', closing } : { label: 'VENTE', tone: 't-ko', closing }
 }
 
-/** Historique des trades d'un bot qui gère plusieurs paires (Bot IA, Trading manuel). */
-export function PairTradesCard({ trades }: { trades: PairTrade[] }) {
+/** Historique des trades d'un bot qui gère plusieurs paires (Bot IA, Trading manuel, backtest) ; `id` propre à chaque page pour mémoriser son repli. */
+export function PairTradesCard({ id, trades }: { id: string; trades: PairTrade[] }) {
   return (
-    <Card title="Trades" icon={ArrowLeftRight}>
+    <Card id={id} title="Trades" icon={ArrowLeftRight}>
       {trades.length === 0 ? (
         <span className="t-mu">Aucun trade dans ce mode.</span>
       ) : (

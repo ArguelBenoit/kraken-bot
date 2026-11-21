@@ -20,7 +20,7 @@ Les calculs sont dans `server/bots/positions.py` (fonctions pures), le flux d'or
 ## Modèle paper (estimations)
 
 - **Montant** = valeur vendue à découvert (`size`). **Garantie** immobilisée = `size / levier`, retirée du cash puis rendue à la fermeture, gains et pertes inclus.
-- **Frais** : taker Kraken (0,26 %) à l'ouverture et à la fermeture, **frais d'ouverture de marge** (`margin_fee_pct`, 0,02 %), **report** (`rollover_pct`, 0,02 % du montant par période de 4 h écoulée).
+- **Frais** : Bot IA : réglages séparés `fee_pct` (long) et `short_fee_pct` (short), 0,26 % par défaut chacun, par ordre ; taker Kraken à l'ouverture et à la fermeture, **frais d'ouverture de marge** (`margin_fee_pct`, 0,02 %), **report** (`rollover_pct`, 0,02 % du montant par période de 4 h écoulée).
 - **Gain net** = `(entrée − prix) × quantité − frais d'ouverture − frais de fermeture − report`.
 - **Liquidation estimée** : la perte atteint 80 % de la garantie, soit une hausse de `0,8 / levier` (+40 % à ×2, +27 % à ×3, +16 % à ×5). C'est une approximation : Kraken liquide selon le niveau de marge de **tout le compte**.
   En paper, la position est fermée de force (« liquidation simulée ») à ce prix.

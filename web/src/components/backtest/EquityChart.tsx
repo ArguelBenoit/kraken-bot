@@ -41,7 +41,7 @@ export function EquityChart({ runId, equity }: { runId: string; equity: [number,
   }, [equity, runId])
 
   return (
-    <Card title="Équité" icon={LineChart} actions={<span className="t-mu"><span className="t-ac">━</span> Bot IA · <span>┅</span> buy & hold</span>}>
+    <Card id="bt-equity" title="Équité" icon={LineChart} actions={<span className="t-mu"><span className="t-ac">━</span> Bot IA · <span>┅</span> buy & hold</span>}>
       <div ref={el} style={{ height: 280 }} />
     </Card>
   )

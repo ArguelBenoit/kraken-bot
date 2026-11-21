@@ -142,7 +142,7 @@ class Replay:
 
     def _open(self, pair, params, price, t):
         c, s = self.cfg, self.state
-        fields, needed = pos.open_fields(params["side"], params["size"], price, params["leverage"], c["fee_pct"], cfgmod.MARGIN_FEE_PCT)
+        fields, needed = pos.open_fields(params["side"], params["size"], price, params["leverage"], cfgmod.order_fee_pct(c, params["side"] == "short"), cfgmod.MARGIN_FEE_PCT)
         s["cash"] -= needed
         position = make_position(pair, params, price, fields, t, _fmt(t))
         s["positions"].append(position)
@@ -152,11 +152,13 @@ class Replay:
     def _close(self, p, price, why, t):
         c, s = self.cfg, self.state
         rollover = pos.rollover_due(p, t, cfgmod.ROLLOVER_PCT)
-        qty, pnl, cash_delta = pos.close_amounts(p, price, 1.0, c["fee_pct"], rollover)
+        fee_pct = cfgmod.order_fee_pct(c, pos.is_short(p))
+        qty, pnl, cash_delta = pos.close_amounts(p, price, 1.0, fee_pct, rollover)
         s["cash"] += cash_delta
         s["positions"] = [x for x in s["positions"] if x["id"] != p["id"]]
         s["day_pnl"] += pnl
-        self.run["fees"] += price * qty * c["fee_pct"] / 100 + rollover
+        guards.note_close(s, p, why, t)
+        self.run["fees"] += price * qty * fee_pct / 100 + rollover
         self._trade("close", p, price, pnl, why, t)
 
     def _trade(self, kind, p, price, pnl, why, t):

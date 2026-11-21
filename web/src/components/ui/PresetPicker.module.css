@@ -1,0 +1,7 @@
+.row { flex-wrap: nowrap; white-space: nowrap; }
+.btns { display: flex; gap: 4px; }
+.btns button {
+  background: transparent; color: var(--mu); border: 1px solid var(--line); border-radius: 2px; padding: 3px 10px; cursor: pointer;
+  font: 400 12px var(--mono); letter-spacing: 0.04em;
+}
+.btns button:hover { color: var(--ac); border-color: var(--ac); }

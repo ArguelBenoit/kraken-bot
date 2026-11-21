@@ -43,7 +43,7 @@ export function ManualSettingsCard() {
   }
 
   return (
-    <Card title="Réglages" icon={Settings}>
+    <Card id="manual-settings" title="Réglages" icon={Settings}>
       <form
         onSubmit={(e) => {
           e.preventDefault()

@@ -4,6 +4,7 @@ export const AI_KPI_TIPS: Record<string, string> = {
   "PnL réalisé": "Gains/pertes cumulés des trades du bot IA déjà vendus, frais inclus.",
   "PnL du jour": "Gains/pertes réalisés aujourd'hui. Si la perte dépasse le plafond réglé, plus aucune ouverture jusqu'à demain.",
   "Équité": "Cash restant + valeur des positions ouvertes au prix actuel.",
+  "Gain total": "Variation de l'équité par rapport au budget de départ, en % : gains réalisés + gains ou pertes latents des positions ouvertes.",
   "Positions": "Positions ouvertes / nombre maximum de trades en parallèle réglé.",
   "Appels IA": "Appels au modèle faits aujourd'hui / plafond journalier (∞ si le plafond est désactivé). Chaque appel consomme des tokens, facturés par le fournisseur sauf modèle local."
 }

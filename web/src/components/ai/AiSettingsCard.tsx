@@ -5,10 +5,12 @@ import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
 import { NumberInput as NumberInputField } from '@/components/ui/NumberInput'
 import { ModelPicker } from '@/components/ui/ModelPicker'
+import { PresetPicker } from '@/components/ui/PresetPicker'
+import { ShortsGroup } from '@/components/ui/ShortsGroup'
 import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
-import { LIMIT_FIELDS, PARALLEL_FIELD, SHORT_FIELD, type NumberField } from '@/lib/aiForm'
+import { EDGE_FIELDS, MONEY_FIELDS, PARALLEL_FIELD, RHYTHM_FIELDS, SHORT_FEE_FIELD, SHORT_FIELD, TEMPERATURE_FIELD, type NumberField } from '@/lib/aiForm'
 import type { Aggressiveness } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { AiWarnings } from './AiWarnings'
@@ -24,19 +26,21 @@ function NumberInput({ def }: { def: NumberField }) {
 export function AiSettingsCard() {
   const status = useAiStore((s) => s.status)
   const draft = useAiStore((s) => s.draft)
-  const { setField, toggleIn, save, restore } = useAiStore.getState()
+  const { setField, toggleIn, save, restore, applyPreset } = useAiStore.getState()
   if (!status || !draft) return <Card title="Réglages IA" icon={Settings}>Chargement…</Card>
 
-  const { options, key_ok, live_ok, credit_low } = status
+  const { options, key_ok, credit_low } = status
   const provider = options.providers[draft.provider]
 
   return (
     <Card title="Réglages IA" icon={Settings}>
-      <AiWarnings keyOk={key_ok} keyEnv={provider?.env ?? ''} live={status.config.mode === 'live'} shorts={status.config.allow_short} liveOk={live_ok} creditLow={credit_low} />
+      <AiWarnings keyOk={key_ok} keyEnv={provider?.env ?? ''} creditLow={credit_low} />
 
       <form onSubmit={(e) => { e.preventDefault(); void save() }}>
+        <PresetPicker presets={options.presets} onPick={applyPreset} />
         <ModelPicker providers={options.providers} provider={draft.provider} model={draft.model}
           onChange={(p, m) => { setField('provider', p); setField('model', m) }} />
+        <NumberInput def={TEMPERATURE_FIELD} />
         <Field label="Agressivité" tip="Le code impose selon ce profil : la confiance minimale du modèle pour ouvrir, la taille maximale d'une position et le stop loss maximal. Prudent = rare et petit, agressif = plus d'ordres et plus gros.">
           <select value={draft.aggressiveness} onChange={(e) => setField('aggressiveness', e.target.value as Aggressiveness)}>
             <option value="prudent">Prudent</option>
@@ -46,23 +50,22 @@ export function AiSettingsCard() {
         </Field>
         <div className="hint">{options.profiles[draft.aggressiveness]}</div>
 
-        <NumberInput def={PARALLEL_FIELD} />
         <Field label="Bougie analysée" tip="Durée des bougies que le modèle voit (15 min à 1 jour). Plus court = plus de bruit et plus d'ordres ; plus long = moins de signaux. Nos tests donnent de meilleurs résultats en 4 h.">
           <select value={draft.timeframe} onChange={(e) => setField('timeframe', e.target.value)}>
             {AI_TFS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </Field>
-        {LIMIT_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
+        {RHYTHM_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
+        <NumberInput def={PARALLEL_FIELD} />
+        {MONEY_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
+        {EDGE_FIELDS.map((d) => <NumberInput key={d.name} def={d} />)}
 
-        <label className="check">
-          <input type="checkbox" checked={draft.allow_short} onChange={(e) => setField('allow_short', e.target.checked)} />
-          <span>
-            <b>Autoriser les shorts</b>
-            <Tip text="En plus des achats (qui restent possibles), le modèle peut parier sur la baisse (vente à découvert en marge, avec levier), en paper comme en live. Décochée, il ne fait que des achats. Risque : la perte peut dépasser la mise et la position peut être liquidée si le prix monte ; frais de report toutes les 4 h. Le code impose un stop loss, un levier borné, une confiance plus élevée que pour un achat. En LIVE, la marge Kraken n'a jamais été validée : lance d'abord `python -m server.check_kraken`. Désactivé par défaut." />
-            <br /><small>Marge Kraken jamais validée : à tes risques en live.</small>
-          </span>
-        </label>
-        {draft.allow_short && <NumberInput def={SHORT_FIELD} />}
+        <ShortsGroup id="ai-shorts" allow={draft.allow_short} onAllow={(on) => setField('allow_short', on)}
+          tip="En plus des achats (qui restent possibles), le modèle peut parier sur la baisse (vente à découvert en marge, avec levier), en paper comme en live. Décochée, il ne fait que des achats. Risque : la perte peut dépasser la mise et la position peut être liquidée si le prix monte ; frais de report toutes les 4 h. Le code impose un stop loss, un levier borné, une confiance plus élevée que pour un achat. En LIVE, la marge Kraken n'a jamais été validée : lance d'abord `python -m server.check_kraken`. Désactivé par défaut."
+          note="Marge Kraken jamais validée : à tes risques en live.">
+          <NumberInput def={SHORT_FIELD} />
+          <NumberInput def={SHORT_FEE_FIELD} />
+        </ShortsGroup>
 
         <StabilityFields id="ai-stability" trendFilter={draft.trend_filter} onTrendFilter={(on) => setField('trend_filter', on)}
           value={(k) => draft[k]} onChange={(k, v) => setField(k, v)} />

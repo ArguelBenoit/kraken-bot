@@ -5,6 +5,7 @@ from datetime import datetime
 
 from server.bots import positions as pos
 from .config import PROFILES, STRATEGIES
+from .guards import RSI_LONG_MAX, RSI_SHORT_MIN
 
 DECIDE_TOOL = {
     "name": "decide",
@@ -22,7 +23,7 @@ DECIDE_TOOL = {
                 "confidence": {"type": "number", "description": "open : 0 à 1"},
                 "size_factor": {"type": "number", "description": "open : multiplicateur du montant de base (0.25 à 1.5)"},
                 "stop_loss_pct": {"type": "number", "description": "open/adjust : perte max en % (obligatoire à l'ouverture)"},
-                "take_profit_pct": {"type": "number", "description": "open/adjust : objectif en % (0 = aucun)"},
+                "take_profit_pct": {"type": "number", "description": "open/adjust : objectif en % du prix, TOUJOURS positif (même pour un short ; 0 = aucun)"},
                 "trailing_pct": {"type": "number", "description": "open/adjust : stop suiveur en % (0 = aucun)"},
                 "reason": {"type": "string", "description": "Justification courte, chiffrée."},
             }, "required": ["type", "pair", "reason"]}},
@@ -43,10 +44,14 @@ def _system(cfg):
         "frais de report toutes les 4 h. Stop loss et objectif sont inversés : le stop est AU-DESSUS de l'entrée, l'objectif EN DESSOUS. "
         "Ne shorte que sur une tendance baissière claire (EMA20 sous EMA50, prix sous la moyenne, RSI qui ne rebondit pas), avec un stop serré et le levier le plus bas ; "
         "le code exige plus de confiance que pour un achat. Les stratégies ci-dessus s'inversent (ex. trend_follow = tendance baissière, bollinger/rsi = suracheté).\n")
-    extra = ""
+    extra = (f"- RSI (`rsi14`) : le code refuse tout achat si le RSI dépasse {RSI_LONG_MAX} (surachat, repli probable)"
+             + (f" et tout short s'il est sous {RSI_SHORT_MIN} (survente, rebond probable). Un RSI bas n'est PAS un signal de short : c'est le moment où le prix rebondit." if cfg["allow_short"] else ".")
+             + "\n")
     if cfg["trend_filter"]:
         extra += ("- Filtre de tendance : le code refuse un achat quand `ema20_vs_ema50_pct` est négatif et un short quand il est positif. "
                   "Trade dans le sens de la tendance de la paire, pas contre elle.\n")
+    if cfg["cooldown_hours"]:
+        extra += f"- Après un stop sur une paire, le code refuse de la rouvrir dans le même sens pendant {cfg['cooldown_hours']:g} h : ne la propose pas avant.\n"
     if cfg["max_same_side"] is not None:
         extra += f"- Au plus {cfg['max_same_side']} positions dans le même sens (achats ensemble, shorts ensemble) : les cryptos bougent ensemble, diversifie le sens.\n"
     if cfg["max_drawdown_pct"] is not None:
@@ -86,7 +91,7 @@ def _context(cfg, state, price_of, market, now):
             "free_slots": cfg["max_positions"] - len(positions),
             "cash_available": round(state["cash"], 2) if cfg["mode"] == "paper" else None,
             "base_order_size": cfg["order_size"], "fee_pct_per_order": cfg["fee_pct"],
-            **({"shorts_autorises": True, "levier_max": cfg["max_leverage"]} if cfg["allow_short"] else {}),
+            **({"shorts_autorises": True, "levier_max": cfg["max_leverage"], "short_fee_pct_per_order": cfg["short_fee_pct"]} if cfg["allow_short"] else {}),
             "day_pnl": round(state["day_pnl"], 2), "market": market}
 
 

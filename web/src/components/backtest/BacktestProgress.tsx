@@ -7,12 +7,13 @@ import css from './Backtest.module.css'
 
 const EMPTY: never[] = []
 
-/** Réglages de stabilité actifs d'un essai, séparés par des points ; « aucun » si rien n'est réglé. */
+/** Protections du capital actives d'un essai, séparés par des points ; « aucun » si rien n'est réglé. */
 function stability(p: BtRun['params']): string {
   const on = [
     p.trend_filter && 'filtre de tendance',
     p.max_same_side != null && `${p.max_same_side} max par sens`,
     p.max_drawdown_pct != null && `disjoncteur ${p.max_drawdown_pct} %${p.drawdown_days == null ? "" : ` sur ${p.drawdown_days} j`}`,
+    p.cooldown_hours != null && `délai après stop ${p.cooldown_hours} h`,
     p.temperature != null && `température ${p.temperature}`,
   ].filter(Boolean)
   return on.length ? on.join(' · ') : 'aucun'
@@ -43,7 +44,7 @@ export function BacktestProgress({ run }: { run: BtRun }) {
             ['Paires', run.params.pairs.length],
             ['Période', `${run.params.days} j en bougies de ${run.params.timeframe} min`],
             ['Marché', marketLabel(run.params.end, scenarios ?? EMPTY)],
-            ['Stabilité', stability(run.params)],
+            ['Protection', stability(run.params)],
             ['Lancé le', run.started + (run.seconds != null ? ` · ${run.seconds} s` : '')],
           ].map(([label, value]) => <tr key={label}><td className={css.label}>{label}</td><td>{value}</td></tr>)}
         </tbody>

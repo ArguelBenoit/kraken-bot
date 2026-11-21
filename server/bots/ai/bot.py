@@ -22,6 +22,7 @@ from server.market.snapshot import market_snapshot
 from server.bots import live, positions as pos
 from . import config as cfgmod
 from . import guards, prompt
+from .presets import PRESETS
 from .account import make_position
 
 CONFIG_FILE, STATE_FILE = settings.data_file("ai_config.json"), settings.data_file("ai_state.json")
@@ -250,12 +251,12 @@ class AIBot:
         price = last_price(pair, 0)
         fill = None
         if c["mode"] == "paper":
-            fields, needed = pos.open_fields(params["side"], size, price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT)
+            fields, needed = pos.open_fields(params["side"], size, price, leverage, cfgmod.order_fee_pct(c, params["side"] == "short"), cfgmod.MARGIN_FEE_PCT)
             s["cash"] -= needed
         elif short:
             fill = live.enter(pair, "short", size / price, leverage)             # prix et volume RÉELS de l'exécution
             price = fill["price"] or price
-            fields = {**pos.open_short(fill["cost"], price, leverage, c["fee_pct"], cfgmod.MARGIN_FEE_PCT), "qty": fill["volume"], "open_fees": fill["fee"]}
+            fields = {**pos.open_short(fill["cost"], price, leverage, c["short_fee_pct"], cfgmod.MARGIN_FEE_PCT), "qty": fill["volume"], "open_fees": fill["fee"]}
             fields["cost"] = fields["collateral"]
         else:
             fill = live.enter(pair, "long", size / price, 1.0)
@@ -273,12 +274,15 @@ class AIBot:
         c, s = self.config, self.state
         fill = settled
         if fill is None and c["mode"] == "live":
-            fill = live.exit_market(position, position["qty"])
+            try:
+                fill = live.exit_market(position, position["qty"])
+            except live.AlreadyClosed:                  # fermée chez Kraken sans que le bot le sache : on la retire, au dernier prix connu
+                why = f"{why} (déjà fermée chez Kraken, prix estimé)"
         if fill:
             price = fill["price"] or price
         if pos.is_short(position):
             rollover = pos.rollover_due(position, time.time(), cfgmod.ROLLOVER_PCT)
-            _, pnl, cash_delta = pos.close_amounts(position, price, 1.0, c["fee_pct"], rollover)
+            _, pnl, cash_delta = pos.close_amounts(position, price, 1.0, c["short_fee_pct"], rollover)
         else:
             cash_delta = fill["cost"] - fill["fee"] if fill else position["qty"] * price * (1 - c["fee_pct"] / 100)
             pnl = cash_delta - position["cost"]
@@ -287,6 +291,7 @@ class AIBot:
         s["positions"] = [p for p in s["positions"] if p["id"] != position["id"]]
         s["pnl"] += pnl
         s["day_pnl"] += pnl
+        guards.note_close(s, position, why, time.time())
         self._record("close", position, price, pnl, why)
 
     def _record(self, kind, position, price, pnl, why):
@@ -320,7 +325,7 @@ class AIBot:
         q = {**p, "side": p.get("side", "long"), "leverage": p.get("leverage", 1.0)}
         rollover = pos.rollover_due(q, time.time(), cfgmod.ROLLOVER_PCT)
         sl, tp, trail = pos.stop_prices(q)
-        return {**q, "label": LABELS.get(p["pair"], p["pair"]), "price": px, "pnl": pos.unrealized(q, px, c["fee_pct"], rollover),
+        return {**q, "label": LABELS.get(p["pair"], p["pair"]), "price": px, "pnl": pos.unrealized(q, px, cfgmod.order_fee_pct(c, pos.is_short(q)), rollover),
                 "pnl_pct": pos.favorable_pct(q, px), "equity_value": pos.equity_value(q, px), "rollover": rollover,
                 "liq_price": pos.liq_price(q), "notional": q["qty"] * q["entry"], "sl_price": sl, "tp_price": tp, "trail_price": trail,
                 "exchange_stop": bool(p.get("stop_id")) if c["mode"] == "live" else None}
@@ -332,10 +337,10 @@ class AIBot:
             next_review = max(0, int(c["interval_min"] * 60 - (time.time() - self.last_review))) if self.running else None
             return {"config": c, "running": self.running, "reviewing": self.reviewing, "next_review_s": next_review,
                     "key_ok": key_set(c["provider"]), "live_ok": settings.kraken_configured(),
-                    "cash": s["cash"], "equity": s["cash"] + sum(p["equity_value"] for p in positions),
+                    "cash": s["cash"], "equity": c["budget"] + s["pnl"] + sum(p["equity_value"] - p["cost"] for p in positions),     # idem en paper ; en live le cash n'est pas suivi
                     "pnl": s["pnl"], "day_pnl": s["day_pnl"], "positions": positions, "usage": s["usage"],
                     "credit_low": bool(s.get("credit_low")),
                     "trades": [t for t in s["trades"] if t["mode"] == c["mode"]][-40:][::-1],
                     "decisions": s["decisions"][-15:][::-1], "logs": self.journal.recent(30),
                     "options": {"providers": public(), "strategies": cfgmod.STRATEGIES, "pairs": [{"pair": p, "label": l} for p, l in WATCH],
-                                "profiles": {k: v["desc"] for k, v in cfgmod.PROFILES.items()}}}
+                                "profiles": {k: v["desc"] for k, v in cfgmod.PROFILES.items()}, "presets": PRESETS}}
