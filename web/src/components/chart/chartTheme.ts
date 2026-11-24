@@ -10,6 +10,11 @@ export const CHART_OPTIONS = {
   autoSize: true,
 } as const
 
+/** Style d'un conteneur de graphique : annule le zoom de l'interface (`html { zoom }`), sinon lightweight-charts mélange pixels
+ *  écran (souris) et pixels CSS (dessin) et le curseur est décalé. La hauteur est multipliée par le zoom pour garder la même taille visuelle. */
+export const chartBox = (height: number, extra: Record<string, string | number> = {}) =>
+  ({ zoom: 'calc(1 / var(--zoom))', height: `calc(${height}px * var(--zoom))`, ...extra }) as const
+
 /** Couleurs des bougies : vert à la hausse, rouge à la baisse. */
 export const CANDLE_STYLE = {
   upColor: '#3ddc84', downColor: '#ff4d4d', borderVisible: false, wickUpColor: '#3ddc84', wickDownColor: '#ff4d4d',

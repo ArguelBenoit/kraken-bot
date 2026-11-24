@@ -33,16 +33,24 @@ export function BacktestTabs() {
   const trends = [...new Set(tabs.map(trendOf))]
   const shown = tabs.filter((r) => !filter || trendOf(r) === filter)
   const selected = viewing?.id ?? current?.id
+  const averageOf = (runs: (BtRun | BtSummary)[]) => {      // gain moyen (%) des essais calculés ; null s'il n'y en a aucun
+    const returns = runs.flatMap((r) => (hasStats(r.stats) ? [r.stats.return_pct] : []))
+    return returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null
+  }
 
   return (
     <Card title="Essais" icon={History}>
       {trends.length > 1 && (
         <div className={css.filters}>
-          {['', ...trends].map((t) => (
-            <button key={t} type="button" className={`chip ${t === filter ? css.chipOn : ''}`} onClick={() => setFilter(t)}>
-              {t || 'Tous'} ({t ? tabs.filter((r) => trendOf(r) === t).length : tabs.length})
-            </button>
-          ))}
+          {['', ...trends].map((t) => {
+            const runs = t ? tabs.filter((r) => trendOf(r) === t) : tabs
+            const average = averageOf(runs)
+            return (
+              <button key={t} type="button" className={`chip ${t === filter ? css.chipOn : ''}`} onClick={() => setFilter(t)}>
+                {t || 'Tous'} · {runs.length}{average !== null && <> · <b className={gainClass(average)}>{signed(average, 1)} %</b></>}
+              </button>
+            )
+          })}
         </div>
       )}
       <div className={css.tabs}>

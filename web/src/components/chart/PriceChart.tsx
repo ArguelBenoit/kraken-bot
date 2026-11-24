@@ -7,7 +7,7 @@ import { EMA_LINES, emaPoints } from '@/lib/ema'
 import { buildMarkers } from '@/lib/markers'
 import type { ChartData } from '@/lib/types'
 import type { ChartLevel } from '@/lib/chartTypes'
-import { CANDLE_STYLE, CHART_OPTIONS, levelLineOptions } from './chartTheme'
+import { CANDLE_STYLE, CHART_OPTIONS, chartBox, levelLineOptions } from './chartTheme'
 
 const asTime = (t: number) => t as Time
 
@@ -79,8 +79,8 @@ export function PriceChart({ data, levels = [], emas = [] }: { data: ChartData |
 
   return (
     <>
-      <div ref={priceEl} id="chart" style={{ height: 440 }} />
-      <div ref={rsiEl} style={{ height: 170, marginTop: 4 }} />
+      <div ref={priceEl} id="chart" style={chartBox(440)} />
+      <div ref={rsiEl} style={chartBox(170, { marginTop: 4 })} />
     </>
   )
 }

@@ -97,13 +97,30 @@ export interface BtRun {
 
 export interface BtSummary {
   id: string
+  /** Durée du calcul (s) ; absente d'un essai non terminé. */
+  seconds?: number | null
   started: string
   status: BtState
   params: BtParams
   stats: BtStats | Record<string, never>
 }
 
+/** Un essai en attente : les réglages bruts du formulaire (revalidés au lancement). */
+export interface BtQueueItem {
+  id: string
+  params: Partial<BtParams> & { days: number }
+}
+
+export interface BtQueue {
+  /** La file se vide-t-elle (chaque essai fini lance le suivant) ? */
+  on: boolean
+  items: BtQueueItem[]
+  /** Essais refusés au lancement (réglage devenu invalide) : ils sont sortis de la file. */
+  failed: { params: BtQueueItem['params']; error: string }[]
+}
+
 export interface BtStatus {
+  queue: BtQueue
   current: BtRun | null
   history: BtSummary[]
   options: {

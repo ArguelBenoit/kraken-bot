@@ -1,7 +1,7 @@
 import { createChart, type IChartApi, type ISeriesApi, type Time } from 'lightweight-charts'
 import { LineChart } from 'lucide-react'
 import { useEffect, useRef } from 'react'
-import { CHART_OPTIONS, indicatorLine } from '@/components/chart/chartTheme'
+import { CHART_OPTIONS, chartBox, indicatorLine } from '@/components/chart/chartTheme'
 import { Card } from '@/components/ui/Card'
 
 interface Refs {
@@ -42,7 +42,7 @@ export function EquityChart({ runId, equity }: { runId: string; equity: [number,
 
   return (
     <Card id="bt-equity" title="Équité" icon={LineChart} actions={<span className="t-mu"><span className="t-ac">━</span> Bot IA · <span>┅</span> buy & hold</span>}>
-      <div ref={el} style={{ height: 280 }} />
+      <div ref={el} style={chartBox(280)} />
     </Card>
   )
 }

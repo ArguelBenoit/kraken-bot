@@ -1,5 +1,6 @@
 """Lancement et suivi des backtests du Bot IA : un seul à la fois, en arrière-plan, annulable et pausable ; les essais terminés sont gardés dans `ai_backtests.json`."""
 import calendar
+import itertools
 import threading
 import time
 import uuid
@@ -18,7 +19,9 @@ from .scenarios import SCENARIOS
 
 FILE = settings.data_file("ai_backtests.json")
 DRAFT_FILE = settings.data_file("ai_backtest_draft.json")      # formulaire en cours de saisie (partagé entre les machines)
-KEPT = 15
+QUEUE_FILE = settings.data_file("ai_backtest_queue.json")      # file d'attente (essais à lancer l'un après l'autre)
+KEPT = 60
+MAX_QUEUE = 100
 ACTIVE = ("loading", "running", "paused")      # états d'un essai qui n'est pas terminé
 # Réglages que la page peut modifier pour un essai ; tous les autres viennent des réglages enregistrés du Bot IA.
 OVERRIDES = ("provider", "model", "pairs", "timeframe", "interval_min", "aggressiveness", "allow_short", "min_reward_risk", "max_leverage", "max_positions",
@@ -45,6 +48,9 @@ class BacktestRunner:
         self.cancel_token = None
         self.gate = threading.Event()               # levé = le rejeu avance ; baissé = en pause
         self.history = load_json(FILE, [])
+        self.queue = load_json(QUEUE_FILE, [])        # [{id, params}] : réglages bruts du formulaire, revalidés au lancement
+        self.queue_on = False                         # la file est-elle en train de se vider ? (jamais relancée toute seule au démarrage du serveur)
+        self.queue_failed = []                        # essais de la file refusés au lancement : [{params, error}]
         for r in self.history:                    # essais gardés avant l'ajout de cette statistique : on la déduit de leurs trades
             if r.get("stats") and "max_open" not in r["stats"]:
                 r["stats"]["max_open"] = stats.max_open(r["trades"])
@@ -52,22 +58,27 @@ class BacktestRunner:
                 r["stats"]["peak_pct"] = stats.peak_pct([row[1] for row in r["equity"]], r["params"]["budget"])
 
     # ---------- lancement ----------
+    def _prepare(self, params):
+        """Valide les paramètres (sur les réglages du Bot IA, en paper) : (réglages complets, jours, plafond d'appels, fin de période, fin en clair) ou ValueError."""
+        cfg = cfgmod.validate(self.ai.config, {**{k: params[k] for k in OVERRIDES if k in params}, "mode": "paper"}, busy=False)
+        if not key_set(cfg["provider"]):
+            raise ValueError("Clé du fournisseur absente (.env) ou fournisseur injoignable")
+        days = float(params.get("days") or 0)
+        if not 0 < days <= data.max_days(cfg["timeframe"]):
+            raise ValueError(f"Durée invalide : de 1 à {data.max_days(cfg['timeframe']):.0f} jours avec des bougies de {cfg['timeframe']} min")
+        end = str(params.get("end") or "")
+        if end >= time.strftime("%Y-%m-%d", time.gmtime()):       # aujourd'hui (ou plus tard) = les dernières bougies de Kraken
+            end = ""
+        end_ts = _end_ts(end) if end else None
+        max_calls = int(params["max_calls"]) if params.get("max_calls") not in (None, "") else None
+        return cfg, days, max_calls, end_ts, end
+
     def start(self, params):
-        """Valide les paramètres (sur les réglages du Bot IA, en paper) et lance le rejeu en arrière-plan."""
+        """Valide les paramètres et lance le rejeu en arrière-plan."""
         with self.lock:
             if self.current and self.current["status"] in ACTIVE:
                 raise ValueError("Un backtest est déjà en cours")
-            cfg = cfgmod.validate(self.ai.config, {**{k: params[k] for k in OVERRIDES if k in params}, "mode": "paper"}, busy=False)
-            if not key_set(cfg["provider"]):
-                raise ValueError("Clé du fournisseur absente (.env) ou fournisseur injoignable")
-            days = float(params.get("days") or 0)
-            if not 0 < days <= data.max_days(cfg["timeframe"]):
-                raise ValueError(f"Durée invalide : de 1 à {data.max_days(cfg['timeframe']):.0f} jours avec des bougies de {cfg['timeframe']} min")
-            end = str(params.get("end") or "")
-            if end >= time.strftime("%Y-%m-%d", time.gmtime()):       # aujourd'hui (ou plus tard) = les dernières bougies de Kraken
-                end = ""
-            end_ts = _end_ts(end) if end else None
-            max_calls = int(params["max_calls"]) if params.get("max_calls") not in (None, "") else None
+            cfg, days, max_calls, end_ts, end = self._prepare(params)
             self.cancel_token = Cancel()
             self.gate.set()
             self.current = {
@@ -95,12 +106,75 @@ class BacktestRunner:
             run["status"], run["error"] = "error", str(e)[:300]
         run["seconds"] = round(time.time() - began)
         self._keep(run)
+        if cancel.cancelled:
+            self.queue_on = False                  # une annulation voulue arrête aussi la file
+        else:
+            self._next()
 
     def _keep(self, run):
         with self.lock:
             self.history = [run] + [r for r in self.history if r["id"] != run["id"]]
             self.history = self.history[:KEPT]
             save_json(FILE, self.history)
+
+    # ---------- file d'attente ----------
+    def _save_queue(self):
+        save_json(QUEUE_FILE, self.queue)
+
+    def enqueue(self, params):
+        """Ajoute un essai à la file (réglages validés tout de suite : une erreur de formulaire se voit avant la nuit)."""
+        self.enqueue_grid(params, [])
+
+    def enqueue_grid(self, base, axes):
+        """Ajoute à la file toutes les combinaisons de `axes` (liste d'axes, chacun une liste de réglages partiels fusionnés sur `base`). Tout ou rien."""
+        combos = [{**base, **{k: v for part in c for k, v in part.items()}} for c in itertools.product(*axes)]
+        with self.lock:
+            if len(self.queue) + len(combos) > MAX_QUEUE:
+                raise ValueError(f"File trop longue : {MAX_QUEUE} essais au plus ({len(self.queue)} déjà en attente, {len(combos)} demandés)")
+        for p in combos:
+            self._prepare(p)                       # lève ValueError si un essai est invalide
+        with self.lock:
+            self.queue += [{"id": uuid.uuid4().hex[:8], "params": p} for p in combos]
+            self._save_queue()
+
+    def queue_remove(self, item_id):
+        with self.lock:
+            self.queue = [i for i in self.queue if i["id"] != item_id]
+            self._save_queue()
+
+    def queue_clear(self):
+        with self.lock:
+            self.queue, self.queue_on, self.queue_failed = [], False, []
+            self._save_queue()
+
+    def queue_run(self):
+        """Lance la file : l'essai suivant démarre dès que le précédent est fini."""
+        if not self.queue:
+            raise ValueError("La file d'attente est vide")
+        self.queue_on = True
+        self.queue_failed = []
+        self._next()
+
+    def queue_stop(self):
+        """Arrête la file après l'essai en cours (qui va à son terme)."""
+        self.queue_on = False
+
+    def _next(self):
+        """Démarre le prochain essai de la file ; un essai refusé au lancement est noté et on passe au suivant."""
+        while self.queue_on:
+            with self.lock:
+                if self.running():
+                    return
+                if not self.queue:
+                    self.queue_on = False
+                    return
+                item = self.queue.pop(0)
+                self._save_queue()
+            try:
+                self.start(item["params"])
+                return
+            except ValueError as e:
+                self.queue_failed.append({"params": item["params"], "error": str(e)})
 
     # ---------- contrôle et lecture ----------
     def running(self):
@@ -165,9 +239,10 @@ class BacktestRunner:
 
     def snapshot(self):
         """Essai courant (complet) + liste résumée des essais gardés + options du formulaire."""
-        summary = [{k: r[k] for k in ("id", "started", "status", "params", "stats")} for r in self.history]
+        summary = [{**{k: r[k] for k in ("id", "started", "status", "params", "stats")}, "seconds": r.get("seconds")} for r in self.history]
         cfg = self.ai.config
-        return {"current": self.current and {k: v for k, v in self.current.items() if k != "exchanges"}, "history": summary,
+        return {"queue": {"on": self.queue_on, "items": self.queue, "failed": self.queue_failed},
+                "current": self.current and {k: v for k, v in self.current.items() if k != "exchanges"}, "history": summary,
                 "options": {"providers": public(), "scenarios": SCENARIOS, "presets": PRESETS, "pairs": [{"pair": p, "label": l} for p, l in WATCH], "strategies": cfgmod.STRATEGIES,
                             "defaults": {k: cfg[k] for k in OVERRIDES},
                             "max_days": {str(tf): round(data.max_days(tf)) for tf in cfgmod.TIMEFRAMES}}}

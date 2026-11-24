@@ -2,7 +2,7 @@ import {
   createChart, type IChartApi, type IPriceLine, type ISeriesApi, type SeriesMarker, type Time,
 } from 'lightweight-charts'
 import { useEffect, useMemo, useRef } from 'react'
-import { CANDLE_STYLE, CHART_OPTIONS, indicatorLine, levelLineOptions } from '@/components/chart/chartTheme'
+import { CANDLE_STYLE, CHART_OPTIONS, chartBox, indicatorLine, levelLineOptions } from '@/components/chart/chartTheme'
 import type { ChartLevel, ChartMarker } from '@/lib/chartTypes'
 import type { Candle, LineSpec, SubSpec } from '@/lib/learn/methods'
 
@@ -111,11 +111,11 @@ export function ReplayChart({ candles, lines = [], sub, markers = [], levels = [
 
   return (
     <div>
-      <div ref={mainEl} style={{ height }} />
+      <div ref={mainEl} style={chartBox(height)} />
       {sub && (
         <>
           <div className="small t-mu" style={{ margin: '6px 0 2px' }}>{sub.title}</div>
-          <div ref={subEl} style={{ height: 150 }} />
+          <div ref={subEl} style={chartBox(150)} />
         </>
       )}
     </div>

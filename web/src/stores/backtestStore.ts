@@ -34,6 +34,12 @@ interface BacktestStore {
   toggleIn: (name: 'pairs' | 'strategies', value: string) => void
   applyPreset: (p: AiPreset) => void
   start: () => Promise<void>
+  /** Ajoute à la file les réglages du formulaire, un essai par combinaison des axes (chaque axe = liste de réglages partiels ; aucun axe = un seul essai). */
+  enqueue: (axes?: Record<string, unknown>[][]) => Promise<boolean>
+  queueRun: () => Promise<void>
+  queueStop: () => Promise<void>
+  queueClear: () => Promise<void>
+  queueRemove: (id: string) => Promise<void>
   cancel: () => Promise<void>
   pause: () => Promise<void>
   resume: () => Promise<void>
@@ -139,6 +145,28 @@ export const useBacktestStore = create<BacktestStore>((set, get) => ({
     const d = get().draft
     if (!d) return
     if (await runAction(() => api.post('/api/backtest/start', toPayload(d)), 'Backtest lancé', get().refresh)) set({ viewing: null })
+  },
+
+  enqueue: async (axes = []) => {
+    const d = get().draft
+    if (!d) return false
+    return runAction(() => api.post('/api/backtest/queue', { base: toPayload(d), axes }), 'Ajouté à la file d’attente', get().refresh)
+  },
+
+  queueRun: async () => {
+    await runAction(() => api.post('/api/backtest/queue/run'), 'File lancée : les essais s’enchaînent', get().refresh)
+  },
+
+  queueStop: async () => {
+    await runAction(() => api.post('/api/backtest/queue/stop'), 'La file s’arrêtera après l’essai en cours', get().refresh)
+  },
+
+  queueClear: async () => {
+    await runAction(() => api.del('/api/backtest/queue'), 'File vidée', get().refresh)
+  },
+
+  queueRemove: async (id) => {
+    await runAction(() => api.del(`/api/backtest/queue/${id}`), undefined, get().refresh)
   },
 
   cancel: async () => {

@@ -1,6 +1,7 @@
 import { FlaskConical, Info } from 'lucide-react'
 import { useEffect } from 'react'
 import { BacktestForm } from '@/components/backtest/BacktestForm'
+import { BacktestQueue } from '@/components/backtest/BacktestQueue'
 import { BacktestTabs } from '@/components/backtest/BacktestTabs'
 import { BacktestProgress } from '@/components/backtest/BacktestProgress'
 import { BacktestStatsCard } from '@/components/backtest/BacktestStats'
@@ -57,6 +58,7 @@ export function BacktestPage() {
       <main className="layout">
         <div className="col">
           <BacktestForm busy={busy} paused={current?.status === 'paused'} />
+          <BacktestQueue />
           <BacktestTabs />
         </div>
         <div className="col">

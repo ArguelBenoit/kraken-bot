@@ -32,6 +32,32 @@ def resume():
     return run(backtest.resume)
 
 
+@bp.post("/queue")
+def queue_add():
+    body = request.get_json() or {}
+    return run(lambda: backtest.enqueue_grid(body.get("base") or {}, body.get("axes") or []))
+
+
+@bp.post("/queue/run")
+def queue_run():
+    return run(backtest.queue_run)
+
+
+@bp.post("/queue/stop")
+def queue_stop():
+    return run(backtest.queue_stop)
+
+
+@bp.delete("/queue")
+def queue_clear():
+    return run(backtest.queue_clear)
+
+
+@bp.delete("/queue/<item_id>")
+def queue_remove(item_id):
+    return run(lambda: backtest.queue_remove(item_id))
+
+
 @bp.get("/draft")
 def get_draft():
     return jsonify(draft=backtest.draft())

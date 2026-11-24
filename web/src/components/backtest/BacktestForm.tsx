@@ -1,4 +1,4 @@
-import { FlaskConical, Pause, Play, Square } from 'lucide-react'
+import { FlaskConical, ListPlus, Pause, Play, Square } from 'lucide-react'
 import { Accordion } from '@/components/ui/Accordion'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -19,7 +19,7 @@ import { useBacktestStore } from '@/stores/backtestStore'
 export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean }) {
   const status = useBacktestStore((s) => s.status)
   const draft = useBacktestStore((s) => s.draft)
-  const { setField, toggleIn, applyPreset, start, cancel, pause, resume } = useBacktestStore.getState()
+  const { setField, toggleIn, applyPreset, start, enqueue, cancel, pause, resume } = useBacktestStore.getState()
   if (!status || !draft) return <Card title="Paramètres" icon={FlaskConical}>Chargement…</Card>
 
   const { options } = status
@@ -28,6 +28,7 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
   const calls = estimateCalls(Number(draft.days), tf, Number(draft.interval_min))
   const tooLong = Number(draft.days) > maxDays
   const scenario = options.scenarios.find((s) => s.end === draft.end)
+  const invalid = tooLong || draft.pairs.length === 0 || draft.strategies.length === 0 || calls === 0
   const number = (def: { name: string }) => draft[def.name as BtNumericKey]
 
   return (
@@ -113,7 +114,8 @@ export function BacktestForm({ busy, paused }: { busy: boolean; paused: boolean 
                 : <Button variant="sec" onClick={() => void pause()}><Pause className="ic f mr" />Pause</Button>}
               <Button variant="ko" onClick={() => void cancel()}><Square className="ic f mr" />Annuler</Button>
             </>
-            : <Button type="submit" disabled={tooLong || draft.pairs.length === 0 || draft.strategies.length === 0 || calls === 0}><Play className="ic f mr" />Lancer le backtest</Button>}
+            : <Button type="submit" disabled={invalid}><Play className="ic f mr" />Lancer le backtest</Button>}
+          <Button variant="sec" disabled={invalid} onClick={() => void enqueue()}><ListPlus className="ic mr" />Ajouter à la file</Button>
         </div>
       </form>
     </Card>
