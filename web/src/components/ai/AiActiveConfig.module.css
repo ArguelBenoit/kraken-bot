@@ -1,0 +1,5 @@
+.grid { display: grid; grid-template-columns: max-content 1fr; gap: 3px 14px; font-size: 12px; }
+.grid dt { color: var(--mu); }
+.grid dd { margin: 0; overflow-wrap: anywhere; }
+.changed { color: var(--ac); }
+.form { color: var(--mu); }

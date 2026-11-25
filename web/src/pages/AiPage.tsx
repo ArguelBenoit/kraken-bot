@@ -1,9 +1,11 @@
 import { Bot } from 'lucide-react'
+import { AiActiveConfig } from '@/components/ai/AiActiveConfig'
 import { AiControls } from '@/components/ai/AiControls'
 import { AiSettingsCard } from '@/components/ai/AiSettingsCard'
 import { DecisionsCard } from '@/components/ai/DecisionsCard'
 import { AiOpenTrades } from '@/components/ai/AiOpenTrades'
 import { Header, Kpi } from '@/components/layout/Header'
+import { RegimeKpi } from '@/components/layout/RegimeKpi'
 import { LogCard } from '@/components/ui/LogCard'
 import { PairTradesCard } from '@/components/ui/PairTradesCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
@@ -42,6 +44,7 @@ export function AiPage() {
         <Kpi bare label="Statut">
           <StatusBadge running={!!status?.running} runningLabel={status?.reviewing ? 'ANALYSE…' : 'EN COURS'} />
         </Kpi>
+        <RegimeKpi />
         <Kpi label="Positions" tip={AI_KPI_TIPS['Positions']}>
           <b>{status ? `${status.positions.length} / ${c?.max_positions}` : '–'}</b>
         </Kpi>
@@ -49,6 +52,7 @@ export function AiPage() {
       <main className="layout">
         <div className="col">
           {status && <AiControls status={status} />}
+          {status && <AiActiveConfig status={status} />}
           <AiSettingsCard />
         </div>
         <div className="col">

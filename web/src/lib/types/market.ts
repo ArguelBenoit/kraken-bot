@@ -38,3 +38,20 @@ export interface ChartData {
   /** Achats / ventes passés à repérer sur le graphique. */
   marks: { time: number; side: 'BUY' | 'SELL' }[]
 }
+
+/** État du marché (`GET /api/regime`) : variation médiane des paires suivies sur 14 jours. */
+export interface MarketRegime {
+  trend: 'hausse' | 'baisse' | 'range'
+  /** Variation médiane des paires sur `days` jours (%), et sur `long_days` jours. */
+  change_pct: number
+  long_change_pct: number
+  /** Variation du bitcoin seul sur `days` jours (null s'il est injoignable). */
+  btc_change_pct: number | null
+  /** Paires comptées, et parmi elles celles qui vont dans le même sens que la médiane. */
+  pairs: number
+  agree: number
+  days: number
+  long_days: number
+  /** Écart (%) au-delà duquel le marché est en tendance. */
+  threshold_pct: number
+}

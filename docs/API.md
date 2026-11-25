@@ -17,6 +17,7 @@ Si `APP_PASSWORD` est défini, l'accès hors localhost exige une authentificatio
 |---|---|
 | `GET /api/chart?pair&tf` | Bougies, RSI(14) et repères des trades passés sur la paire (`tf` : 15, 60, 240, 1440). |
 | `GET /api/scan?tf` | Tableau Marché : prix, variation 24 h, volume, volatilité, RSI, tendance (écart EMA20 / EMA50, croisement) et %B de Bollinger de chaque paire suivie (cache 60 s). |
+| `GET /api/regime` | État du marché : variation médiane des paires suivies sur 14 jours (`hausse` / `baisse` / `range` au-delà de ±10 %), sur 30 jours, bitcoin seul, nombre de paires dans le même sens (cache 10 min). Affiché dans le bandeau du Trading et du Bot IA. |
 
 ## Bot IA
 

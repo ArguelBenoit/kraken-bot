@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 
 from server.market import chart as chart_data
+from server.market.regime import regime
 from server.market.scan import scan
 from server.services import manual
 
@@ -31,3 +32,9 @@ def scan_route():
         return jsonify(error=str(e)), 400
     except Exception as e:
         return jsonify(error=str(e)), 502
+
+
+@bp.get("/regime")
+def regime_route():
+    data = regime()
+    return (jsonify(data), 200) if data else (jsonify(error="Marché indisponible"), 502)

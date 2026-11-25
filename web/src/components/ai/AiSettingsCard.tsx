@@ -11,6 +11,7 @@ import { StabilityFields } from '@/components/ui/StabilityFields'
 import { Tip } from '@/components/ui/Tip'
 import { AI_TFS } from '@/lib/constants'
 import { EDGE_FIELDS, MONEY_FIELDS, PARALLEL_FIELD, RHYTHM_FIELDS, SHORT_FEE_FIELD, SHORT_FIELD, TEMPERATURE_FIELD, type NumberField } from '@/lib/aiForm'
+import { changedKeys } from '@/lib/aiConfigView'
 import type { Aggressiveness } from '@/lib/types'
 import { useAiStore } from '@/stores/aiStore'
 import { AiWarnings } from './AiWarnings'
@@ -31,6 +32,7 @@ export function AiSettingsCard() {
 
   const { options, key_ok, credit_low } = status
   const provider = options.providers[draft.provider]
+  const unsaved = changedKeys(draft, status.config).length
 
   return (
     <Card title="Réglages IA" icon={Settings}>
@@ -93,6 +95,7 @@ export function AiSettingsCard() {
           <textarea rows={3} maxLength={500} value={draft.notes} onChange={(e) => setField('notes', e.target.value)} placeholder="Ex : évite les memecoins, privilégie BTC et ETH" />
         </label>
 
+        {unsaved > 0 && <div className="hint t-ko">{unsaved} réglage{unsaved > 1 ? 's' : ''} modifié{unsaved > 1 ? 's' : ''} non enregistré{unsaved > 1 ? 's' : ''} : le bot applique encore la configuration active.</div>}
         <div className="row">
           <Button type="submit">Enregistrer</Button>
           <Button variant="sec" onClick={restore}><RotateCcw className="ic mr" />Restaurer</Button>

@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { MarketCard } from '@/components/market/MarketCard'
 import type { ChartLevel } from '@/lib/chartTypes'
 import { Header, Kpi } from '@/components/layout/Header'
+import { RegimeKpi } from '@/components/layout/RegimeKpi'
 import { LogCard } from '@/components/ui/LogCard'
 import { ModeSwitch } from '@/components/ui/ModeSwitch'
 import { PairTradesCard } from '@/components/ui/PairTradesCard'
@@ -75,6 +76,7 @@ export function TradingPage() {
         <Kpi bare label="Mode" tipRight={false} tip="Paper = simulation, aucun argent engagé. LIVE = ordres réels sur ton compte Kraken (jamais testé).">
           <ModeSwitch mode={status?.config.mode ?? 'paper'} onChange={(m) => void setMode(m)} />
         </Kpi>
+        <RegimeKpi />
         <Kpi label="Positions" tip="Positions ouvertes. En paper, leurs stops sont simulés par ce programme ; en live, le stop loss est posé chez Kraken (objectif et stop suiveur restent surveillés ici).">
           <b>{status ? status.positions.length : '–'}</b>
         </Kpi>
